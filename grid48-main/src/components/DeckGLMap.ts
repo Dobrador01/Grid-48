@@ -113,7 +113,7 @@ import type { FeatureCollection, Geometry } from 'geojson';
 import { isAllowedPreviewUrl } from '@/utils/imagery-preview';
 
 export type TimeRange = '1h' | '6h' | '24h' | '48h' | '7d' | 'all';
-export type DeckMapView = 'global' | 'america' | 'mena' | 'eu' | 'asia' | 'latam' | 'africa' | 'oceania';
+export type DeckMapView = 'global' | 'america' | 'mena' | 'eu' | 'asia' | 'latam' | 'africa' | 'oceania' | 'sjf';
 type MapInteractionMode = 'flat' | '3d';
 
 export interface CountryClickPayload {
@@ -150,6 +150,8 @@ interface TechEventMarker {
 
 // View presets with longitude, latitude, zoom
 const VIEW_PRESETS: Record<DeckMapView, { longitude: number; latitude: number; zoom: number }> = {
+  // Grid 48 default — Grande Florianópolis / São José
+  sjf: { longitude: -48.5495, latitude: -27.5969, zoom: 12 },
   global: { longitude: 0, latitude: 20, zoom: 1.5 },
   america: { longitude: -95, latitude: 38, zoom: 3 },
   mena: { longitude: 45, latitude: 28, zoom: 3.5 },

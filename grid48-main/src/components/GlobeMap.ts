@@ -11,7 +11,7 @@
  *  - Specular/water map: /textures/earth-water.png
  *  - Atmosphere: #4466cc glow via built-in Fresnel shader
  *  - All markers via htmlElementsData (single merged array with _kind discriminator)
- *  - Auto-rotate after 60 s of inactivity
+ *  - Auto-rotate DISABLED (Grid 48 is a regional fixed-view dashboard)
  */
 
 import Globe from 'globe.gl';
@@ -532,8 +532,8 @@ export class GlobeMap {
     // Orbit controls — match Sentinel's settings
     const controls = globe.controls() as GlobeControlsLike;
     this.controls = controls;
-    controls.autoRotate = !desktop;
-    controls.autoRotateSpeed = 0.3;
+    controls.autoRotate = false; // Grid 48: auto-rotate disabled
+    controls.autoRotateSpeed = 0;
     controls.enablePan = false;
     controls.enableZoom = true;
     controls.zoomSpeed = 1.4;
@@ -589,11 +589,7 @@ export class GlobeMap {
       if (this.autoRotateTimer) clearTimeout(this.autoRotateTimer);
     };
     const scheduleResumeAutoRotate = () => {
-      if (this.renderPaused) return;
-      if (this.autoRotateTimer) clearTimeout(this.autoRotateTimer);
-      this.autoRotateTimer = setTimeout(() => {
-        if (!this.renderPaused) controls.autoRotate = !desktop;
-      }, 60_000);
+      // Grid 48: auto-rotate permanently disabled
     };
 
     const canvas = this.container.querySelector('canvas');

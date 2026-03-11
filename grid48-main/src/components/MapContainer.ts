@@ -44,7 +44,7 @@ import type { IranEvent } from '@/services/conflict';
 import type { ImageryScene } from '@/generated/server/worldmonitor/imagery/v1/service_server';
 
 export type TimeRange = '1h' | '6h' | '24h' | '48h' | '7d' | 'all';
-export type MapView = 'global' | 'america' | 'mena' | 'eu' | 'asia' | 'latam' | 'africa' | 'oceania';
+export type MapView = 'global' | 'america' | 'mena' | 'eu' | 'asia' | 'latam' | 'africa' | 'oceania' | 'sjf';
 
 export interface MapContainerState {
   zoom: number;

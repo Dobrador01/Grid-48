@@ -11,7 +11,7 @@ const _desktop = isDesktopRuntime();
 // Panel order matters! First panels appear at top of grid.
 // Desired order: live-news, AI Insights, AI Strategic Posture, cii, strategic-risk, then rest
 const FULL_PANELS: Record<string, PanelConfig> = {
-  map: { name: 'Global Map', enabled: true, priority: 1 },
+  map: { name: 'Mapa — Grande Florianópolis', enabled: true, priority: 1 },
   'live-news': { name: 'Live News', enabled: true, priority: 1 },
   'live-webcams': { name: 'Live Webcams', enabled: true, priority: 1 },
   insights: { name: 'AI Insights', enabled: true, priority: 1 },
@@ -27,37 +27,36 @@ const FULL_PANELS: Record<string, PanelConfig> = {
   climate: { name: 'Climate Anomalies', enabled: true, priority: 2 },
   'population-exposure': { name: 'Population Exposure', enabled: true, priority: 2 },
   'security-advisories': { name: 'Security Advisories', enabled: true, priority: 2 },
-  'oref-sirens': { name: 'Israel Sirens', enabled: true, priority: 2, ...(_desktop && { premium: 'locked' as const }) },
-  'telegram-intel': { name: 'Telegram Intel', enabled: true, priority: 2, ...(_desktop && { premium: 'locked' as const }) },
   'airline-intel': { name: 'Airline Intelligence', enabled: true, priority: 2 },
   'tech-readiness': { name: 'Tech Readiness Index', enabled: true, priority: 2 },
   'world-clock': { name: 'World Clock', enabled: true, priority: 2 },
 };
 
 const FULL_MAP_LAYERS: MapLayers = {
-  iranAttacks: _desktop ? false : true,
+  // Grid 48: todas as camadas geopolíticas globais desativadas por padrão
+  iranAttacks: false,
   gpsJamming: false,
   satellites: false,
   notamOverlay: false,
 
-  conflicts: true,
-  bases: _desktop ? false : true,
+  conflicts: false,
+  bases: false,
   cables: false,
   pipelines: false,
   hotspots: true,
   ais: false,
-  nuclear: true,
+  nuclear: false,
   irradiators: false,
-  sanctions: true,
+  sanctions: false,
   weather: true,
-  economic: true,
-  waterways: true,
+  economic: false,
+  waterways: false,
   outages: true,
   cyberThreats: false,
   datacenters: false,
   protests: false,
   flights: false,
-  military: true,
+  military: false,
   natural: true,
   spaceports: false,
   minerals: false,
@@ -94,12 +93,13 @@ const FULL_MAP_LAYERS: MapLayers = {
 };
 
 const FULL_MOBILE_MAP_LAYERS: MapLayers = {
-  iranAttacks: true,
+  // Grid 48: todas as camadas geopolíticas globais desativadas por padrão
+  iranAttacks: false,
   gpsJamming: false,
   satellites: false,
   notamOverlay: false,
 
-  conflicts: true,
+  conflicts: false,
   bases: false,
   cables: false,
   pipelines: false,
@@ -107,7 +107,7 @@ const FULL_MOBILE_MAP_LAYERS: MapLayers = {
   ais: false,
   nuclear: false,
   irradiators: false,
-  sanctions: true,
+  sanctions: false,
   weather: true,
   economic: false,
   waterways: false,

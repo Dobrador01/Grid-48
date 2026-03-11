@@ -61,7 +61,7 @@ export class App {
     if (!el) throw new Error(`Container ${containerId} not found`);
 
     const PANEL_ORDER_KEY = 'panel-order';
-    const PANEL_SPANS_KEY = 'worldmonitor-panel-spans';
+    const PANEL_SPANS_KEY = 'grid48-panel-spans';
 
     const isMobile = isMobileDevice();
     const isDesktopApp = isDesktopRuntime();
@@ -74,13 +74,13 @@ export class App {
     let panelSettings: Record<string, PanelConfig>;
 
     // Check if variant changed - reset all settings to variant defaults
-    const storedVariant = localStorage.getItem('worldmonitor-variant');
+    const storedVariant = localStorage.getItem('grid48-variant');
     const currentVariant = SITE_VARIANT;
     console.log(`[App] Variant check: stored="${storedVariant}", current="${currentVariant}"`);
     if (storedVariant !== currentVariant) {
       // Variant changed - use defaults for new variant, clear old settings
       console.log('[App] Variant changed - resetting to defaults');
-      localStorage.setItem('worldmonitor-variant', currentVariant);
+      localStorage.setItem('grid48-variant', currentVariant);
       localStorage.removeItem(STORAGE_KEYS.mapLayers);
       localStorage.removeItem(STORAGE_KEYS.panels);
       localStorage.removeItem(PANEL_ORDER_KEY);
@@ -107,7 +107,7 @@ export class App {
       console.log('[App] Loaded panel settings from storage:', Object.entries(panelSettings).filter(([_, v]) => !v.enabled).map(([k]) => k));
 
       // One-time migration: reorder panels for existing users (v1.9 panel layout)
-      const PANEL_ORDER_MIGRATION_KEY = 'worldmonitor-panel-order-v1.9';
+      const PANEL_ORDER_MIGRATION_KEY = 'grid48-panel-order-v1.9';
       if (!localStorage.getItem(PANEL_ORDER_MIGRATION_KEY)) {
         const savedOrder = localStorage.getItem(PANEL_ORDER_KEY);
         if (savedOrder) {
@@ -130,7 +130,7 @@ export class App {
 
       // Tech variant migration: move insights to top (after live-news)
       if (currentVariant === 'tech') {
-        const TECH_INSIGHTS_MIGRATION_KEY = 'worldmonitor-tech-insights-top-v1';
+        const TECH_INSIGHTS_MIGRATION_KEY = 'grid48-tech-insights-top-v1';
         if (!localStorage.getItem(TECH_INSIGHTS_MIGRATION_KEY)) {
           const savedOrder = localStorage.getItem(PANEL_ORDER_KEY);
           if (savedOrder) {
@@ -153,7 +153,7 @@ export class App {
     }
 
     // One-time migration: prune removed panel keys from stored settings and order
-    const PANEL_PRUNE_KEY = 'worldmonitor-panel-prune-v1';
+    const PANEL_PRUNE_KEY = 'grid48-panel-prune-v1';
     if (!localStorage.getItem(PANEL_PRUNE_KEY)) {
       const validKeys = new Set(Object.keys(DEFAULT_PANELS));
       let pruned = false;
@@ -178,7 +178,7 @@ export class App {
     }
 
     // One-time migration: clear stale panel ordering and sizing state
-    const LAYOUT_RESET_MIGRATION_KEY = 'worldmonitor-layout-reset-v2.5';
+    const LAYOUT_RESET_MIGRATION_KEY = 'grid48-layout-reset-v2.5';
     if (!localStorage.getItem(LAYOUT_RESET_MIGRATION_KEY)) {
       const hadSavedOrder = !!localStorage.getItem(PANEL_ORDER_KEY);
       const hadSavedSpans = !!localStorage.getItem(PANEL_SPANS_KEY);
@@ -214,7 +214,7 @@ export class App {
     }
     // One-time migration: reduce default-enabled sources (full variant only)
     if (currentVariant === 'full') {
-      const baseKey = 'worldmonitor-sources-reduction-v3';
+      const baseKey = 'grid48-sources-reduction-v3';
       if (!localStorage.getItem(baseKey)) {
         const defaultDisabled = computeDefaultDisabledSources();
         saveToStorage(STORAGE_KEYS.disabledFeeds, defaultDisabled);
@@ -224,7 +224,7 @@ export class App {
       }
       // Locale boost: additively enable locale-matched sources (runs once per locale)
       const userLang = ((navigator.language ?? 'en').split('-')[0] ?? 'en').toLowerCase();
-      const localeKey = `worldmonitor-locale-boost-${userLang}`;
+      const localeKey = `grid48-locale-boost-${userLang}`;
       if (userLang !== 'en' && !localStorage.getItem(localeKey)) {
         const boosted = getLocaleBoostedSources(userLang);
         if (boosted.size > 0) {

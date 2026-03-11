@@ -60,7 +60,7 @@ import type { CountryClickPayload } from './DeckGLMap';
 import { t } from '@/services/i18n';
 
 export type TimeRange = '1h' | '6h' | '24h' | '48h' | '7d' | 'all';
-export type MapView = 'global' | 'america' | 'mena' | 'eu' | 'asia' | 'latam' | 'africa' | 'oceania';
+export type MapView = 'global' | 'america' | 'mena' | 'eu' | 'asia' | 'latam' | 'africa' | 'oceania' | 'sjf';
 
 interface MapState {
   zoom: number;
@@ -3075,6 +3075,8 @@ export class MapComponent {
     // Region-specific zoom and pan settings
     // Pan: +x = west, -x = east, +y = north, -y = south
     const viewSettings: Record<MapView, { zoom: number; pan: { x: number; y: number } }> = {
+      // Grid 48 default — Grande Florianópolis / São José
+      sjf: { zoom: 8, pan: { x: 144, y: -155 } },
       global: { zoom: 1, pan: { x: 0, y: 0 } },
       america: { zoom: 1.8, pan: { x: 180, y: 30 } },
       mena: { zoom: 3.5, pan: { x: -100, y: 50 } },

@@ -11,8 +11,8 @@ const sentryDsn = import.meta.env.VITE_SENTRY_DSN?.trim();
 // Initialize Sentry error tracking (early as possible)
 Sentry.init({
   dsn: sentryDsn || undefined,
-  release: `worldmonitor@${__APP_VERSION__}`,
-  environment: location.hostname === 'worldmonitor.app' ? 'production'
+  release: `grid48@${__APP_VERSION__}`,
+  environment: location.hostname === 'grid48.app' ? 'production'
     : location.hostname.includes('vercel.app') ? 'preview'
     : 'development',
   enabled: Boolean(sentryDsn) && !location.hostname.startsWith('localhost') && !('__TAURI_INTERNALS__' in window),
@@ -300,7 +300,7 @@ initMetaTags();
 
 // In desktop mode, route /api/* calls to the local Tauri sidecar backend.
 installRuntimeFetchPatch();
-// In web production, route RPC calls through api.worldmonitor.app (Cloudflare edge).
+// In web production, route RPC calls through api.grid48.app (Cloudflare edge).
 installWebApiRedirect();
 loadDesktopSecrets().catch(() => {});
 
@@ -325,7 +325,7 @@ requestAnimationFrame(() => {
 });
 
 // Clear stale settings-open flag (survives ungraceful shutdown)
-localStorage.removeItem('wm-settings-open');
+localStorage.removeItem('grid48-settings-open');
 
 // Standalone windows: ?settings=1 = panel display settings, ?live-channels=1 = channel management
 // Both need i18n initialized so t() does not return undefined.
