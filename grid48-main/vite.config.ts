@@ -189,7 +189,6 @@ function sebufApiPlugin(): Plugin {
       economicServerMod, economicHandlerMod,
       infrastructureServerMod, infrastructureHandlerMod,
       marketServerMod, marketHandlerMod,
-      newsServerMod, newsHandlerMod,
       intelligenceServerMod, intelligenceHandlerMod,
       militaryServerMod, militaryHandlerMod,
       positiveEventsServerMod, positiveEventsHandlerMod,
@@ -224,8 +223,6 @@ function sebufApiPlugin(): Plugin {
         import('./src/generated/server/worldmonitor/cyber/v1/service_server'),
         import('./server/worldmonitor/cyber/v1/handler'),
 
-        import('./src/generated/server/worldmonitor/news/v1/service_server'),
-        import('./server/worldmonitor/news/v1/handler'),
         import('./src/generated/server/worldmonitor/intelligence/v1/service_server'),
         import('./server/worldmonitor/intelligence/v1/handler'),
         import('./src/generated/server/worldmonitor/military/v1/service_server'),
@@ -252,8 +249,6 @@ function sebufApiPlugin(): Plugin {
       ...conflictServerMod.createConflictServiceRoutes(conflictHandlerMod.conflictHandler, serverOptions),
       ...maritimeServerMod.createMaritimeServiceRoutes(maritimeHandlerMod.maritimeHandler, serverOptions),
       ...cyberServerMod.createCyberServiceRoutes(cyberHandlerMod.cyberHandler, serverOptions),
-
-      ...newsServerMod.createNewsServiceRoutes(newsHandlerMod.newsHandler, serverOptions),
       ...intelligenceServerMod.createIntelligenceServiceRoutes(intelligenceHandlerMod.intelligenceHandler, serverOptions),
       ...militaryServerMod.createMilitaryServiceRoutes(militaryHandlerMod.militaryHandler, serverOptions),
       ...positiveEventsServerMod.createPositiveEventsServiceRoutes(positiveEventsHandlerMod.positiveEventsHandler, serverOptions),
