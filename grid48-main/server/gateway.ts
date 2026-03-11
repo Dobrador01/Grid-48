@@ -11,7 +11,7 @@
 
 import { createRouter, type RouteDescriptor } from './router';
 import { getCorsHeaders, isDisallowedOrigin } from './cors';
-// @ts-expect-error — JS module, no declaration file
+// @ts-ignore — JS module, no declaration file
 import { validateApiKey } from '../api/_api-key.js';
 import { mapErrorToResponse } from './error-mapper';
 import { checkRateLimit, checkEndpointRateLimit, hasEndpointRatePolicy } from './_shared/rate-limit';
@@ -68,8 +68,6 @@ const RPC_CACHE_TIER: Record<string, CacheTier> = {
   '/api/aviation/v1/track-aircraft': 'no-store',
   '/api/aviation/v1/search-flight-prices': 'medium',
   '/api/aviation/v1/list-aviation-news': 'slow',
-  '/api/aviation/v1/search-flight-prices': 'medium',
-  '/api/aviation/v1/list-aviation-news': 'slow',
 
   '/api/natural/v1/list-natural-events': 'slow',
   '/api/wildfire/v1/list-fire-detections': 'static',
@@ -81,11 +79,9 @@ const RPC_CACHE_TIER: Record<string, CacheTier> = {
   '/api/conflict/v1/list-iran-events': 'slow',
   '/api/displacement/v1/get-displacement-summary': 'static',
   '/api/displacement/v1/get-population-exposure': 'static',
-  '/api/displacement/v1/get-population-exposure': 'static',
   '/api/military/v1/get-aircraft-details': 'static',
   '/api/military/v1/get-wingbits-status': 'static',
 
-  '/api/military/v1/list-military-flights': 'slow',
   '/api/military/v1/list-military-flights': 'slow',
   '/api/research/v1/list-hackernews-items': 'slow',
   '/api/intelligence/v1/get-risk-scores': 'slow',
@@ -93,7 +89,6 @@ const RPC_CACHE_TIER: Record<string, CacheTier> = {
   '/api/infrastructure/v1/get-cable-health': 'slow',
   '/api/positive-events/v1/list-positive-geo-events': 'slow',
 
-  '/api/military/v1/list-military-bases': 'static',
   '/api/military/v1/list-military-bases': 'static',
   '/api/prediction/v1/list-prediction-markets': 'medium',
   '/api/news/v1/list-feed-digest': 'slow',

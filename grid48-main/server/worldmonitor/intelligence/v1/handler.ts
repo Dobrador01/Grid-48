@@ -10,6 +10,9 @@ import { deductSituation } from './deduct-situation';
 export const intelligenceHandler: IntelligenceServiceHandler = {
   getRiskScores,
 
+  // getPizzintStatus is defined in the proto but not used in Grid 48
+  getPizzintStatus: async () => ({ tensionPairs: [] }),
+
   classifyEvent,
   getCountryIntelBrief,
   searchGdeltDocuments,

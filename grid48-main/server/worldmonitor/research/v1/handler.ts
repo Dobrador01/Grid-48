@@ -19,4 +19,6 @@ export const researchHandler: ResearchServiceHandler = {
   listTrendingRepos,
   listHackernewsItems,
 
+  // listTechEvents is defined in the proto but not used in Grid 48
+  listTechEvents: async () => ({ success: true, count: 0, conferenceCount: 0, mappableCount: 0, lastUpdated: '', events: [], error: '' }),
 };
