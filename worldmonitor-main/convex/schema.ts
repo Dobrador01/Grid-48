@@ -2,6 +2,15 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
 export default defineSchema({
+  alerts: defineTable({
+    title: v.string(),
+    description: v.string(),
+    source: v.string(),
+    category: v.string(),
+    severity: v.string(),
+    coordinates: v.object({ lat: v.number(), lng: v.number() }),
+    timestamp: v.number(),
+  }),
   registrations: defineTable({
     email: v.string(),
     normalizedEmail: v.string(),

@@ -9,6 +9,8 @@
  */
 
 import type * as contactMessages from "../contactMessages.js";
+import type * as gemini from "../gemini.js";
+import type * as ingestion from "../ingestion.js";
 import type * as registerInterest from "../registerInterest.js";
 
 import type {
@@ -19,6 +21,8 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   contactMessages: typeof contactMessages;
+  gemini: typeof gemini;
+  ingestion: typeof ingestion;
   registerInterest: typeof registerInterest;
 }>;
 
