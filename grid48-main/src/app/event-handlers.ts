@@ -7,7 +7,6 @@ import type { DashboardSnapshot } from '@/services/storage';
 import {
   PlaybackControl,
   StatusPanel,
-  CIIPanel,
 } from '@/components';
 import {
   buildMapUrl,
@@ -271,12 +270,6 @@ export class EventHandlerManager implements AppModule {
           this.ctx.unifiedSettings?.refreshPanelToggles();
         } catch (_) { }
       }
-      if (e.key === STORAGE_KEYS.liveChannels && e.newValue) {
-        const panel = this.ctx.panels['live-news'];
-        if (panel && typeof (panel as unknown as { refreshChannelsFromStorage?: () => void }).refreshChannelsFromStorage === 'function') {
-          (panel as unknown as { refreshChannelsFromStorage: () => void }).refreshChannelsFromStorage();
-        }
-      }
     };
     window.addEventListener('storage', this.boundStorageHandler);
 
@@ -354,7 +347,6 @@ export class EventHandlerManager implements AppModule {
     document.addEventListener('visibilitychange', this.boundVisibilityHandler);
 
     this.boundFocalPointsReadyHandler = () => {
-      (this.ctx.panels['cii'] as CIIPanel)?.refresh(true);
       this.callbacks.refreshOpenCountryBrief?.();
     };
     window.addEventListener('focal-points-ready', this.boundFocalPointsReadyHandler);

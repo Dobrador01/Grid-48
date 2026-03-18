@@ -13,7 +13,7 @@ import type { MapVariant } from '@/config/map-layer-definitions';
 import { initDB, cleanOldSnapshots, isAisConfigured, initAisStream, disconnectAisStream } from '@/services';
 import { mlWorker } from '@/services/ml-worker';
 import { getAiFlowSettings, subscribeAiFlowChange, isHeadlineMemoryEnabled } from '@/services/ai-flow-settings';
-import { startLearning } from '@/services/country-instability';
+
 import { loadFromStorage, parseMapUrlState, saveToStorage, isMobileDevice } from '@/utils';
 import type { ParsedMapUrlState } from '@/utils';
 
@@ -33,7 +33,7 @@ import { PanelLayoutManager } from '@/app/panel-layout';
 import { DataLoaderManager } from '@/app/data-loader';
 import { EventHandlerManager } from '@/app/event-handlers';
 import { resolveUserRegion, resolvePreciseUserCoordinates, type PreciseCoordinates } from '@/utils/user-location';
-import { showProBanner } from '@/components/ProBanner';
+
 
 const CYBER_LAYER_ENABLED = import.meta.env.VITE_ENABLE_CYBER_LAYER === 'true';
 
@@ -409,7 +409,7 @@ export class App {
 
     // Phase 1: Layout (creates map + panels — they'll find hydrated data)
     this.panelLayout.init();
-    showProBanner(this.state.container);
+
 
     const mobileGeoCoords = await geoCoordsPromise;
     if (mobileGeoCoords && this.state.map) {
@@ -456,7 +456,7 @@ export class App {
     await preloadCountryGeometry();
     await this.dataLoader.loadAllData();
 
-    startLearning();
+
 
 
     if (!CYBER_LAYER_ENABLED) {

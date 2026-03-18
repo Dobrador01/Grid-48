@@ -12,18 +12,12 @@ const _desktop = isDesktopRuntime();
 // Desired order: live-news, AI Insights, AI Strategic Posture, cii, strategic-risk, then rest
 const FULL_PANELS: Record<string, PanelConfig> = {
   map: { name: 'Mapa — Grande Florianópolis', enabled: true, priority: 1 },
-  'live-news': { name: 'Live News', enabled: true, priority: 1 },
-  'live-webcams': { name: 'Live Webcams', enabled: true, priority: 1 },
   insights: { name: 'AI Insights', enabled: true, priority: 1 },
   'strategic-posture': { name: 'AI Strategic Posture', enabled: true, priority: 1 },
-  cii: { name: 'Country Instability', enabled: true, priority: 1, ...(_desktop && { premium: 'enhanced' as const }) },
   'strategic-risk': { name: 'Strategic Risk Overview', enabled: true, priority: 1, ...(_desktop && { premium: 'enhanced' as const }) },
   intel: { name: 'Intel Feed', enabled: true, priority: 1 },
   'gdelt-intel': { name: 'Live Intelligence', enabled: true, priority: 1, ...(_desktop && { premium: 'enhanced' as const }) },
-  cascade: { name: 'Infrastructure Cascade', enabled: true, priority: 1 },
   'ucdp-events': { name: 'UCDP Conflict Events', enabled: true, priority: 2 },
-  giving: { name: 'Global Giving', enabled: false, priority: 2 },
-  displacement: { name: 'UNHCR Displacement', enabled: true, priority: 2 },
   climate: { name: 'Climate Anomalies', enabled: true, priority: 2 },
   'population-exposure': { name: 'Population Exposure', enabled: true, priority: 2 },
   'security-advisories': { name: 'Security Advisories', enabled: true, priority: 2 },
@@ -784,13 +778,13 @@ export const PANEL_CATEGORY_MAP: Record<string, { labelKey: string; panelKeys: s
   // All variants — essential panels
   core: {
     labelKey: 'header.panelCatCore',
-    panelKeys: ['map', 'live-news', 'live-webcams', 'insights', 'strategic-posture'],
+    panelKeys: ['map', 'insights', 'strategic-posture'],
   },
 
   // Full (geopolitical) variant
   intelligence: {
     labelKey: 'header.panelCatIntelligence',
-    panelKeys: ['cii', 'strategic-risk', 'intel', 'gdelt-intel', 'cascade', 'telegram-intel'],
+    panelKeys: ['strategic-risk', 'intel', 'gdelt-intel', 'telegram-intel'],
     variants: ['full'],
   },
   regionalNews: {
@@ -810,7 +804,7 @@ export const PANEL_CATEGORY_MAP: Record<string, { labelKey: string; panelKeys: s
   },
   dataTracking: {
     labelKey: 'header.panelCatDataTracking',
-    panelKeys: ['ucdp-events', 'displacement', 'climate', 'population-exposure', 'security-advisories', 'oref-sirens', 'world-clock', 'tech-readiness'],
+    panelKeys: ['ucdp-events', 'climate', 'population-exposure', 'security-advisories', 'oref-sirens', 'world-clock', 'tech-readiness'],
     variants: ['full'],
   },
 

@@ -6,10 +6,6 @@ import {
   MapContainer,
   NewsPanel,
   GdeltIntelPanel,
-  LiveNewsPanel,
-  LiveWebcamsPanel,
-  CIIPanel,
-  CascadePanel,
   RuntimeConfigPanel,
   InvestmentsPanel,
   GulfEconomiesPanel,
@@ -42,6 +38,7 @@ export interface PanelLayoutCallbacks {
 
 export class PanelLayoutManager implements AppModule {
   private ctx: AppContext;
+  // @ts-expect-error kept for interface compat — CIIPanel was the only consumer
   private callbacks: PanelLayoutCallbacks;
   private panelDragCleanupHandlers: Array<() => void> = [];
   private resolvedPanelOrder: string[] = [];
@@ -520,30 +517,13 @@ export class PanelLayoutManager implements AppModule {
       });
     }
 
-    if (this.shouldCreatePanel('cii')) {
-      const ciiPanel = new CIIPanel();
-      ciiPanel.setShareStoryHandler((code, name) => {
-        this.callbacks.openCountryStory(code, name);
-      });
-      ciiPanel.setCountryClickHandler((code) => {
-        this.callbacks.openCountryBrief(code);
-      });
-      this.ctx.panels['cii'] = ciiPanel;
-    }
-
-    this.createPanel('cascade', () => new CascadePanel());
 
 
 
 
 
-    this.lazyPanel('displacement', () =>
-      import('@/components/DisplacementPanel').then(m => {
-        const p = new m.DisplacementPanel();
-        p.setCountryClickHandler((lat: number, lon: number) => { this.ctx.map?.setCenter(lat, lon, 4); });
-        return p;
-      }),
-    );
+
+
 
     this.lazyPanel('climate', () =>
       import('@/components/ClimateAnomalyPanel').then(m => {
@@ -595,13 +575,7 @@ export class PanelLayoutManager implements AppModule {
       this.ctx.panels['gulf-economies'] = new GulfEconomiesPanel();
     }
 
-    if (this.shouldCreatePanel('live-news')) {
-      this.ctx.panels['live-news'] = new LiveNewsPanel();
-    }
 
-    if (this.shouldCreatePanel('live-webcams')) {
-      this.ctx.panels['live-webcams'] = new LiveWebcamsPanel();
-    }
 
 
 
@@ -622,10 +596,7 @@ export class PanelLayoutManager implements AppModule {
 
 
 
-    // Global Giving panel (all variants)
-    this.lazyPanel('giving', () =>
-      import('@/components/GivingPanel').then(m => new m.GivingPanel()),
-    );
+
 
     // Happy variant panels (lazy-loaded — only relevant for happy variant)
     if (SITE_VARIANT === 'happy') {
@@ -733,20 +704,7 @@ export class PanelLayoutManager implements AppModule {
     } else {
       allOrder = [...defaultOrder];
 
-      if (SITE_VARIANT !== 'happy') {
-        const liveNewsIdx = allOrder.indexOf('live-news');
-        if (liveNewsIdx > 0) {
-          allOrder.splice(liveNewsIdx, 1);
-          allOrder.unshift('live-news');
-        }
 
-        const webcamsIdx = allOrder.indexOf('live-webcams');
-        if (webcamsIdx !== -1 && webcamsIdx !== allOrder.indexOf('live-news') + 1) {
-          allOrder.splice(webcamsIdx, 1);
-          const afterNews = allOrder.indexOf('live-news') + 1;
-          allOrder.splice(afterNews, 0, 'live-webcams');
-        }
-      }
 
       if (this.ctx.isDesktopApp) {
         const runtimeIdx = allOrder.indexOf('runtime-config');

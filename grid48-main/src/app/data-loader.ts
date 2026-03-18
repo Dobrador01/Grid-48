@@ -63,7 +63,6 @@ import { canQueueAiClassification, AI_CLASSIFY_MAX_PER_FEED } from '@/services/a
 import { classifyWithAI } from '@/services/threat-classifier';
 import { ingestHeadlines } from '@/services/trending-keywords';
 import type { ListFeedDigestResponse } from '@/generated/client/worldmonitor/news/v1/service_client';
-import { mountCommunityWidget } from '@/components/CommunityWidget';
 import type { ThreatLevel as ClientThreatLevel } from '@/services/threat-classifier';
 import type { NewsItem as ProtoNewsItem, ThreatLevel as ProtoThreatLevel } from '@/generated/client/worldmonitor/news/v1/service_client';
 
@@ -783,7 +782,6 @@ export class DataLoaderManager implements AppModule {
 
     this.ctx.allNews = collectedNews;
     this.ctx.initialLoadComplete = true;
-    mountCommunityWidget();
 
     this.ctx.map?.updateHotspotActivity(this.ctx.allNews);
 

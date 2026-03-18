@@ -1929,6 +1929,7 @@ export class GlobeMap {
     latam:    { lat: -15, lng: -60,  altitude: 1.5 },
     africa:   { lat:  5,  lng:  20,  altitude: 1.5 },
     oceania:  { lat: -25, lng: 140,  altitude: 1.5 },
+    sjf:      { lat: -27.5969, lng: -48.5495, altitude: 0.08 },
   };
 
   public setView(view: MapView): void {
