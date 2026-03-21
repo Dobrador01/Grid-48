@@ -1,10 +1,7 @@
 import type { MapLayers } from '@/types';
-import { isDesktopRuntime } from '@/services/runtime';
 
 export type MapRenderer = 'flat' | 'globe';
 export type MapVariant = 'full' | 'tech' | 'finance' | 'happy' | 'commodity';
-
-const _desktop = isDesktopRuntime();
 
 export interface LayerDefinition {
   key: keyof MapLayers;
@@ -24,98 +21,28 @@ const def = (
   premium?: 'locked' | 'enhanced',
 ): LayerDefinition => ({ key, icon, i18nSuffix, fallbackLabel, renderers, ...(premium && { premium }) });
 
+// Only layers relevant to Grande Florianópolis / Brazil
 export const LAYER_REGISTRY: Record<keyof MapLayers, LayerDefinition> = {
-  iranAttacks:              def('iranAttacks',              '&#127919;', 'iranAttacks',              'Iran Attacks', ['flat', 'globe'], _desktop ? 'locked' : undefined),
-  hotspots:                 def('hotspots',                 '&#127919;', 'intelHotspots',            'Intel Hotspots'),
-  conflicts:                def('conflicts',                '&#9876;',   'conflictZones',            'Conflict Zones'),
-
-  bases:                    def('bases',                    '&#127963;', 'militaryBases',            'Military Bases'),
-  nuclear:                  def('nuclear',                  '&#9762;',   'nuclearSites',             'Nuclear Sites'),
-  irradiators:              def('irradiators',              '&#9888;',   'gammaIrradiators',         'Gamma Irradiators'),
-  spaceports:               def('spaceports',               '&#128640;', 'spaceports',               'Spaceports'),
-  satellites:               def('satellites',               '&#128752;', 'satellites',               'Orbital Surveillance', ['flat', 'globe']),
-  notamOverlay:             def('notamOverlay',             '&#9888;',   'notamOverlay',             'NOTAM Closures'),
-  cables:                   def('cables',                   '&#128268;', 'underseaCables',           'Undersea Cables'),
-  pipelines:                def('pipelines',                '&#128738;', 'pipelines',                'Pipelines'),
-  datacenters:              def('datacenters',              '&#128421;', 'aiDataCenters',            'AI Data Centers'),
-  military:                 def('military',                 '&#9992;',   'militaryActivity',         'Military Activity'),
-  ais:                      def('ais',                      '&#128674;', 'shipTraffic',              'Ship Traffic'),
-  tradeRoutes:              def('tradeRoutes',              '&#9875;',   'tradeRoutes',              'Trade Routes'),
-  flights:                  def('flights',                  '&#9992;',   'flightDelays',             'Aviation'),
-  protests:                 def('protests',                 '&#128226;', 'protests',                 'Protests'),
-  ucdpEvents:               def('ucdpEvents',               '&#9876;',   'ucdpEvents',               'Armed Conflict Events'),
-  displacement:             def('displacement',             '&#128101;', 'displacementFlows',        'Displacement Flows'),
-  climate:                  def('climate',                  '&#127787;', 'climateAnomalies',         'Climate Anomalies'),
-  weather:                  def('weather',                  '&#9928;',   'weatherAlerts',            'Weather Alerts'),
-  outages:                  def('outages',                  '&#128225;', 'internetOutages',          'Internet Outages'),
-  cyberThreats:             def('cyberThreats',             '&#128737;', 'cyberThreats',             'Cyber Threats'),
-  natural:                  def('natural',                  '&#127755;', 'naturalEvents',            'Natural Events'),
-  fires:                    def('fires',                    '&#128293;', 'fires',                    'Fires'),
-  waterways:                def('waterways',                '&#9875;',   'strategicWaterways',       'Strategic Waterways'),
-  economic:                 def('economic',                 '&#128176;', 'economicCenters',          'Economic Centers'),
-  minerals:                 def('minerals',                 '&#128142;', 'criticalMinerals',         'Critical Minerals'),
-  gpsJamming:               def('gpsJamming',               '&#128225;', 'gpsJamming',               'GPS Jamming', ['flat', 'globe'], _desktop ? 'locked' : undefined),
-  ciiChoropleth:            def('ciiChoropleth',            '&#127758;', 'ciiChoropleth',            'CII Instability', ['flat'], _desktop ? 'enhanced' : undefined),
-  dayNight:                 def('dayNight',                 '&#127763;', 'dayNight',                 'Day/Night', ['flat']),
-  sanctions:                def('sanctions',                '&#128683;', 'sanctions',                'Sanctions', []),
-  startupHubs:              def('startupHubs',              '&#128640;', 'startupHubs',              'Startup Hubs'),
-  techHQs:                  def('techHQs',                  '&#127970;', 'techHQs',                  'Tech HQs'),
-  accelerators:             def('accelerators',             '&#9889;',   'accelerators',             'Accelerators'),
-  cloudRegions:             def('cloudRegions',             '&#9729;',   'cloudRegions',             'Cloud Regions'),
-  techEvents:               def('techEvents',               '&#128197;', 'techEvents',               'Tech Events'),
-  stockExchanges:           def('stockExchanges',           '&#127963;', 'stockExchanges',           'Stock Exchanges'),
-  financialCenters:         def('financialCenters',         '&#128176;', 'financialCenters',         'Financial Centers'),
-  centralBanks:             def('centralBanks',             '&#127974;', 'centralBanks',             'Central Banks'),
-  commodityHubs:            def('commodityHubs',            '&#128230;', 'commodityHubs',            'Commodity Hubs'),
-  gulfInvestments:          def('gulfInvestments',          '&#127760;', 'gulfInvestments',          'GCC Investments'),
-  positiveEvents:           def('positiveEvents',           '&#127775;', 'positiveEvents',           'Positive Events'),
-  kindness:                 def('kindness',                 '&#128154;', 'kindness',                 'Acts of Kindness'),
-  happiness:                def('happiness',                '&#128522;', 'happiness',                'World Happiness'),
-  speciesRecovery:          def('speciesRecovery',          '&#128062;', 'speciesRecovery',          'Species Recovery'),
-  renewableInstallations:   def('renewableInstallations',   '&#9889;',   'renewableInstallations',   'Clean Energy'),
-  miningSites:              def('miningSites',              '&#128301;', 'miningSites',              'Mining Sites'),
-  processingPlants:         def('processingPlants',         '&#127981;', 'processingPlants',         'Processing Plants'),
-  commodityPorts:           def('commodityPorts',           '&#9973;',   'commodityPorts',           'Commodity Ports'),
+  weather:                  def('weather',                  '⛈',   'weatherAlerts',            'Alertas Meteorológicos'),
+  natural:                  def('natural',                  '🌍',   'naturalEvents',            'Eventos Naturais'),
+  fires:                    def('fires',                    '🔥',   'fires',                    'Incêndios'),
+  climate:                  def('climate',                  '🌫',   'climateAnomalies',         'Anomalias Climáticas'),
+  outages:                  def('outages',                  '📡',   'internetOutages',          'Quedas de Internet'),
+  flights:                  def('flights',                  '✈',   'flightDelays',             'Aviação'),
+  dayNight:                 def('dayNight',                 '🌓',   'dayNight',                 'Dia/Noite', ['flat']),
+  celescOutages:            def('celescOutages',            '⚡',   'celescOutages',            'Celesc (Rede Elétrica)'),
 };
+
+const KEPT_LAYERS: Array<keyof MapLayers> = [
+  'weather', 'natural', 'fires', 'climate', 'outages', 'flights', 'dayNight', 'celescOutages',
+];
 
 const VARIANT_LAYER_ORDER: Record<MapVariant, Array<keyof MapLayers>> = {
-  full: [
-    'iranAttacks', 'hotspots', 'conflicts',
-    'bases', 'nuclear', 'irradiators', 'spaceports',
-    'cables', 'pipelines', 'datacenters', 'military',
-    'ais', 'tradeRoutes', 'flights', 'notamOverlay', 'protests',
-    'ucdpEvents', 'displacement', 'climate', 'weather',
-    'outages', 'cyberThreats', 'natural', 'fires',
-    'waterways', 'economic', 'minerals', 'gpsJamming',
-    'satellites', 'ciiChoropleth', 'dayNight',
-  ],
-  tech: [
-    'startupHubs', 'techHQs', 'accelerators', 'cloudRegions',
-    'datacenters', 'cables', 'outages', 'cyberThreats',
-    'techEvents', 'natural', 'fires', 'dayNight',
-  ],
-  finance: [
-    'stockExchanges', 'financialCenters', 'centralBanks', 'commodityHubs',
-    'gulfInvestments', 'tradeRoutes', 'cables', 'pipelines',
-    'outages', 'weather', 'economic', 'waterways',
-    'natural', 'cyberThreats', 'dayNight',
-  ],
-  happy: [
-    'positiveEvents', 'kindness', 'happiness',
-    'speciesRecovery', 'renewableInstallations',
-  ],
-  commodity: [
-    'miningSites', 'processingPlants', 'commodityPorts', 'commodityHubs',
-    'minerals', 'pipelines', 'waterways', 'tradeRoutes',
-    'ais', 'economic', 'fires', 'climate',
-    'natural', 'weather', 'outages', 'dayNight',
-  ],
-};
-
-const SVG_ONLY_LAYERS: Partial<Record<MapVariant, Array<keyof MapLayers>>> = {
-  full: ['sanctions'],
-  finance: ['sanctions'],
-  commodity: ['sanctions'],
+  full:      KEPT_LAYERS,
+  tech:      KEPT_LAYERS,
+  finance:   KEPT_LAYERS,
+  happy:     KEPT_LAYERS,
+  commodity: KEPT_LAYERS,
 };
 
 const I18N_PREFIX = 'components.deckgl.layers.';
@@ -124,13 +51,11 @@ export function getLayersForVariant(variant: MapVariant, renderer: MapRenderer):
   const keys = VARIANT_LAYER_ORDER[variant] ?? VARIANT_LAYER_ORDER.full;
   return keys
     .map(k => LAYER_REGISTRY[k])
-    .filter(d => d.renderers.includes(renderer));
+    .filter(d => d && d.renderers.includes(renderer));
 }
 
 export function getAllowedLayerKeys(variant: MapVariant): Set<keyof MapLayers> {
-  const keys = new Set(VARIANT_LAYER_ORDER[variant] ?? VARIANT_LAYER_ORDER.full);
-  for (const k of SVG_ONLY_LAYERS[variant] ?? []) keys.add(k);
-  return keys;
+  return new Set(VARIANT_LAYER_ORDER[variant] ?? VARIANT_LAYER_ORDER.full);
 }
 
 export function sanitizeLayersForVariant(layers: MapLayers, variant: MapVariant): MapLayers {
@@ -143,70 +68,33 @@ export function sanitizeLayersForVariant(layers: MapLayers, variant: MapVariant)
 }
 
 export const LAYER_SYNONYMS: Record<string, Array<keyof MapLayers>> = {
-  aviation: ['flights', 'notamOverlay'],
-  flight: ['flights', 'notamOverlay'],
-  airplane: ['flights'],
-  plane: ['flights'],
-  notam: ['notamOverlay', 'flights'],
-  ship: ['ais', 'tradeRoutes'],
-  vessel: ['ais'],
-  maritime: ['ais', 'waterways', 'tradeRoutes'],
-  sea: ['ais', 'waterways', 'cables'],
-  ocean: ['cables', 'waterways'],
-  war: ['conflicts', 'ucdpEvents', 'military'],
-  battle: ['conflicts', 'ucdpEvents'],
-  army: ['military', 'bases'],
-  navy: ['military', 'ais'],
-  missile: ['iranAttacks', 'military'],
-  nuke: ['nuclear'],
-  radiation: ['nuclear', 'irradiators'],
-  space: ['spaceports', 'satellites'],
-  orbit: ['satellites'],
-  internet: ['outages', 'cables', 'cyberThreats'],
-  cyber: ['cyberThreats', 'outages'],
-  hack: ['cyberThreats'],
-  earthquake: ['natural'],
-  volcano: ['natural'],
-  tsunami: ['natural'],
   storm: ['weather', 'natural'],
   hurricane: ['weather', 'natural'],
   typhoon: ['weather', 'natural'],
   cyclone: ['weather', 'natural'],
   flood: ['weather', 'natural'],
+  earthquake: ['natural'],
+  volcano: ['natural'],
+  tsunami: ['natural'],
   wildfire: ['fires'],
   forest: ['fires'],
-  refugee: ['displacement'],
-  migration: ['displacement'],
-  riot: ['protests'],
-  demonstration: ['protests'],
-  oil: ['pipelines', 'commodityHubs'],
-  gas: ['pipelines'],
-  energy: ['pipelines', 'renewableInstallations'],
-  solar: ['renewableInstallations'],
-  wind: ['renewableInstallations'],
-  green: ['renewableInstallations', 'speciesRecovery'],
-  money: ['economic', 'financialCenters', 'stockExchanges'],
-  bank: ['centralBanks', 'financialCenters'],
-  stock: ['stockExchanges'],
-  trade: ['tradeRoutes', 'waterways'],
-  cloud: ['cloudRegions', 'datacenters'],
-  ai: ['datacenters'],
-  startup: ['startupHubs', 'accelerators'],
-  tech: ['techHQs', 'techEvents', 'startupHubs', 'cloudRegions', 'datacenters'],
-  gps: ['gpsJamming'],
-  jamming: ['gpsJamming'],
-  mineral: ['minerals', 'miningSites'],
-  mining: ['miningSites'],
-  port: ['commodityPorts'],
-  happy: ['happiness', 'kindness', 'positiveEvents'],
-  good: ['positiveEvents', 'kindness'],
-  animal: ['speciesRecovery'],
-  wildlife: ['speciesRecovery'],
-  gulf: ['gulfInvestments'],
-  gcc: ['gulfInvestments'],
-  sanction: ['sanctions'],
   night: ['dayNight'],
   sun: ['dayNight'],
+  internet: ['outages'],
+  aviation: ['flights'],
+  flight: ['flights'],
+  airplane: ['flights'],
+  plane: ['flights'],
+  clima: ['climate', 'weather'],
+  tempo: ['weather'],
+  chuva: ['weather'],
+  vento: ['weather'],
+  incendio: ['fires'],
+  celesc: ['celescOutages'],
+  energia: ['celescOutages'],
+  eletrica: ['celescOutages'],
+  luz: ['celescOutages'],
+  apagao: ['celescOutages'],
 };
 
 export function resolveLayerLabel(def: LayerDefinition, tFn?: (key: string) => string): string {

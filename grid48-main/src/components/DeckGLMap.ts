@@ -41,6 +41,7 @@ import type { AirportDelayAlert, PositionSample } from '@/services/aviation';
 import { fetchAircraftPositions } from '@/services/aviation';
 import { type IranEvent, getIranEventColor, getIranEventRadius } from '@/services/conflict';
 import type { GpsJamHex } from '@/services/gps-interference';
+import type { CelescMunicipioPayload } from '@/types/celesc';
 import { fetchImageryScenes } from '@/services/imagery';
 import type { ImageryScene } from '@/generated/server/worldmonitor/imagery/v1/service_server';
 import type { DisplacementFlow } from '@/services/displacement';
@@ -349,6 +350,11 @@ export class DeckGLMap {
   // CII choropleth data
   private ciiScoresMap: Map<string, { score: number; level: string }> = new Map();
   private ciiScoresVersion = 0;
+
+  // Celesc Sensor Data
+  private celescOutages: CelescMunicipioPayload[] = [];
+  private celescGeoJson: FeatureCollection | null = null;
+  private celescGeoJsonLoaded = false;
 
   // Country highlight state
   private countryGeoJsonLoaded = false;
@@ -1496,6 +1502,11 @@ export class DeckGLMap {
       layers.push(...this.createNewsLocationsLayer());
     }
 
+    // Celesc Sensor
+    if (this.state.layers['celesc-outages']) {
+      layers.push(this.createCelescOutagesLayer());
+    }
+
     const result = layers.filter(Boolean) as LayersList;
     const elapsed = performance.now() - startTime;
     if (import.meta.env.DEV && elapsed > 16) {
@@ -1632,6 +1643,72 @@ export class DeckGLMap {
     return layer;
   }
 
+  private createCelescOutagesLayer(): GeoJsonLayer {
+    const cacheKey = 'celesc-outages-layer';
+
+    if (!this.celescGeoJson) {
+      if (!this.celescGeoJsonLoaded) {
+        this.celescGeoJsonLoaded = true;
+        fetch('/celesc_municipios.json')
+          .then(res => res.json())
+          .then(data => {
+            this.celescGeoJson = data;
+            this.render();
+          })
+          .catch(e => console.error('[Celesc] Failed to load GeoJSON', e));
+      }
+      return new GeoJsonLayer({ id: cacheKey, data: { type: 'FeatureCollection', features: [] } });
+    }
+
+    // Prepare data map for fast lookup
+    const outageMap = new Map<string, CelescMunicipioPayload>();
+    this.celescOutages.forEach(o => {
+      outageMap.set(o.municipio, o);
+    });
+
+    const isLight = getCurrentTheme() === 'light';
+    const layer = new GeoJsonLayer({
+      id: cacheKey,
+      data: this.celescGeoJson,
+      filled: true,
+      stroked: true,
+      lineWidthMinPixels: 1,
+      getLineWidth: 1,
+      getLineColor: (f) => {
+        const municipio = (f.properties?.name || '').toUpperCase();
+        const data = outageMap.get(municipio);
+        if (data && data.ucsAfetadas > 0) {
+          return [255, 50, 50, 200]; // Highlighted border
+        }
+        return isLight ? [0, 0, 0, 50] : [255, 255, 255, 50];
+      },
+      getFillColor: (f: any) => {
+        const municipio = (f.properties?.name || '').toUpperCase();
+        const data = outageMap.get(municipio);
+        
+        if (!data || data.ucsAfetadas === 0) {
+           return isLight ? [0, 0, 0, 5] : [0, 0, 0, 30]; // Invisible/dark
+        }
+
+        // Thermal scale based on absolute UCs offline
+        // 1-50: yellow, 50-500: orange, 500-2000: red-orange, 2000+: dark red
+        const ucs = data.ucsAfetadas;
+        if (ucs > 2000) return [200, 0, 0, 180];
+        if (ucs > 500) return [255, 69, 0, 180];
+        if (ucs > 50) return [255, 140, 0, 180];
+        return [255, 215, 0, 180];
+      },
+      pickable: true,
+      updateTriggers: {
+        getFillColor: [this.celescOutages],
+        getLineColor: [this.celescOutages, isLight]
+      }
+    });
+
+    // We do NOT cache this aggressively because it relies on high-frequency state updates,
+    // or if we do, updateTriggers handles it.
+    return layer;
+  }
 
   private getBasesData(): MilitaryBaseEnriched[] {
     return this.serverBasesLoaded ? this.serverBases : MILITARY_BASES as MilitaryBaseEnriched[];
@@ -3672,6 +3749,7 @@ export class DeckGLMap {
       'gps-jamming-layer': 'gpsJamming',
       'cable-advisories-layer': 'cable-advisory',
       'repair-ships-layer': 'repair-ship',
+      'celesc-outages-layer': 'celescOutage',
     };
 
     const popupType = layerToPopupType[layerId];
@@ -4518,6 +4596,11 @@ export class DeckGLMap {
   public setCableActivity(advisories: CableAdvisory[], repairShips: RepairShip[]): void {
     this.cableAdvisories = advisories;
     this.repairShips = repairShips;
+    this.render();
+  }
+
+  public setCelescOutages(outages: CelescMunicipioPayload[]): void {
+    this.celescOutages = outages;
     this.render();
   }
 

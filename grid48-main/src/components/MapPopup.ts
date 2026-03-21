@@ -13,8 +13,9 @@ import { fetchHotspotContext, formatArticleDate, extractDomain, type GdeltArticl
 import { getNaturalEventIcon } from '@/services/eonet';
 import { getHotspotEscalation, getEscalationChange24h } from '@/services/hotspot-escalation';
 import { getCableHealthRecord } from '@/services/cable-health';
+import type { CelescMunicipioPayload } from '@/types/celesc';
 
-export type PopupType = 'conflict' | 'hotspot' | 'earthquake' | 'weather' | 'base' | 'waterway' | 'apt' | 'cyberThreat' | 'nuclear' | 'economic' | 'irradiator' | 'pipeline' | 'cable' | 'cable-advisory' | 'repair-ship' | 'outage' | 'datacenter' | 'datacenterCluster' | 'ais' | 'protest' | 'protestCluster' | 'flight' | 'aircraft' | 'militaryFlight' | 'militaryVessel' | 'militaryFlightCluster' | 'militaryVesselCluster' | 'natEvent' | 'port' | 'spaceport' | 'mineral' | 'startupHub' | 'cloudRegion' | 'techHQ' | 'accelerator' | 'techEvent' | 'techHQCluster' | 'techEventCluster' | 'techActivity' | 'geoActivity' | 'stockExchange' | 'financialCenter' | 'centralBank' | 'commodityHub' | 'iranEvent' | 'gpsJamming';
+export type PopupType = 'conflict' | 'hotspot' | 'earthquake' | 'weather' | 'base' | 'waterway' | 'apt' | 'cyberThreat' | 'nuclear' | 'economic' | 'irradiator' | 'pipeline' | 'cable' | 'cable-advisory' | 'repair-ship' | 'outage' | 'datacenter' | 'datacenterCluster' | 'ais' | 'protest' | 'protestCluster' | 'flight' | 'aircraft' | 'militaryFlight' | 'militaryVessel' | 'militaryFlightCluster' | 'militaryVesselCluster' | 'natEvent' | 'port' | 'spaceport' | 'mineral' | 'startupHub' | 'cloudRegion' | 'techHQ' | 'accelerator' | 'techEvent' | 'techHQCluster' | 'techEventCluster' | 'techActivity' | 'geoActivity' | 'stockExchange' | 'financialCenter' | 'centralBank' | 'commodityHub' | 'iranEvent' | 'gpsJamming' | 'celescOutage';
 
 interface TechEventPopupData {
   id: string;
@@ -143,7 +144,7 @@ interface DatacenterClusterData {
 
 interface PopupData {
   type: PopupType;
-  data: ConflictZone | Hotspot | Earthquake | WeatherAlert | MilitaryBase | StrategicWaterway | APTGroup | CyberThreat | NuclearFacility | EconomicCenter | GammaIrradiator | Pipeline | UnderseaCable | CableAdvisory | RepairShip | InternetOutage | AIDataCenter | AisDisruptionEvent | SocialUnrestEvent | AirportDelayAlert | PositionSample | MilitaryFlight | MilitaryVessel | MilitaryFlightCluster | MilitaryVesselCluster | NaturalEvent | Port | Spaceport | CriticalMineralProject | StartupHub | CloudRegion | TechHQ | Accelerator | TechEventPopupData | TechHQClusterData | TechEventClusterData | ProtestClusterData | DatacenterClusterData | TechHubActivity | GeoHubActivity | StockExchangePopupData | FinancialCenterPopupData | CentralBankPopupData | CommodityHubPopupData | IranEventPopupData | GpsJammingPopupData;
+  data: ConflictZone | Hotspot | Earthquake | WeatherAlert | MilitaryBase | StrategicWaterway | APTGroup | CyberThreat | NuclearFacility | EconomicCenter | GammaIrradiator | Pipeline | UnderseaCable | CableAdvisory | RepairShip | InternetOutage | AIDataCenter | AisDisruptionEvent | SocialUnrestEvent | AirportDelayAlert | PositionSample | MilitaryFlight | MilitaryVessel | MilitaryFlightCluster | MilitaryVesselCluster | NaturalEvent | Port | Spaceport | CriticalMineralProject | StartupHub | CloudRegion | TechHQ | Accelerator | TechEventPopupData | TechHQClusterData | TechEventClusterData | ProtestClusterData | DatacenterClusterData | TechHubActivity | GeoHubActivity | StockExchangePopupData | FinancialCenterPopupData | CentralBankPopupData | CommodityHubPopupData | IranEventPopupData | GpsJammingPopupData | CelescMunicipioPayload | FeatureCollection;
   relatedNews?: NewsItem[];
   x: number;
   y: number;
@@ -472,11 +473,79 @@ export class MapPopup {
         return this.renderIranEventPopup(data.data as IranEventPopupData);
       case 'gpsJamming':
         return this.renderGpsJammingPopup(data.data as GpsJammingPopupData);
+      case 'celescOutage':
+        return this.renderCelescOutagePopup(data.data as CelescMunicipioPayload);
       default:
         return '';
     }
   }
 
+  private renderCelescOutagePopup(data: CelescMunicipioPayload): string {
+    const isOffline = data.ucsAfetadas > 0;
+    const badgeClass = isOffline ? 'high' : 'low';
+    const badgeLabel = isOffline ? 'ALERTA' : 'NORMAL';
+
+    const trendIcons: Record<string, string> = {
+      'PIORANDO': '↑',
+      'ESTÁVEL': '→',
+      'MELHORANDO': '↓',
+    };
+    const trendIcon = trendIcons[data.tendenciaDelta] || '-';
+    
+    // Sort bairros by UCs off, take top 5
+    const topBairros = [...data.bairrosAfetados]
+      .sort((a, b) => b.ucs - a.ucs)
+      .slice(0, 5);
+
+    return `
+      <div class="popup-header outage">
+        <span class="popup-title">${escapeHtml(data.municipio)}</span>
+        <span class="popup-badge ${badgeClass} ${isOffline ? 'pulse-alert' : ''}">${badgeLabel}</span>
+        <button class="popup-close" aria-label="Close">×</button>
+      </div>
+      <div class="popup-body">
+        <div class="popup-stats" style="margin-bottom: 8px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">
+          <div class="popup-stat">
+            <span class="stat-label">TIPO</span>
+            <span class="stat-value">REDE CELESC</span>
+          </div>
+          <div class="popup-stat">
+            <span class="stat-label">TENDÊNCIA</span>
+            <span class="stat-value" style="${data.tendenciaDelta === 'PIORANDO' ? 'color: var(--semantic-critical)' : data.tendenciaDelta === 'MELHORANDO' ? 'color: var(--semantic-normal)' : ''}">${trendIcon} ${escapeHtml(data.tendenciaDelta)}</span>
+          </div>
+        </div>
+        
+        <div class="popup-stats">
+          <div class="popup-stat">
+            <span class="stat-label">TOTAL UCs</span>
+            <span class="stat-value">${data.totalUcs.toLocaleString('pt-BR')}</span>
+          </div>
+          <div class="popup-stat">
+            <span class="stat-label">UCs OFF</span>
+            <span class="stat-value" style="color: var(--semantic-critical); font-weight: bold;">${data.ucsAfetadas.toLocaleString('pt-BR')}</span>
+          </div>
+          <div class="popup-stat">
+            <span class="stat-label">AFETADOS</span>
+            <span class="stat-value">${data.porcentagemAfetada.toFixed(2)}%</span>
+          </div>
+        </div>
+        
+        ${topBairros.length > 0 ? `
+        <div class="popup-section" style="margin-top: 12px;">
+          <span class="section-label">TOP BAIRROS AFETADOS</span>
+          <ul style="list-style: none; padding: 0; margin: 4px 0 0 0; font-size: 11px;">
+            ${topBairros.map(b => `
+              <li style="display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.05); padding: 4px 0;">
+                <span style="color: var(--text-color);">${escapeHtml(b.nome)}</span>
+                <span style="color: var(--semantic-critical); font-family: monospace;">${b.ucs.toLocaleString('pt-BR')} UCs</span>
+              </li>
+            `).join('')}
+          </ul>
+        </div>
+        ` : ''}
+      </div>
+    `;
+  }
 
   private renderConflictPopup(conflict: ConflictZone): string {
     const severityClass = conflict.intensity === 'high' ? 'high' : conflict.intensity === 'medium' ? 'medium' : 'low';

@@ -11,20 +11,12 @@ export interface Command {
 }
 
 export const LAYER_PRESETS: Record<string, (keyof MapLayers)[]> = {
-  military: ['bases', 'nuclear', 'flights', 'military', 'waterways'],
-  finance: ['stockExchanges', 'financialCenters', 'centralBanks', 'commodityHubs', 'economic', 'tradeRoutes'],
-  infra: ['cables', 'pipelines', 'datacenters', 'spaceports', 'minerals'],
-  intel: ['conflicts', 'hotspots', 'protests', 'ucdpEvents', 'displacement'],
-  minimal: ['conflicts', 'hotspots'],
+  regional: ['weather', 'natural', 'fires', 'climate', 'outages', 'flights'],
+  minimal: ['weather', 'fires'],
 };
 
 // Maps command suffix → actual MapLayers key when they differ
 export const LAYER_KEY_MAP: Record<string, keyof MapLayers> = {
-  cyber: 'cyberThreats',
-  ucdp: 'ucdpEvents',
-  gps: 'gpsJamming',
-  cii: 'ciiChoropleth',
-  iran: 'iranAttacks',
   natural: 'natural',
 };
 
@@ -40,46 +32,19 @@ export const COMMANDS: Command[] = [
   { id: 'nav:oceania', keywords: ['oceania', 'australia', 'pacific islands'], label: 'Map: Oceania', icon: '\u{1F30F}', category: 'navigate' },
 
   // Layer presets (toggle groups)
-  { id: 'layers:military', keywords: ['military', 'military layers', 'show military'], label: 'Show military layers', icon: '\u{1F396}\uFE0F', category: 'layers' },
-  { id: 'layers:finance', keywords: ['finance layers', 'show finance', 'financial'], label: 'Show finance layers', icon: '\u{1F4B0}', category: 'layers' },
-  { id: 'layers:infra', keywords: ['infrastructure', 'infra layers', 'show infrastructure'], label: 'Show infrastructure layers', icon: '\u{1F3D7}\uFE0F', category: 'layers' },
-  { id: 'layers:intel', keywords: ['intelligence', 'intel layers', 'show intel', 'conflicts only'], label: 'Show intelligence layers', icon: '\u{1F50D}', category: 'layers' },
+  { id: 'layers:regional', keywords: ['regional', 'regional layers', 'show regional'], label: 'Show regional layers', icon: '\u{1F30E}', category: 'layers' },
   { id: 'layers:all', keywords: ['all layers', 'show all', 'enable all'], label: 'Enable all layers', icon: '\u{1F441}\uFE0F', category: 'layers' },
   { id: 'layers:none', keywords: ['hide all', 'clear layers', 'no layers', 'disable all'], label: 'Hide all layers', icon: '\u{1F6AB}', category: 'layers' },
-  { id: 'layers:minimal', keywords: ['minimal', 'minimal layers', 'clean'], label: 'Minimal layers (conflicts + hotspots)', icon: '\u2728', category: 'layers' },
+  { id: 'layers:minimal', keywords: ['minimal', 'minimal layers', 'clean'], label: 'Minimal layers (weather + fires)', icon: '\u2728', category: 'layers' },
 
   // Individual layer toggles
-  { id: 'layer:ais', keywords: ['ais', 'ships', 'vessels', 'maritime'], label: 'Toggle AIS vessel tracking', icon: '\u{1F6A2}', category: 'layers' },
-  { id: 'layer:flights', keywords: ['flights', 'aircraft', 'planes'], label: 'Toggle military flights', icon: '\u2708\uFE0F', category: 'layers' },
-  { id: 'layer:conflicts', keywords: ['conflicts', 'battles'], label: 'Toggle conflict zones', icon: '\u2694\uFE0F', category: 'layers' },
-  { id: 'layer:hotspots', keywords: ['hotspots', 'crises'], label: 'Toggle intel hotspots', icon: '\u{1F4CD}', category: 'layers' },
-  { id: 'layer:protests', keywords: ['protests', 'unrest', 'riots'], label: 'Toggle protests & unrest', icon: '\u270A', category: 'layers' },
-  { id: 'layer:cables', keywords: ['cables', 'undersea', 'submarine cables'], label: 'Toggle undersea cables', icon: '\u{1F310}', category: 'layers' },
-  { id: 'layer:pipelines', keywords: ['pipelines', 'oil', 'gas pipelines'], label: 'Toggle pipelines', icon: '\u{1F6E2}\uFE0F', category: 'layers' },
-  { id: 'layer:nuclear', keywords: ['nuclear', 'reactors'], label: 'Toggle nuclear facilities', icon: '\u2622\uFE0F', category: 'layers' },
-  { id: 'layer:bases', keywords: ['bases', 'military bases'], label: 'Toggle military bases', icon: '\u{1F3DB}\uFE0F', category: 'layers' },
-  { id: 'layer:fires', keywords: ['fires', 'wildfires'], label: 'Toggle satellite fires', icon: '\u{1F525}', category: 'layers' },
-  { id: 'layer:weather', keywords: ['weather'], label: 'Toggle weather overlay', icon: '\u{1F324}\uFE0F', category: 'layers' },
-  { id: 'layer:cyber', keywords: ['cyber', 'cyber threats'], label: 'Toggle cyber threats', icon: '\u{1F6E1}\uFE0F', category: 'layers' },
-  { id: 'layer:displacement', keywords: ['displacement', 'refugees', 'idp'], label: 'Toggle displacement flows', icon: '\u{1F3C3}', category: 'layers' },
-  { id: 'layer:climate', keywords: ['climate', 'anomalies'], label: 'Toggle climate anomalies', icon: '\u{1F321}\uFE0F', category: 'layers' },
-  { id: 'layer:outages', keywords: ['outages', 'internet outages'], label: 'Toggle internet outages', icon: '\u{1F4E1}', category: 'layers' },
-  { id: 'layer:tradeRoutes', keywords: ['trade routes', 'shipping lanes', 'trade'], label: 'Toggle trade routes', icon: '\u{1F6A2}', category: 'layers' },
-  { id: 'layer:gps', keywords: ['gps', 'gps jamming', 'jamming', 'spoofing'], label: 'Toggle GPS jamming', icon: '\u{1F4E1}', category: 'layers' },
-  { id: 'layer:satellites', keywords: ['satellites', 'orbital', 'surveillance', 'space'], label: 'Toggle orbital surveillance', icon: '\u{1F6F0}\uFE0F', category: 'layers' },
-  { id: 'layer:ucdp', keywords: ['ucdp', 'armed conflict', 'armed conflict events'], label: 'Toggle armed conflict events', icon: '\u2694\uFE0F', category: 'layers' },
-  { id: 'layer:iran', keywords: ['iran', 'iran attacks'], label: 'Toggle Iran attacks', icon: '\u{1F3AF}', category: 'layers' },
-  { id: 'layer:irradiators', keywords: ['irradiators', 'gamma', 'radiation'], label: 'Toggle gamma irradiators', icon: '\u2623\uFE0F', category: 'layers' },
-  { id: 'layer:spaceports', keywords: ['spaceports', 'launch sites', 'rockets'], label: 'Toggle spaceports', icon: '\u{1F680}', category: 'layers' },
-  { id: 'layer:datacenters', keywords: ['datacenters', 'data centers', 'ai data'], label: 'Toggle AI data centers', icon: '\u{1F5A5}\uFE0F', category: 'layers' },
-  { id: 'layer:military', keywords: ['military activity', 'mil activity'], label: 'Toggle military activity', icon: '\u{1F396}\uFE0F', category: 'layers' },
+  { id: 'layer:weather', keywords: ['weather', 'tempo', 'chuva'], label: 'Toggle weather overlay', icon: '\u{1F324}\uFE0F', category: 'layers' },
   { id: 'layer:natural', keywords: ['natural events', 'earthquakes', 'volcanoes', 'tsunamis'], label: 'Toggle natural events', icon: '\u{1F30B}', category: 'layers' },
-  { id: 'layer:waterways', keywords: ['waterways', 'chokepoints', 'straits', 'canals'], label: 'Toggle strategic waterways', icon: '\u2693', category: 'layers' },
-  { id: 'layer:economic', keywords: ['economic centers', 'gdp'], label: 'Toggle economic centers', icon: '\u{1F4B0}', category: 'layers' },
-  { id: 'layer:minerals', keywords: ['minerals', 'rare earth', 'critical minerals', 'lithium'], label: 'Toggle critical minerals', icon: '\u{1F48E}', category: 'layers' },
-  { id: 'layer:cii', keywords: ['cii', 'instability index', 'country instability'], label: 'Toggle CII instability', icon: '\u{1F30E}', category: 'layers' },
+  { id: 'layer:fires', keywords: ['fires', 'wildfires', 'incendios'], label: 'Toggle satellite fires', icon: '\u{1F525}', category: 'layers' },
+  { id: 'layer:climate', keywords: ['climate', 'anomalies', 'clima'], label: 'Toggle climate anomalies', icon: '\u{1F321}\uFE0F', category: 'layers' },
+  { id: 'layer:outages', keywords: ['outages', 'internet outages'], label: 'Toggle internet outages', icon: '\u{1F4E1}', category: 'layers' },
+  { id: 'layer:flights', keywords: ['flights', 'aircraft', 'aviacao'], label: 'Toggle aviation', icon: '\u2708\uFE0F', category: 'layers' },
   { id: 'layer:dayNight', keywords: ['day night', 'terminator', 'shadow', 'day/night'], label: 'Toggle day/night overlay', icon: '\u{1F31C}', category: 'layers' },
-  { id: 'layer:sanctions', keywords: ['sanctions', 'embargoes'], label: 'Toggle sanctions', icon: '\u{1F6AB}', category: 'layers' },
 
   // Panel navigation (matching actual DEFAULT_PANELS keys)
   { id: 'panel:live-news', keywords: ['news', 'live news', 'headlines'], label: 'Panel: Live News', icon: '\u{1F4F0}', category: 'panels' },

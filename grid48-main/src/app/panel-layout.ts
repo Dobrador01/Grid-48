@@ -13,7 +13,7 @@ import {
   AirlineIntelPanel,
   AviationCommandBar,
 } from '@/components';
-import { focusInvestmentOnMap } from '@/services/investments-focus';
+import { CelescStatusWidget } from '@/components/CelescStatusWidget';
 import { debounce, saveToStorage, loadFromStorage } from '@/utils';
 import { escapeHtml } from '@/utils/sanitize';
 import {
@@ -497,6 +497,11 @@ export class PanelLayoutManager implements AppModule {
       this.ctx.panels[panelKey] = panel;
     }
 
+    if (this.shouldCreatePanel('celesc-status')) {
+      const widget = new CelescStatusWidget();
+      this.ctx.panels['celesc-status'] = widget;
+    }
+
     this.createPanel('gdelt-intel', () => new GdeltIntelPanel());
 
     if (SITE_VARIANT === 'full' && this.ctx.isDesktopApp) {
@@ -556,8 +561,8 @@ export class PanelLayoutManager implements AppModule {
     );
 
     if (this.shouldCreatePanel('gcc-investments')) {
-      const investmentsPanel = new InvestmentsPanel((inv) => {
-        focusInvestmentOnMap(this.ctx.map, this.ctx.mapLayers, inv.lat, inv.lon);
+      const investmentsPanel = new InvestmentsPanel(() => {
+        // focusInvestmentOnMap removed
       });
       this.ctx.panels['gcc-investments'] = investmentsPanel;
     }

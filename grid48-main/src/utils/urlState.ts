@@ -2,41 +2,13 @@ import type { MapLayers } from '@/types';
 import type { MapView, TimeRange } from '@/components/Map';
 
 const LAYER_KEYS: (keyof MapLayers)[] = [
-  'conflicts',
-  'bases',
-  'cables',
-  'pipelines',
-  'hotspots',
-  'ais',
-  'nuclear',
-  'irradiators',
-  'sanctions',
   'weather',
-  'economic',
-  'waterways',
-  'outages',
-  'cyberThreats',
-  'datacenters',
-  'protests',
-  'flights',
-  'military',
   'natural',
-  'spaceports',
-  'minerals',
   'fires',
-  'ucdpEvents',
-  'displacement',
   'climate',
-  'startupHubs',
-  'cloudRegions',
-  'accelerators',
-  'techHQs',
-  'techEvents',
-  'tradeRoutes',
-  'iranAttacks',
-  'gpsJamming',
-  'satellites',
-  'ciiChoropleth',
+  'outages',
+  'flights',
+  'dayNight',
 ];
 
 const TIME_RANGES: TimeRange[] = ['1h', '6h', '24h', '48h', '7d', 'all'];
@@ -99,10 +71,6 @@ export function parseMapUrlState(
           .map((layer) => layer.trim())
           .filter(Boolean)
       );
-      if (requested.has('satelliteImagery')) {
-        requested.delete('satelliteImagery');
-        requested.add('satellites');
-      }
       LAYER_KEYS.forEach((key) => {
         layers![key] = requested.has(key);
       });

@@ -22,6 +22,8 @@ import { BETA_MODE } from '@/config/beta';
 import { trackEvent, trackDeeplinkOpened } from '@/services/analytics';
 import { preloadCountryGeometry, getCountryNameByCode } from '@/services/country-geometry';
 import { initI18n } from '@/services/i18n';
+import { ConvexClient } from 'convex/browser';
+import { api } from '../convex/_generated/api';
 
 import { computeDefaultDisabledSources, getLocaleBoostedSources, getTotalFeedCount } from '@/config/feeds';
 import { fetchBootstrapData } from '@/services/bootstrap';
@@ -446,6 +448,24 @@ export class App {
     this.state.countryBriefPage?.onStateChange?.(() => {
       this.eventHandlers.syncUrlState();
     });
+
+    // Celesc Sensor Data Integration
+    const convexUrl = import.meta.env.VITE_CONVEX_URL;
+    if (convexUrl) {
+      const client = new ConvexClient(convexUrl);
+      client.onUpdate(api.celesc.getOutages, {}, (outages) => {
+        if (this.state.map) {
+          this.state.map.setCelescOutages(outages);
+        }
+        
+        const celescPanel = this.state.panels['celesc-status'] as import('@/components/CelescStatusWidget').CelescStatusWidget | undefined;
+        if (celescPanel) {
+          const lastUpdate = outages.length > 0 ? outages[0].timestampLeitura : '';
+          celescPanel.setOutages(outages, lastUpdate);
+        }
+      });
+      console.log('[App] Celesc sensor subscription active');
+    }
 
     // Start deep link handling early — its retry loop polls hasSufficientData()
     // independently, so it must not be gated behind loadAllData() which can hang.

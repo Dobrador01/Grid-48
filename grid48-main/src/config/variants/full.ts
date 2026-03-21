@@ -40,122 +40,26 @@ export const DEFAULT_PANELS: Record<string, PanelConfig> = {
 
 };
 
-// Map layers for geopolitical view
+// Map layers for regional view (Grande Florianópolis)
 export const DEFAULT_MAP_LAYERS: MapLayers = {
-  gpsJamming: false,
-  satellites: false,
-  notamOverlay: false,
-
-  conflicts: true,
-  bases: true,
-  cables: false,
-  pipelines: false,
-  hotspots: true,
-  ais: false,
-  nuclear: true,
-  irradiators: false,
-  sanctions: true,
   weather: true,
-  economic: false,
-  waterways: true,
-  outages: true,
-  cyberThreats: false,
-  datacenters: false,
-  protests: false,
-  flights: false,
-  military: false,
   natural: false,
-  spaceports: false,
-  minerals: false,
   fires: false,
-  ucdpEvents: false,
-  displacement: false,
   climate: false,
-  // Tech layers (disabled in full variant)
-  startupHubs: false,
-  cloudRegions: false,
-  accelerators: false,
-  techHQs: false,
-  techEvents: false,
-  // Finance layers (disabled in full variant)
-  stockExchanges: false,
-  financialCenters: false,
-  centralBanks: false,
-  commodityHubs: false,
-  gulfInvestments: false,
-  // Happy variant layers
-  positiveEvents: false,
-  kindness: false,
-  happiness: false,
-  speciesRecovery: false,
-  renewableInstallations: false,
-  tradeRoutes: false,
-  iranAttacks: true,
-  ciiChoropleth: false,
+  outages: true,
+  flights: false,
   dayNight: false,
-  // Commodity variant layers (disabled in full variant)
-  miningSites: false,
-  processingPlants: false,
-  commodityPorts: false,
 };
 
-// Mobile-specific defaults for geopolitical
+// Mobile-specific defaults
 export const MOBILE_DEFAULT_MAP_LAYERS: MapLayers = {
-  gpsJamming: false,
-  satellites: false,
-  notamOverlay: false,
-
-  conflicts: true,
-  bases: false,
-  cables: false,
-  pipelines: false,
-  hotspots: true,
-  ais: false,
-  nuclear: false,
-  irradiators: false,
-  sanctions: true,
   weather: true,
-  economic: false,
-  waterways: false,
-  outages: true,
-  cyberThreats: false,
-  datacenters: false,
-  protests: false,
-  flights: false,
-  military: false,
   natural: true,
-  spaceports: false,
-  minerals: false,
   fires: false,
-  ucdpEvents: false,
-  displacement: false,
   climate: false,
-  // Tech layers (disabled in full variant)
-  startupHubs: false,
-  cloudRegions: false,
-  accelerators: false,
-  techHQs: false,
-  techEvents: false,
-  // Finance layers (disabled in full variant)
-  stockExchanges: false,
-  financialCenters: false,
-  centralBanks: false,
-  commodityHubs: false,
-  gulfInvestments: false,
-  // Happy variant layers
-  positiveEvents: false,
-  kindness: false,
-  happiness: false,
-  speciesRecovery: false,
-  renewableInstallations: false,
-  tradeRoutes: false,
-  iranAttacks: true,
-  ciiChoropleth: false,
+  outages: true,
+  flights: false,
   dayNight: false,
-  // Commodity variant layers (disabled in full variant)
-  miningSites: false,
-  processingPlants: false,
-  commodityPorts: false,
 };
 
 export const VARIANT_CONFIG: VariantConfig = {

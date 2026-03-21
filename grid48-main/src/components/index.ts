@@ -27,3 +27,4 @@ export * from './WorldClockPanel';
 export * from './TechHubsPanel';
 export { AirlineIntelPanel } from './AirlineIntelPanel';
 export { AviationCommandBar } from './AviationCommandBar';
+export { CelescStatusWidget } from './CelescStatusWidget';

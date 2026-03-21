@@ -12,6 +12,7 @@ const _desktop = isDesktopRuntime();
 // Desired order: live-news, AI Insights, AI Strategic Posture, cii, strategic-risk, then rest
 const FULL_PANELS: Record<string, PanelConfig> = {
   map: { name: 'Mapa — Grande Florianópolis', enabled: true, priority: 1 },
+  'celesc-status': { name: 'Celesc Status', enabled: true, priority: 1 },
   insights: { name: 'AI Insights', enabled: true, priority: 1 },
   'strategic-posture': { name: 'AI Strategic Posture', enabled: true, priority: 1 },
   'strategic-risk': { name: 'Strategic Risk Overview', enabled: true, priority: 1, ...(_desktop && { premium: 'enhanced' as const }) },
@@ -80,6 +81,8 @@ const FULL_MAP_LAYERS: MapLayers = {
   tradeRoutes: false,
   ciiChoropleth: false,
   dayNight: false,
+  // Celesc power grid layer
+  celescOutages: true,
   // Commodity layers (disabled in full variant)
   miningSites: false,
   processingPlants: false,
@@ -140,6 +143,8 @@ const FULL_MOBILE_MAP_LAYERS: MapLayers = {
   tradeRoutes: false,
   ciiChoropleth: false,
   dayNight: false,
+  // Celesc power grid layer
+  celescOutages: true,
   // Commodity layers (disabled in full variant)
   miningSites: false,
   processingPlants: false,
@@ -231,6 +236,7 @@ const TECH_MAP_LAYERS: MapLayers = {
   iranAttacks: false,
   ciiChoropleth: false,
   dayNight: false,
+  celescOutages: false,
   // Commodity layers (disabled in tech variant)
   miningSites: false,
   processingPlants: false,
@@ -290,6 +296,7 @@ const TECH_MOBILE_MAP_LAYERS: MapLayers = {
   iranAttacks: false,
   ciiChoropleth: false,
   dayNight: false,
+  celescOutages: false,
   // Commodity layers (disabled in tech variant)
   miningSites: false,
   processingPlants: false,
@@ -382,6 +389,7 @@ const FINANCE_MAP_LAYERS: MapLayers = {
   iranAttacks: false,
   ciiChoropleth: false,
   dayNight: false,
+  celescOutages: false,
   // Commodity layers (disabled in finance variant)
   miningSites: false,
   processingPlants: false,
@@ -441,6 +449,7 @@ const FINANCE_MOBILE_MAP_LAYERS: MapLayers = {
   iranAttacks: false,
   ciiChoropleth: false,
   dayNight: false,
+  celescOutages: false,
   // Commodity layers (disabled in finance variant)
   miningSites: false,
   processingPlants: false,
@@ -516,6 +525,7 @@ const HAPPY_MAP_LAYERS: MapLayers = {
   iranAttacks: false,
   ciiChoropleth: false,
   dayNight: false,
+  celescOutages: false,
   // Commodity layers (disabled)
   miningSites: false,
   processingPlants: false,
@@ -575,6 +585,7 @@ const HAPPY_MOBILE_MAP_LAYERS: MapLayers = {
   iranAttacks: false,
   ciiChoropleth: false,
   dayNight: false,
+  celescOutages: false,
   // Commodity layers (disabled)
   miningSites: false,
   processingPlants: false,
@@ -655,6 +666,7 @@ const COMMODITY_MAP_LAYERS: MapLayers = {
   iranAttacks: false,
   ciiChoropleth: false,
   dayNight: false,
+  celescOutages: false,
   // Commodity layers (enabled)
   miningSites: true,
   processingPlants: true,
@@ -714,6 +726,7 @@ const COMMODITY_MOBILE_MAP_LAYERS: MapLayers = {
   iranAttacks: false,
   ciiChoropleth: false,
   dayNight: false,
+  celescOutages: false,
   // Commodity layers (limited on mobile)
   miningSites: true,
   processingPlants: false,
