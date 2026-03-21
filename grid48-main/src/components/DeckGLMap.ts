@@ -1690,13 +1690,14 @@ export class DeckGLMap {
            return isLight ? [0, 0, 0, 5] : [0, 0, 0, 30]; // Invisible/dark
         }
 
-        // Thermal scale based on absolute UCs offline
-        // 1-50: yellow, 50-500: orange, 500-2000: red-orange, 2000+: dark red
-        const ucs = data.ucsAfetadas;
-        if (ucs > 2000) return [200, 0, 0, 180];
-        if (ucs > 500) return [255, 69, 0, 180];
-        if (ucs > 50) return [255, 140, 0, 180];
-        return [255, 215, 0, 180];
+        const pct = data.totalUcs > 0 ? (data.ucsAfetadas / data.totalUcs) * 100 : 0;
+        
+        if (pct === 0) return isLight ? [0, 0, 0, 5] : [0, 0, 0, 30];
+        if (pct > 50) return [255, 0, 50, 200]; // Vermelho Neon
+        if (pct > 30) return [200, 0, 0, 180];  // Vermelho Escuro
+        if (pct > 15) return [255, 69, 0, 180]; // Laranja Intenso
+        if (pct > 5)  return [255, 140, 0, 180]; // Laranja
+        return [255, 215, 0, 180]; // Amarelo (0% a 5%)
       },
       pickable: true,
       updateTriggers: {
