@@ -8,9 +8,7 @@
  * @module
  */
 
-import type * as celesc from "../celesc.js";
 import type * as contactMessages from "../contactMessages.js";
-import type * as crons from "../crons.js";
 import type * as gemini from "../gemini.js";
 import type * as ingestion from "../ingestion.js";
 import type * as registerInterest from "../registerInterest.js";
@@ -22,9 +20,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
-  celesc: typeof celesc;
   contactMessages: typeof contactMessages;
-  crons: typeof crons;
   gemini: typeof gemini;
   ingestion: typeof ingestion;
   registerInterest: typeof registerInterest;

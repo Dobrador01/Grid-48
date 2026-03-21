@@ -1,5 +1,6 @@
 import { Panel } from './Panel';
 import type { CelescMunicipioPayload } from '@/types/celesc';
+import { parseCelescTimestamp } from '@/services/celesc';
 
 export class CelescStatusWidget extends Panel {
   private outages: CelescMunicipioPayload[] = [];
@@ -37,22 +38,15 @@ export class CelescStatusWidget extends Panel {
     let isStale = false;
     let timeStr = '';
     if (this.lastUpdate) {
-      // Parse DD/MM/YYYY HH:mm
-      const parts = this.lastUpdate.split(/[\/\s:]/);
-      if (parts.length >= 5) {
-        const [day, month, year, hour, minute] = parts;
-        const parsedDate = new Date(Number(year), Number(month) - 1, Number(day), Number(hour), Number(minute));
-        const diff = Date.now() - parsedDate.getTime();
-        if (diff > 1800000) {
-          isStale = true;
-        }
-        timeStr = parsedDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-      } else {
-        // Fallback for unexpected formats
-        timeStr = new Date(this.lastUpdate).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-        const diff = Date.now() - new Date(this.lastUpdate).getTime();
-        if (diff > 1800000) isStale = true;
+      const timestamp = parseCelescTimestamp(this.lastUpdate);
+      const parsedDate = new Date(timestamp);
+      const diff = Date.now() - timestamp;
+      
+      if (diff > 1800000) {
+        isStale = true;
       }
+      
+      timeStr = parsedDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
     }
 
     const WATCHLIST = ["FLORIANOPOLIS", "SAO JOSE", "PALHOCA", "BIGUACU"];

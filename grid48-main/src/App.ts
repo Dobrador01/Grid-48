@@ -449,11 +449,9 @@ export class App {
       this.eventHandlers.syncUrlState();
     });
 
-    // Celesc Sensor Data Integration
-    const convexUrl = import.meta.env.VITE_CONVEX_URL;
-    if (convexUrl) {
-      const client = new ConvexClient(convexUrl);
-      client.onUpdate(api.celesc.getOutages, {}, (outages) => {
+    // Celesc Sensor Data Integration (JSONP Poller)
+    import('@/services/celesc').then(({ initCelescPoller }) => {
+      initCelescPoller((outages) => {
         if (this.state.map) {
           this.state.map.setCelescOutages(outages);
         }
@@ -464,8 +462,8 @@ export class App {
           celescPanel.setOutages(outages, lastUpdate);
         }
       });
-      console.log('[App] Celesc sensor subscription active');
-    }
+      console.log('[App] Celesc local JSONP poller active');
+    });
 
     // Start deep link handling early — its retry loop polls hasSufficientData()
     // independently, so it must not be gated behind loadAllData() which can hang.
