@@ -353,8 +353,6 @@ export class DeckGLMap {
 
   // Celesc Sensor Data
   private celescOutages: CelescMunicipioPayload[] = [];
-  private celescGeoJson: FeatureCollection | null = null;
-  private celescGeoJsonLoaded = false;
 
   // Country highlight state
   private countryGeoJsonLoaded = false;
@@ -1503,9 +1501,6 @@ export class DeckGLMap {
     }
 
     // Celesc Sensor
-    if (this.state.layers['celesc-outages']) {
-      layers.push(this.createCelescOutagesLayer());
-    }
 
     const result = layers.filter(Boolean) as LayersList;
     const elapsed = performance.now() - startTime;
@@ -1643,74 +1638,6 @@ export class DeckGLMap {
     return layer;
   }
 
-  private createCelescOutagesLayer(): GeoJsonLayer {
-    const cacheKey = 'celesc-outages-layer';
-    const normalize = (str: string) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
-
-    if (!this.celescGeoJson) {
-      if (!this.celescGeoJsonLoaded) {
-        this.celescGeoJsonLoaded = true;
-        fetch('/celesc_municipios.json')
-          .then(res => res.json())
-          .then(data => {
-            this.celescGeoJson = data;
-            this.render();
-          })
-          .catch(e => console.error('[Celesc] Failed to load GeoJSON', e));
-      }
-      return new GeoJsonLayer({ id: cacheKey, data: { type: 'FeatureCollection', features: [] } });
-    }
-
-    // Prepare data map for fast lookup
-    const outageMap = new Map<string, CelescMunicipioPayload>();
-    this.celescOutages.forEach(o => {
-      outageMap.set(normalize(o.municipio), o);
-    });
-
-    const isLight = getCurrentTheme() === 'light';
-    const layer = new GeoJsonLayer({
-      id: cacheKey,
-      data: this.celescGeoJson,
-      filled: true,
-      stroked: true,
-      lineWidthMinPixels: 1,
-      getLineWidth: 1,
-      getLineColor: (f) => {
-        const municipio = normalize(f.properties?.name || '');
-        const data = outageMap.get(municipio);
-        if (data && data.ucsAfetadas > 0) {
-          return [255, 50, 50, 200]; // Highlighted border
-        }
-        return isLight ? [0, 0, 0, 50] : [255, 255, 255, 50];
-      },
-      getFillColor: (f: any) => {
-        const municipio = normalize(f.properties?.name || '');
-        const data = outageMap.get(municipio);
-        
-        if (!data || data.ucsAfetadas === 0) {
-           return isLight ? [0, 0, 0, 5] : [0, 0, 0, 30]; // Invisible/dark
-        }
-
-        const pct = data.totalUcs > 0 ? (data.ucsAfetadas / data.totalUcs) * 100 : 0;
-        
-        if (pct === 0) return isLight ? [0, 0, 0, 5] : [0, 0, 0, 30];
-        if (pct > 50) return [255, 0, 50, 200]; // Vermelho Neon
-        if (pct > 30) return [200, 0, 0, 180];  // Vermelho Escuro
-        if (pct > 15) return [255, 69, 0, 180]; // Laranja Intenso
-        if (pct > 5)  return [255, 140, 0, 180]; // Laranja
-        return [255, 215, 0, 180]; // Amarelo (0% a 5%)
-      },
-      pickable: true,
-      updateTriggers: {
-        getFillColor: [this.celescOutages],
-        getLineColor: [this.celescOutages, isLight]
-      }
-    });
-
-    // We do NOT cache this aggressively because it relies on high-frequency state updates,
-    // or if we do, updateTriggers handles it.
-    return layer;
-  }
 
   private getBasesData(): MilitaryBaseEnriched[] {
     return this.serverBasesLoaded ? this.serverBases : MILITARY_BASES as MilitaryBaseEnriched[];

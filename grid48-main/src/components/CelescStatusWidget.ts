@@ -29,8 +29,7 @@ export class CelescStatusWidget extends Panel {
     if (this.outages.length === 0) {
       return `
         <div class="p-4 flex flex-col items-center justify-center text-gray-500 h-full">
-          <p class="text-sm">Sistema operando normalmente.</p>
-          <p class="text-xs mt-1">Nenhuma interrupção detectada.</p>
+          <p class="text-sm">Buscando dados Celesc...</p>
         </div>
       `;
     }
@@ -52,11 +51,11 @@ export class CelescStatusWidget extends Panel {
     const WATCHLIST = ["FLORIANOPOLIS", "SAO JOSE", "PALHOCA", "BIGUACU"];
     
     // Watchlist elements (sorted by pre-defined order, always shown)
-    const listaWatchlist = this.outages.filter(o => WATCHLIST.includes(o.municipio));
-    listaWatchlist.sort((a, b) => WATCHLIST.indexOf(a.municipio) - WATCHLIST.indexOf(b.municipio));
+    const listaWatchlist = this.outages.filter(o => WATCHLIST.includes(o.nome));
+    listaWatchlist.sort((a, b) => WATCHLIST.indexOf(a.nome) - WATCHLIST.indexOf(b.nome));
     
     // General list (omitting 0 and WATCHLIST elements, sorted by UCs)
-    const listaGeral = this.outages.filter(o => !WATCHLIST.includes(o.municipio) && o.ucsAfetadas > 0);
+    const listaGeral = this.outages.filter(o => !WATCHLIST.includes(o.nome) && o.ucsAfetadas > 0);
     // Sort by most affected
     listaGeral.sort((a, b) => b.ucsAfetadas - a.ucsAfetadas);
 
@@ -91,38 +90,27 @@ export class CelescStatusWidget extends Panel {
   }
 
   private renderMunicipioRow(m: CelescMunicipioPayload, isWatchlist: boolean): string {
-    const isWorsening = m.tendenciaDelta === 'PIORANDO';
-    const isImproving = m.tendenciaDelta === 'MELHORANDO';
-
-    let trendIcon = '<span class="text-gray-500 font-bold">−</span>';
-    if (isWorsening) trendIcon = '<span class="text-red-400 font-bold">↑</span>';
-    if (isImproving) trendIcon = '<span class="text-green-400 font-bold">↓</span>';
-
-    const pct = m.totalUcs > 0 ? ((m.ucsAfetadas / m.totalUcs) * 100).toFixed(2) : '0.00';
-
-    const wrapperClass = isWatchlist 
-      ? 'flex justify-between items-center text-sm border-b border-gray-800 py-2 bg-blue-500/10 px-2 cursor-pointer hover:bg-white/5 transition-colors'
-      : 'flex justify-between items-center text-sm border-b border-gray-800 py-2 px-2 cursor-pointer hover:bg-white/5 transition-colors';
+    const bgClass = isWatchlist ? 'bg-blue-500/10' : '';
+    
+    const bairrosHtml = m.bairros && m.bairros.length > 0 
+      ? m.bairros.map(b => `
+          <div class="flex justify-between py-0.5">
+            <span>${b.nome}</span>
+            <span class="${b.ucsAfetadas > 0 ? 'text-orange-400' : ''}">${b.ucsAfetadas}</span>
+          </div>
+        `).join('')
+      : '<span>Sem dados de bairros</span>';
 
     return `
-      <div class="${wrapperClass}" onclick="window.dispatchEvent(new CustomEvent('map-focus-municipio', { detail: '${m.municipio}' }))">
-        <div class="flex flex-col min-w-0 text-left">
-          <div class="font-medium text-gray-200 truncate">
-            ${m.municipio}
-          </div>
-          <div class="text-[10px] text-gray-500 flex items-center gap-1.5 mt-0.5">
-            <span>${pct}% da rede</span>
-            <span class="w-1 h-1 rounded-full bg-white/20"></span>
-            ${trendIcon} ${m.tendenciaDelta}
-          </div>
+      <div class="${bgClass}">
+        <div class="flex justify-between items-center py-2 px-1 border-b border-gray-800 hover:bg-white/5 cursor-pointer font-mono text-xs" 
+             onclick="this.nextElementSibling.classList.toggle('hidden'); window.dispatchEvent(new CustomEvent('map-focus-municipio', { detail: '${m.nome}' }));">
+          <span class="text-gray-400 uppercase w-1/3 truncate">${m.nome}</span>
+          <span class="text-gray-500 w-1/3 text-center">${m.pct.toFixed(2)}% ${m.tendencia}</span>
+          <span class="${m.ucsAfetadas > 0 ? 'text-red-500' : 'text-gray-600'} w-1/3 text-right">${m.ucsAfetadas} UCs</span>
         </div>
-        <div class="text-right pl-3 shrink-0">
-          <div class="font-bold text-red-400">
-            ${m.ucsAfetadas.toLocaleString('pt-BR')}
-          </div>
-          <div class="text-[9px] text-gray-500 uppercase tracking-wide">
-            UCs
-          </div>
+        <div class="hidden bg-black/20 p-2 text-[10px] text-gray-500">
+          ${bairrosHtml}
         </div>
       </div>
     `;

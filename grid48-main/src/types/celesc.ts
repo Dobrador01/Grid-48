@@ -6,15 +6,15 @@ export type CelescTendencia = 'ESTÁVEL' | 'PIORANDO' | 'MELHORANDO';
 
 export interface CelescBairro {
   nome: string;
-  ucs: number;
+  ucsAfetadas: number;
 }
 
 export interface CelescMunicipioPayload {
-  municipio: string;           // Normalized uppercase, no accents
-  totalUcs: number;
+  nome: string;           // Normalized uppercase, no accents
+  totalUcsReal: number;
   ucsAfetadas: number;
-  porcentagemAfetada: number;
-  tendenciaDelta: CelescTendencia;
-  bairrosAfetados: CelescBairro[];
+  pct: number;
+  tendencia: CelescTendencia;
+  bairros: CelescBairro[];
   timestampLeitura: string;    // ISO string from Celesc DATA field
 }

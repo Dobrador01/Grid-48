@@ -26,18 +26,6 @@ export function parseCelescTimestamp(dateStr: string): number {
   return new Date(dateStr).getTime() || Date.now();
 }
 
-/** Extract municipality data from the ds_informacao HTML string in mapa.js */
-function parseMapaInfo(html: string): { nome: string; totalUcs: number; ucsSemEnergia: number; } | null {
-  const nameMatch = html.match(/<th[^>]*>([^<]+)<\/th>/i);
-  const boldMatches = [...html.matchAll(/<b[^>]*>\s*([\d.,]+)\s*<\/b>/gi)];
-  if (!nameMatch || boldMatches.length < 2) return null;
-
-  const nome = nameMatch[1]!.trim();
-  const totalUcs = parseInt(boldMatches[0]![1]!.replace(/[.,]/g, ""), 10) || 0;
-  const ucsSemEnergia = parseInt(boldMatches[1]![1]!.replace(/[.,]/g, ""), 10) || 0;
-
-  return { nome, totalUcs, ucsSemEnergia };
-}
 
 /** Compute anti-hysteresis trend from readings buffer */
 function computeTendencia(buffer: number[]): "ESTÁVEL" | "PIORANDO" | "MELHORANDO" {
@@ -105,24 +93,30 @@ export async function pollCelescData(): Promise<CelescMunicipioPayload[]> {
   }
 
   // Parse Fetch A: mapa.js geometries overview
-  const mapaMunicipios = new Map<string, { totalUcs: number; ucsAfetadas: number }>();
+  const mapaMunicipios = new Map<string, { totalUcsReal: number; ucsAfetadas: number }>();
   if (mapaData && Array.isArray(mapaData.municipios)) {
-    for (const mun of mapaData.municipios) {
-      if (!mun || !mun.ds_informacao) continue; // Pula os buracos vazios da Celesc
+    for (const municipio of mapaData.municipios) {
+      if (!municipio || !municipio.ds_informacao) continue; 
       
-      const info = parseMapaInfo(mun.ds_informacao);
-      if (info) {
-        mapaMunicipios.set(normalize(info.nome), {
-          totalUcs: info.totalUcs,
-          ucsAfetadas: info.ucsSemEnergia,
-        });
-      }
+      const nameMatch = municipio.ds_informacao.match(/<th[^>]*>([^<]+)<\/th>/i);
+      const nome = nameMatch ? nameMatch[1].trim() : "DESCONHECIDO";
+
+      const matchTotal = municipio.ds_informacao.match(/Total de unidades consumidoras\s*<\/td>\s*<td[^>]*>\s*([\d.]+)\s*<\/td>/i);
+      const totalUcsReal = matchTotal && matchTotal[1] ? parseInt(matchTotal[1].replace(/\./g, ''), 10) : 0;
+      
+      const boldMatches = [...municipio.ds_informacao.matchAll(/<b[^>]*>\s*([\d.,]+)\s*<\/b>/gi)];
+      const ucsSemEnergia = boldMatches.length >= 2 ? parseInt(boldMatches[1]![1]!.replace(/[.,]/g, ""), 10) || 0 : 0;
+
+      mapaMunicipios.set(normalize(nome), {
+        totalUcsReal,
+        ucsAfetadas: ucsSemEnergia,
+      });
     }
   }
 
   // Parse Fetch B: tabelas.js cascade tables
   let timestampLeitura = "";
-  const bairrosByMunicipio = new Map<string, Array<{ nome: string; ucs: number }>>();
+  const bairrosByMunicipio = new Map<string, Array<{ nome: string; ucsAfetadas: number }>>();
 
   if (tabelasData) {
     if (tabelasData.DATA) {
@@ -142,17 +136,15 @@ export async function pollCelescData(): Promise<CelescMunicipioPayload[]> {
           const bairros = cidade.BAIRROS;
           if (!Array.isArray(bairros)) continue;
 
-          const topBairros = bairros
-            .map((b: any) => ({
-              nome: (b.NOME || b.BAIRRO || "").trim(),
-              ucs: parseInt(String(b.QTD_UC_DESLIGADA), 10) || 0,
-            }))
-            .filter((b) => b.ucs > 0)
-            .sort((a, b) => b.ucs - a.ucs)
-            .slice(0, 5); // Take top 5
+          const mappedBairros = (cidade.BAIRROS || []).map((b: any) => ({
+            nome: b.BAIRRO,
+            ucsAfetadas: parseInt(b.QUANTIDADE_TOTAL, 10) || 0
+          }))
+          .filter((b: any) => b.ucsAfetadas > 0)
+          .sort((a: any, b: any) => b.ucsAfetadas - a.ucsAfetadas);
 
-          if (topBairros.length > 0) {
-            bairrosByMunicipio.set(cidadeNome, topBairros);
+          if (mappedBairros.length > 0) {
+            bairrosByMunicipio.set(cidadeNome, mappedBairros);
           }
         }
       }
@@ -171,25 +163,25 @@ export async function pollCelescData(): Promise<CelescMunicipioPayload[]> {
   const payloads: CelescMunicipioPayload[] = [];
 
   for (const [nome, mapaInfo] of mapaMunicipios.entries()) {
-    const { totalUcs, ucsAfetadas } = mapaInfo;
-    const bairrosAfetados = bairrosByMunicipio.get(nome) || [];
-    const porcentagemAfetada = totalUcs > 0 ? (ucsAfetadas / totalUcs) * 100 : 0;
+    const { totalUcsReal, ucsAfetadas } = mapaInfo;
+    const bairros = bairrosByMunicipio.get(nome) || [];
+    const pct = totalUcsReal > 0 ? (ucsAfetadas / totalUcsReal) * 100 : 0;
 
     let buffer = history[nome] || [];
     buffer.push(ucsAfetadas);
     if (buffer.length > 5) buffer.shift();
     history[nome] = buffer;
 
-    const tendenciaDelta = computeTendencia(buffer);
+    const tendencia = computeTendencia(buffer);
 
     payloads.push({
-      municipio: nome,
-      totalUcs,
+      nome,
+      totalUcsReal,
       ucsAfetadas,
-      porcentagemAfetada,
-      tendenciaDelta,
-      bairrosAfetados,
-      timestampLeitura, // Retaining native string for obsolescence calculator
+      pct,
+      tendencia,
+      bairros,
+      timestampLeitura,
     });
   }
 
