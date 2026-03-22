@@ -2134,3 +2134,129 @@
   height: 100%;
   min-height: 150px;
 }
+
+/* ----------------------------------------------------------
+   Celesc Panel (Airline Ops Tabular Style)
+   ---------------------------------------------------------- */
+.celesc-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 4px;
+  border-bottom: 1px solid var(--border-strong, #444);
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  transition: background-color 0.15s;
+}
+
+.celesc-row:hover {
+  background: var(--overlay-light);
+}
+
+.celesc-watchlist-row {
+  background: color-mix(in srgb, var(--semantic-info) 10%, transparent);
+}
+
+.celesc-col-left {
+  width: 33.333%;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.celesc-col-center {
+  width: 33.333%;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.celesc-col-center-val {
+  font-variant-numeric: tabular-nums;
+}
+
+.celesc-col-right {
+  width: 33.333%;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.celesc-bairros {
+  background: rgba(0, 0, 0, 0.2);
+  padding: 8px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border-strong, #444);
+}
+
+.celesc-bairro-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 2px 0;
+}
+
+/* Celesc Header */
+.celesc-widget-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--panel-bg);
+}
+
+.celesc-header {
+  padding: 12px;
+  border-bottom: 1px solid var(--overlay-light);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: color-mix(in srgb, var(--semantic-critical) 8%, transparent);
+}
+
+.celesc-header-title {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--threat-high);
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+
+.celesc-header-count {
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--accent);
+}
+
+.celesc-header-count-label {
+  font-size: 10px;
+  color: var(--text-dim);
+  font-weight: 400;
+}
+
+.celesc-header-time {
+  font-size: 9px;
+  color: var(--text-dim);
+  background: rgba(0, 0, 0, 0.4);
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.celesc-list-container {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+  padding: 8px;
+}
+
+.celesc-section-title {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-dim);
+  padding: 4px;
+  font-weight: 500;
+  margin-top: 4px;
+}
