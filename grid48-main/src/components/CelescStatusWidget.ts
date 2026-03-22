@@ -19,6 +19,7 @@ export class CelescStatusWidget extends Panel {
   }
 
   public setOutages(outages: CelescMunicipioPayload[], lastUpdate: string) {
+    console.log("[Widget] Atualizando UI com dados:", outages.length, outages);
     this.outages = outages;
     this.lastUpdate = lastUpdate;
     this.render();

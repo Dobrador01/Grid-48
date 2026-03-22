@@ -1645,6 +1645,7 @@ export class DeckGLMap {
 
   private createCelescOutagesLayer(): GeoJsonLayer {
     const cacheKey = 'celesc-outages-layer';
+    const normalize = (str: string) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
 
     if (!this.celescGeoJson) {
       if (!this.celescGeoJsonLoaded) {
@@ -1675,7 +1676,7 @@ export class DeckGLMap {
       lineWidthMinPixels: 1,
       getLineWidth: 1,
       getLineColor: (f) => {
-        const municipio = (f.properties?.name || '').toUpperCase();
+        const municipio = normalize(f.properties?.name || '');
         const data = outageMap.get(municipio);
         if (data && data.ucsAfetadas > 0) {
           return [255, 50, 50, 200]; // Highlighted border
@@ -1683,7 +1684,7 @@ export class DeckGLMap {
         return isLight ? [0, 0, 0, 50] : [255, 255, 255, 50];
       },
       getFillColor: (f: any) => {
-        const municipio = (f.properties?.name || '').toUpperCase();
+        const municipio = normalize(f.properties?.name || '');
         const data = outageMap.get(municipio);
         
         if (!data || data.ucsAfetadas === 0) {
@@ -4601,7 +4602,9 @@ export class DeckGLMap {
   }
 
   public setCelescOutages(outages: CelescMunicipioPayload[]): void {
+    console.log("[DeckGL] Recebendo dados da Celesc:", outages.length, outages);
     this.celescOutages = outages;
+    this.debouncedRebuildLayers();
     this.render();
   }
 
