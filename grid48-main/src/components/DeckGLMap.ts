@@ -1664,7 +1664,7 @@ export class DeckGLMap {
     // Prepare data map for fast lookup
     const outageMap = new Map<string, CelescMunicipioPayload>();
     this.celescOutages.forEach(o => {
-      outageMap.set(o.municipio, o);
+      outageMap.set(normalize(o.municipio), o);
     });
 
     const isLight = getCurrentTheme() === 'light';
