@@ -40,7 +40,7 @@ function parseMapaInfo(html: string): { nome: string; totalUcs: number; ucsSemEn
 }
 
 /** Compute anti-hysteresis trend from readings buffer */
-function computeTendencia(buffer: number[]): string {
+function computeTendencia(buffer: number[]): "ESTÁVEL" | "PIORANDO" | "MELHORANDO" {
   if (buffer.length < 3) return "ESTÁVEL";
   const mid = Math.floor(buffer.length / 2);
   const olderSlice = buffer.slice(0, mid);
@@ -108,7 +108,9 @@ export async function pollCelescData(): Promise<CelescMunicipioPayload[]> {
   const mapaMunicipios = new Map<string, { totalUcs: number; ucsAfetadas: number }>();
   if (mapaData && Array.isArray(mapaData.municipios)) {
     for (const mun of mapaData.municipios) {
-      const info = parseMapaInfo(mun.ds_informacao || "");
+      if (!mun || !mun.ds_informacao) continue; // Pula os buracos vazios da Celesc
+      
+      const info = parseMapaInfo(mun.ds_informacao);
       if (info) {
         mapaMunicipios.set(normalize(info.nome), {
           totalUcs: info.totalUcs,
@@ -167,7 +169,6 @@ export async function pollCelescData(): Promise<CelescMunicipioPayload[]> {
   }
 
   const payloads: CelescMunicipioPayload[] = [];
-  const now = Date.now();
 
   for (const [nome, mapaInfo] of mapaMunicipios.entries()) {
     const { totalUcs, ucsAfetadas } = mapaInfo;
@@ -189,7 +190,6 @@ export async function pollCelescData(): Promise<CelescMunicipioPayload[]> {
       tendenciaDelta,
       bairrosAfetados,
       timestampLeitura, // Retaining native string for obsolescence calculator
-      updatedAt: now,
     });
   }
 
