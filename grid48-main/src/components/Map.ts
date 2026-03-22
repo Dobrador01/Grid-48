@@ -257,6 +257,10 @@ export class MapComponent {
     requestAnimationFrame(() => this.render());
   }
 
+  public setCelescOutages(outages: any[]): void {
+    // Only implemented for DeckGLMap, added to satisfy App.ts interface parity
+  }
+
   public destroy(): void {
     window.removeEventListener('theme-changed', this.handleThemeChange);
     document.removeEventListener('visibilitychange', this.boundVisibilityHandler);
