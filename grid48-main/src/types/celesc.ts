@@ -11,6 +11,7 @@ export interface CelescBairro {
 
 export interface CelescMunicipioPayload {
   nome: string;           // Normalized uppercase, no accents
+  codIbge?: string;       // Injected IBGE mapping
   totalUcsReal: number;
   ucsAfetadas: number;
   pct: number;

@@ -1,4 +1,5 @@
 import type { CelescMunicipioPayload } from '@/types/celesc';
+import { CELESC_TO_IBGE } from '../utils/celesc-to-ibge';
 
 const STORAGE_KEY = 'grid48_celesc_histerese';
 
@@ -93,13 +94,13 @@ export async function pollCelescData(): Promise<CelescMunicipioPayload[]> {
   }
 
   // Parse Fetch A: mapa.js geometries overview
-  const mapaMunicipios = new Map<string, { totalUcsReal: number; ucsAfetadas: number }>();
+  const mapaMunicipios = new Map<string, { nomeLimpo: string; codIbge: string | null; totalUcsReal: number; ucsAfetadas: number }>();
   if (mapaData && Array.isArray(mapaData.municipios)) {
     for (const municipio of mapaData.municipios) {
       if (!municipio || !municipio.ds_informacao) continue; 
       
       const nameMatch = municipio.ds_informacao.match(/<th[^>]*>([^<]+)<\/th>/i);
-      const nome = nameMatch ? nameMatch[1].trim() : "DESCONHECIDO";
+      const nomeOriginal = nameMatch ? nameMatch[1].trim() : "DESCONHECIDO";
 
       const matchTotal = municipio.ds_informacao.match(/Total de unidades consumidoras\s*<\/td>\s*<td[^>]*>\s*([\d.]+)\s*<\/td>/i);
       const totalUcsReal = matchTotal && matchTotal[1] ? parseInt(matchTotal[1].replace(/\./g, ''), 10) : 0;
@@ -107,7 +108,12 @@ export async function pollCelescData(): Promise<CelescMunicipioPayload[]> {
       const boldMatches = [...municipio.ds_informacao.matchAll(/<b[^>]*>\s*([\d.,]+)\s*<\/b>/gi)];
       const ucsSemEnergia = boldMatches.length >= 2 ? parseInt(boldMatches[1]![1]!.replace(/[.,]/g, ""), 10) || 0 : 0;
 
-      mapaMunicipios.set(normalize(nome), {
+      const nrCelesc = municipio.nr_municipio ? municipio.nr_municipio.toString() : '';
+      const mapping = nrCelesc ? CELESC_TO_IBGE[nrCelesc] : null;
+
+      mapaMunicipios.set(normalize(nomeOriginal), {
+        nomeLimpo: mapping ? mapping.nome : nomeOriginal,
+        codIbge: mapping ? mapping.ibge : null,
         totalUcsReal,
         ucsAfetadas: ucsSemEnergia,
       });
@@ -162,27 +168,28 @@ export async function pollCelescData(): Promise<CelescMunicipioPayload[]> {
 
   const payloads: CelescMunicipioPayload[] = [];
 
-  for (const [nome, mapaInfo] of mapaMunicipios.entries()) {
-    const { totalUcsReal, ucsAfetadas } = mapaInfo;
-    const bairros = bairrosByMunicipio.get(nome) || [];
+  for (const [nomeNorm, mapaInfo] of mapaMunicipios.entries()) {
+    const { nomeLimpo, codIbge, totalUcsReal, ucsAfetadas } = mapaInfo;
+    const bairros = bairrosByMunicipio.get(nomeNorm) || [];
     const pct = totalUcsReal > 0 ? (ucsAfetadas / totalUcsReal) * 100 : 0;
 
-    let buffer = history[nome] || [];
+    let buffer = history[nomeNorm] || [];
     buffer.push(ucsAfetadas);
     if (buffer.length > 5) buffer.shift();
-    history[nome] = buffer;
+    history[nomeNorm] = buffer;
 
     const tendencia = computeTendencia(buffer);
 
     payloads.push({
-      nome,
+      nome: nomeLimpo,
+      codIbge: codIbge as string,
       totalUcsReal,
       ucsAfetadas,
       pct,
       tendencia,
       bairros,
       timestampLeitura,
-    });
+    } as any);
   }
 
   // LocalStorage Hysteresis Cache Save
