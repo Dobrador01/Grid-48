@@ -1643,9 +1643,20 @@ export class DeckGLMap {
           autoHighlight: true,
           highlightColor: [255, 255, 255, 80] as [number, number, number, number],
           getFillColor: (feature: any) => {
-            if (!this.celescLookup) return [60, 60, 60, 40] as [number, number, number, number];
-            const cidade = this.celescLookup.get(String(feature.properties?.id));
+            const codIbge = String(feature.properties?.id);
+            const cidade = this.celescLookup ? this.celescLookup.get(codIbge) : undefined;
             
+            // 🛡️ TELEMETRIA ISOLADA PARA TREZE TÍLIAS (Código: 4218509)
+            if (codIbge === '4218509') {
+                console.log("[Grid 48] 🎨 DEBUG COR TREZE TÍLIAS:", {
+                    lookupExiste: !!this.celescLookup,
+                    cidadeEncontrada: cidade,
+                    pctValue: cidade ? cidade.pct : 'N/A',
+                    pctType: cidade ? typeof cidade.pct : 'N/A',
+                    timestampTriggers: this.lastUpdate
+                });
+            }
+
             if (!cidade || typeof cidade.pct !== 'number' || cidade.pct === 0) {
               return [60, 60, 60, 40] as [number, number, number, number];
             }
