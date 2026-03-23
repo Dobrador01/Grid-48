@@ -16,6 +16,28 @@ export class CelescStatusWidget extends Panel {
 
   public render() {
     this.content.innerHTML = this.renderContent();
+    this.attachEventListeners();
+  }
+
+  private attachEventListeners() {
+    const rows = this.content.querySelectorAll('.celesc-row');
+    rows.forEach(row => {
+      row.addEventListener('click', () => {
+        const nextSib = row.nextElementSibling;
+        if (nextSib) nextSib.classList.toggle('hidden');
+
+        const ibgeCode = row.getAttribute('data-ibge');
+        if (ibgeCode) {
+          const cidadeSelecionada = this.outages.find(c => String((c as any).codIbge) === ibgeCode);
+          if (cidadeSelecionada) {
+            window.dispatchEvent(new CustomEvent('CELESC_CITY_SELECTED', {
+              detail: cidadeSelecionada,
+              bubbles: true
+            }));
+          }
+        }
+      });
+    });
   }
 
   public setOutages(outages: CelescMunicipioPayload[], lastUpdate: string) {
@@ -101,8 +123,7 @@ export class CelescStatusWidget extends Panel {
 
     return `
       <div>
-        <div class="celesc-row ${bgClass}" 
-             onclick="this.nextElementSibling.classList.toggle('hidden'); window.dispatchEvent(new CustomEvent('CELESC_CITY_SELECTED', { detail: ${JSON.stringify(m).replace(/"/g, '&quot;')} }));">
+        <div class="celesc-row ${bgClass}" data-ibge="${(m as any).codIbge}">
           <span class="celesc-col-left" title="${m.nome}">${m.nome}</span>
           <span class="celesc-col-center">
             <span class="celesc-col-center-val">${m.pct.toFixed(2)}%</span> ${m.tendencia}
