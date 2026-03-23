@@ -353,6 +353,9 @@ export class DeckGLMap {
 
   // Celesc Sensor Data
   private celescOutages: CelescMunicipioPayload[] = [];
+  private celescLookup = new Map<number, CelescMunicipioPayload>();
+  private lastUpdate = Date.now();
+  private geojsonData: FeatureCollection | null = null;
 
   // Country highlight state
   private countryGeoJsonLoaded = false;
@@ -426,6 +429,56 @@ export class DeckGLMap {
       layers: { ...initialState.layers },
     };
     this.hotspots = [...INTEL_HOTSPOTS];
+
+    fetch('https://raw.githubusercontent.com/tbrugz/geodata-br/master/geojson/geojs-42-mun.json')
+      .then(res => res.json())
+      .then(data => {
+        this.geojsonData = data as FeatureCollection;
+        this.debouncedRebuildLayers();
+      })
+      .catch(err => console.warn('[DeckGLMap] Failed to load SC GeoJSON', err));
+
+    window.addEventListener('CELESC_CITY_SELECTED', (e: Event) => {
+      const customEvent = e as CustomEvent;
+      const cidade = customEvent.detail;
+      if (!cidade || !this.geojsonData || !this.maplibreMap) return;
+      
+      const feature = this.geojsonData.features.find((f: any) => String(f.properties?.id) === String(cidade.codIbge));
+      if (!feature) return;
+
+      const flatCoords = (feature.geometry as any).coordinates.flat(Infinity);
+      let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+      for (let i = 0; i < flatCoords.length; i += 2) {
+        if (flatCoords[i] < minX) minX = flatCoords[i];
+        if (flatCoords[i] > maxX) maxX = flatCoords[i];
+        if (flatCoords[i + 1] < minY) minY = flatCoords[i + 1];
+        if (flatCoords[i + 1] > maxY) maxY = flatCoords[i + 1];
+      }
+      const longitude = (minX + maxX) / 2;
+      const latitude = (minY + maxY) / 2;
+
+      this.maplibreMap.flyTo({ center: [longitude, latitude], zoom: 10, duration: 1000 });
+      
+      const tooltipHtml = this.getTooltip({ layer: { id: 'sc-municipios' }, object: feature } as any)?.html;
+      if (tooltipHtml) {
+        let tt = document.getElementById('deckgl-forced-tooltip');
+        if (!tt) {
+          tt = document.createElement('div');
+          tt.id = 'deckgl-forced-tooltip';
+          tt.style.position = 'absolute';
+          tt.style.zIndex = '1000';
+          tt.style.pointerEvents = 'none';
+          this.container.appendChild(tt);
+
+          this.maplibreMap.once('move', () => {
+             if (tt && tt.parentNode) tt.parentNode.removeChild(tt);
+          });
+        }
+        tt.innerHTML = tooltipHtml;
+        tt.style.left = (window.innerWidth / 2 + 15) + 'px';
+        tt.style.top = (window.innerHeight / 2) + 'px';
+      }
+    });
 
     this.debouncedRebuildLayers = debounce(() => {
       if (this.renderPaused || this.webglLost || !this.maplibreMap) return;
@@ -730,6 +783,13 @@ export class DeckGLMap {
       this.state.zoom = this.maplibreMap?.getZoom() ?? this.state.zoom;
       this.onStateChange?.(this.getState());
     });
+  }
+
+  public setCelescOutages(data: CelescMunicipioPayload[]): void {
+    this.celescOutages = data;
+    this.celescLookup = new Map(data.map(d => [d.codIbge, d]));
+    this.lastUpdate = Date.now();
+    this.debouncedRebuildLayers();
   }
 
   public setIsResizing(value: boolean): void {
@@ -1501,6 +1561,30 @@ export class DeckGLMap {
     }
 
     // Celesc Sensor
+    if (this.geojsonData) {
+      layers.push(
+        new GeoJsonLayer({
+          id: 'sc-municipios',
+          data: this.geojsonData,
+          pickable: true,
+          autoHighlight: true,
+          highlightColor: [255, 255, 255, 80] as [number, number, number, number],
+          getFillColor: (feature: any) => {
+            const id = feature.properties?.id;
+            const cidade = id ? this.celescLookup.get(Number(id)) : null;
+            if (!cidade || !cidade.pct || cidade.pct === 0) return [60, 60, 60, 40] as [number, number, number, number];
+            const pct = cidade.pct;
+            if (pct > 50) return [255, 0, 0, 200] as [number, number, number, number];
+            if (pct > 20) return [255, 140, 0, 200] as [number, number, number, number];
+            if (pct > 5) return [255, 255, 0, 180] as [number, number, number, number];
+            return [0, 255, 0, 150] as [number, number, number, number];
+          },
+          updateTriggers: {
+            getFillColor: [this.lastUpdate]
+          }
+        })
+      );
+    }
 
     const result = layers.filter(Boolean) as LayersList;
     const elapsed = performance.now() - startTime;
@@ -3397,6 +3481,26 @@ export class DeckGLMap {
         return { html: `<div class="deckgl-tooltip"><strong>${t('components.deckgl.layers.iranAttacks')}: ${text(obj.category || '')}</strong><br/>${text((obj.title || '').slice(0, 80))}</div>` };
       case 'news-locations-layer':
         return { html: `<div class="deckgl-tooltip"><strong>📰 ${t('components.deckgl.tooltip.news')}</strong><br/>${text(obj.title?.slice(0, 80) || '')}</div>` };
+      case 'sc-municipios': {
+        const feature = obj;
+        const cidadeId = Number(feature.properties?.id);
+        const cidade = this.celescLookup.get(cidadeId);
+        if (!cidade) {
+          return { html: `<div class="deckgl-tooltip"><strong>${escapeHtml(feature.properties?.name || '')}</strong></div>` };
+        }
+        const pctFormatted = typeof cidade.pct === 'number' ? (cidade.pct % 1 === 0 ? cidade.pct : cidade.pct.toFixed(2)) : cidade.pct;
+        const bairrosHtml = cidade.bairros && cidade.bairros.length > 0 
+          ? `<div style="max-height: 100px; overflow-y: auto; margin-top: 5px; font-size: 0.9em;">
+               ${cidade.bairros.map(b => `<div style="margin-bottom:2px;">• ${escapeHtml(b.nome)}: <strong>${b.ucsOffline}</strong> UCs</div>`).join('')}
+             </div>`
+          : '<div style="margin-top: 5px; font-size: 0.9em; opacity: 0.8;">Nenhum bairro com interrupção</div>';
+          
+        return { html: `<div class="deckgl-tooltip" style="min-width:200px;">
+                          <strong style="font-size:1.1em;">${escapeHtml(cidade.nome)}</strong><br/>
+                          <div style="margin-top: 4px;">UCs Offline: <strong>${cidade.ucsOffline}</strong> (${pctFormatted}%)</div>
+                          ${bairrosHtml}
+                        </div>` };
+      }
       case 'positive-events-layer': {
         const catLabel = obj.category ? obj.category.replace(/-/g, ' & ') : 'Positive Event';
         const countInfo = obj.count > 1 ? `<br/><span style="opacity:.7">${obj.count} sources reporting</span>` : '';
