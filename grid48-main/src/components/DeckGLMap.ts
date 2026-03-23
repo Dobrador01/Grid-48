@@ -356,6 +356,7 @@ export class DeckGLMap {
   private celescLookup = new Map<string, CelescMunicipioPayload>();
   private lastUpdate = Date.now();
   private geojsonData: FeatureCollection | null = null;
+  private selectedCityInfo: CelescMunicipioPayload | null = null;
 
   // Country highlight state
   private countryGeoJsonLoaded = false;
@@ -457,27 +458,8 @@ export class DeckGLMap {
       const longitude = (minX + maxX) / 2;
       const latitude = (minY + maxY) / 2;
 
-      this.maplibreMap.flyTo({ center: [longitude, latitude], zoom: 10, duration: 1000 });
-      
-      const tooltipHtml = this.getTooltip({ layer: { id: 'sc-municipios' }, object: feature } as any)?.html;
-      if (tooltipHtml) {
-        let tt = document.getElementById('deckgl-forced-tooltip');
-        if (!tt) {
-          tt = document.createElement('div');
-          tt.id = 'deckgl-forced-tooltip';
-          tt.style.position = 'absolute';
-          tt.style.zIndex = '1000';
-          tt.style.pointerEvents = 'none';
-          this.container.appendChild(tt);
-
-          this.maplibreMap.once('move', () => {
-             if (tt && tt.parentNode) tt.parentNode.removeChild(tt);
-          });
-        }
-        tt.innerHTML = tooltipHtml;
-        tt.style.left = (window.innerWidth / 2 + 15) + 'px';
-        tt.style.top = (window.innerHeight / 2) + 'px';
-      }
+      this.maplibreMap.flyTo({ center: [longitude, latitude], zoom: 11, duration: 1500 });
+      this.setSelectedCityInfo(cidade);
     });
 
     this.debouncedRebuildLayers = debounce(() => {
@@ -791,6 +773,42 @@ export class DeckGLMap {
     this.lastUpdate = Date.now();
     this.debouncedRebuildLayers();
   }
+
+  private setSelectedCityInfo(cidade: CelescMunicipioPayload | null): void {
+    this.selectedCityInfo = cidade;
+    let tt = document.getElementById('deckgl-forced-tooltip');
+
+    if (!cidade) {
+      if (tt && tt.parentNode) tt.parentNode.removeChild(tt);
+      return;
+    }
+
+    if (!tt) {
+      tt = document.createElement('div');
+      tt.id = 'deckgl-forced-tooltip';
+      tt.style.cssText = 'position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background-color: rgba(0, 0, 0, 0.9); border: 1px solid #374151; padding: 1rem; border-radius: 0.25rem; color: #ffffff; font-family: monospace; font-size: 0.75rem; z-index: 50; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); pointer-events: none; min-width: 250px;';
+      this.container.appendChild(tt);
+    }
+
+    const pctFormatted = typeof cidade.pct === 'number' ? (cidade.pct % 1 === 0 ? cidade.pct : cidade.pct.toFixed(2)) : cidade.pct;
+    const bairrosHtml = cidade.bairros && cidade.bairros.length > 0 
+      ? cidade.bairros.map(b => 
+          `<div style="display: flex; justify-content: space-between; border-bottom: 1px solid #1f2937; padding: 0.25rem 0;">
+             <span style="color: #9ca3af;">${escapeHtml(b.nome)}</span>
+             <span style="color: #fca5a5; margin-left: 1rem;">${b.ucsAfetadas}</span>
+           </div>`
+        ).join('')
+      : '<div style="color: #9ca3af; padding: 0.25rem 0;">Sem UCs afetadas por bairro</div>';
+
+    tt.innerHTML = `
+      <h3 style="color: #f87171; font-weight: 700; margin-bottom: 0.5rem; font-size: 1rem;">${escapeHtml(cidade.nome)} - ${pctFormatted}% OFF</h3>
+      <p style="margin-bottom: 0.5rem; font-size: 0.875rem;">Total: ${cidade.ucsOffline} UCs Offline</p>
+      <div style="max-height: 8rem; overflow-y: auto; padding-right: 0.25rem; margin-top: 0.5rem;">
+        ${bairrosHtml}
+      </div>
+    `;
+  }
+
 
   public setIsResizing(value: boolean): void {
     this.isResizing = value;
@@ -3568,6 +3586,10 @@ export class DeckGLMap {
   ]);
 
   private handleClick(info: PickingInfo): void {
+    if (!info.object || (info.layer && info.layer.id !== 'sc-municipios')) {
+      this.setSelectedCityInfo(null);
+    }
+
     const isChoropleth = info.layer?.id ? DeckGLMap.CHOROPLETH_LAYER_IDS.has(info.layer.id) : false;
     if (!info.object || isChoropleth) {
       if (info.coordinate && this.onCountryClick) {
@@ -4368,6 +4390,9 @@ export class DeckGLMap {
 
   public setLayers(layers: MapLayers): void {
     this.state.layers = { ...layers };
+    if (!this.state.layers.celescOutages) {
+      this.setSelectedCityInfo(null);
+    }
     this.manageAircraftTimer(this.state.layers.flights);
     this.render(); // Debounced
 
