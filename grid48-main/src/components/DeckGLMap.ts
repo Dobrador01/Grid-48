@@ -839,23 +839,16 @@ export class DeckGLMap {
 
       console.log(`[Grid 48] 🎯 Voando para ${cidade.nome} [Lat: ${lat.toFixed(4)}, Lon: ${lon.toFixed(4)}]`);
 
-      // 4. Preparar e Injetar a nova câmera no Deck.gl
-      const novaCamera = {
-        ...(this.viewState || {}),
-        longitude: lon,
-        latitude: lat,
-        zoom: 11.5,
-        transitionDuration: 1500,
-        transitionInterpolator: new FlyToInterpolator()
-      };
-
-      if (this.deckOverlay) {
-        this.deckOverlay.setProps({ viewState: novaCamera });
-        this.viewState = novaCamera;
+      // 4. Injetar a nova câmera diretamente no mapa base nativo (MapLibre/MapBox)
+      if (this.maplibreMap) {
+        this.maplibreMap.flyTo({
+          center: [lon, lat],
+          zoom: 11.5,
+          speed: 1.2,
+          essential: true
+        });
       } else {
-        console.error("[Grid 48] ❌ Instância this.deckOverlay não encontrada!");
-        // Instância alternativa para garantir fallback de compatibilidade com maplibre
-        if (this.maplibreMap) this.maplibreMap.flyTo({ center: [lon, lat], zoom: 11.5, duration: 1500 });
+        console.error("[Grid 48] ❌ Instância this.maplibreMap não encontrada!");
       }
 
       // 5. Acionar a fábrica sintética do Tooltip
@@ -1652,7 +1645,10 @@ export class DeckGLMap {
           getFillColor: (feature: any) => {
             if (!this.celescLookup) return [60, 60, 60, 40] as [number, number, number, number];
             const cidade = this.celescLookup.get(String(feature.properties?.id));
-            if (!cidade || cidade.pct === 0) return [60, 60, 60, 40] as [number, number, number, number];
+            
+            if (!cidade || typeof cidade.pct !== 'number' || cidade.pct === 0) {
+              return [60, 60, 60, 40] as [number, number, number, number];
+            }
             
             // Escala
             if (cidade.pct >= 50) return [255, 0, 0, 200] as [number, number, number, number];
