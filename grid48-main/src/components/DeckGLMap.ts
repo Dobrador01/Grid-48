@@ -754,6 +754,9 @@ export class DeckGLMap {
     this.celescLookup = new Map(data.map(d => [String(d.codIbge), d]));
     this.lastUpdate = Date.now();
     this.debouncedRebuildLayers();
+    if (this.deckOverlay) {
+      try { this.deckOverlay.setProps({ layers: this.buildLayers() }); } catch {}
+    }
   }
 
   private setSelectedCityInfo(cidade: CelescMunicipioPayload | null): void {
@@ -784,7 +787,7 @@ export class DeckGLMap {
 
     tt.innerHTML = `
       <h3 style="color: #f87171; font-weight: 700; margin-bottom: 0.5rem; font-size: 1rem;">${escapeHtml(cidade.nome)} - ${pctFormatted}% OFF</h3>
-      <p style="margin-bottom: 0.5rem; font-size: 0.875rem;">Total: ${cidade.ucsOffline} UCs Offline</p>
+      <p style="margin-bottom: 0.5rem; font-size: 0.875rem;">Total: ${cidade.ucsAfetadas} UCs Offline</p>
       <div style="max-height: 8rem; overflow-y: auto; padding-right: 0.25rem; margin-top: 0.5rem;">
         ${bairrosHtml}
       </div>
@@ -846,11 +849,11 @@ export class DeckGLMap {
         transitionInterpolator: new FlyToInterpolator()
       };
 
-      if (this.deck) {
-        this.deck.setProps({ viewState: novaCamera });
+      if (this.deckOverlay) {
+        this.deckOverlay.setProps({ viewState: novaCamera });
         this.viewState = novaCamera;
       } else {
-        console.error("[Grid 48] ❌ Instância this.deck não encontrada!");
+        console.error("[Grid 48] ❌ Instância this.deckOverlay não encontrada!");
         // Instância alternativa para garantir fallback de compatibilidade com maplibre
         if (this.maplibreMap) this.maplibreMap.flyTo({ center: [lon, lat], zoom: 11.5, duration: 1500 });
       }
@@ -1647,14 +1650,15 @@ export class DeckGLMap {
           autoHighlight: true,
           highlightColor: [255, 255, 255, 80] as [number, number, number, number],
           getFillColor: (feature: any) => {
-            const codFeature = String(feature.properties?.id);
-            const cidade = codFeature ? this.celescLookup.get(codFeature) : null;
-            if (!cidade || !cidade.pct || cidade.pct === 0) return [60, 60, 60, 40] as [number, number, number, number];
-            const pct = cidade.pct;
-            if (pct > 50) return [255, 0, 0, 200] as [number, number, number, number];
-            if (pct > 20) return [255, 140, 0, 200] as [number, number, number, number];
-            if (pct > 5) return [255, 255, 0, 180] as [number, number, number, number];
-            return [0, 255, 0, 150] as [number, number, number, number];
+            if (!this.celescLookup) return [60, 60, 60, 40] as [number, number, number, number];
+            const cidade = this.celescLookup.get(String(feature.properties?.id));
+            if (!cidade || cidade.pct === 0) return [60, 60, 60, 40] as [number, number, number, number];
+            
+            // Escala
+            if (cidade.pct >= 50) return [255, 0, 0, 200] as [number, number, number, number];
+            if (cidade.pct >= 20) return [255, 140, 0, 200] as [number, number, number, number];
+            if (cidade.pct >= 5)  return [255, 204, 0, 200] as [number, number, number, number];
+            return [0, 200, 0, 150] as [number, number, number, number];
           },
           updateTriggers: {
             getFillColor: [this.lastUpdate]
@@ -3568,13 +3572,13 @@ export class DeckGLMap {
         const pctFormatted = typeof cidade.pct === 'number' ? (cidade.pct % 1 === 0 ? cidade.pct : cidade.pct.toFixed(2)) : cidade.pct;
         const bairrosHtml = cidade.bairros && cidade.bairros.length > 0 
           ? `<div style="max-height: 100px; overflow-y: auto; margin-top: 5px; font-size: 0.9em;">
-               ${cidade.bairros.map(b => `<div style="margin-bottom:2px;">• ${escapeHtml(b.nome)}: <strong>${b.ucsOffline}</strong> UCs</div>`).join('')}
+               ${cidade.bairros.map(b => `<div style="margin-bottom:2px;">• ${escapeHtml(b.nome)}: <strong>${b.ucsAfetadas}</strong> UCs</div>`).join('')}
              </div>`
           : '<div style="margin-top: 5px; font-size: 0.9em; opacity: 0.8;">Nenhum bairro com interrupção</div>';
           
         return { html: `<div class="deckgl-tooltip" style="min-width:200px;">
                           <strong style="font-size:1.1em;">${escapeHtml(cidade.nome)}</strong><br/>
-                          <div style="margin-top: 4px;">UCs Offline: <strong>${cidade.ucsOffline}</strong> (${pctFormatted}%)</div>
+                          <div style="margin-top: 4px;">UCs Offline: <strong>${cidade.ucsAfetadas}</strong> (${pctFormatted}%)</div>
                           ${bairrosHtml}
                         </div>` };
       }
