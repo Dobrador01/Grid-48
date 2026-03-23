@@ -4,6 +4,7 @@
  * Mobile devices gracefully degrade to the D3/SVG-based Map component
  */
 import { MapboxOverlay } from '@deck.gl/mapbox';
+import { FlyToInterpolator } from '@deck.gl/core';
 import type { Layer, LayersList, PickingInfo } from '@deck.gl/core';
 import { GeoJsonLayer, ScatterplotLayer, PathLayer, IconLayer, TextLayer, PolygonLayer } from '@deck.gl/layers';
 import maplibregl from 'maplibre-gl';
@@ -357,6 +358,8 @@ export class DeckGLMap {
   private lastUpdate = Date.now();
   private geojsonData: FeatureCollection | null = null;
   private selectedCityInfo: CelescMunicipioPayload | null = null;
+  private deck: any;
+  private viewState: any;
 
   // Country highlight state
   private countryGeoJsonLoaded = false;
@@ -439,28 +442,7 @@ export class DeckGLMap {
       })
       .catch(err => console.warn('[DeckGLMap] Failed to load SC GeoJSON', err));
 
-    window.addEventListener('CELESC_CITY_SELECTED', (e: Event) => {
-      const customEvent = e as CustomEvent;
-      const cidade = customEvent.detail;
-      if (!cidade || !this.geojsonData || !this.maplibreMap) return;
-      
-      const feature = this.geojsonData.features.find((f: any) => String(f.properties?.id) === String(cidade.codIbge));
-      if (!feature) return;
-
-      const flatCoords = (feature.geometry as any).coordinates.flat(Infinity);
-      let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-      for (let i = 0; i < flatCoords.length; i += 2) {
-        if (flatCoords[i] < minX) minX = flatCoords[i];
-        if (flatCoords[i] > maxX) maxX = flatCoords[i];
-        if (flatCoords[i + 1] < minY) minY = flatCoords[i + 1];
-        if (flatCoords[i + 1] > maxY) maxY = flatCoords[i + 1];
-      }
-      const longitude = (minX + maxX) / 2;
-      const latitude = (minY + maxY) / 2;
-
-      this.maplibreMap.flyTo({ center: [longitude, latitude], zoom: 11, duration: 1500 });
-      this.setSelectedCityInfo(cidade);
-    });
+    window.addEventListener('CELESC_CITY_SELECTED', this.handleCityFocus.bind(this));
 
     this.debouncedRebuildLayers = debounce(() => {
       if (this.renderPaused || this.webglLost || !this.maplibreMap) return;
@@ -807,6 +789,82 @@ export class DeckGLMap {
         ${bairrosHtml}
       </div>
     `;
+  }
+
+  handleCityFocus(event: any) {
+    console.log("[Grid 48] ⚡ Evento recebido no DeckGLMap:", event);
+
+    // 1. Desempacotar o Payload (Defesa contra o Hotfix #1 Stringified)
+    let cidade;
+    try {
+      cidade = typeof event.detail === 'string' ? JSON.parse(event.detail) : event.detail;
+    } catch (e) {
+      console.error("[Grid 48] ❌ Erro ao decodificar event.detail:", e);
+      return;
+    }
+    
+    console.log("[Grid 48] 📍 Cidade extraída:", cidade);
+
+    if (!cidade || !cidade.codIbge) {
+      console.warn("[Grid 48] ⚠️ Operação abortada: codIbge ausente no payload.");
+      return;
+    }
+    if (!this.geojsonData || !(this.geojsonData as any).features) {
+      console.error("[Grid 48] ❌ Malha do IBGE não encontrada na memória (this.geojsonData).");
+      return;
+    }
+
+    // 2. Achar a geometria exata da cidade no GeoJSON
+    const feature = (this.geojsonData as any).features.find((f: any) => String(f.properties.id) === String(cidade.codIbge));
+    if (!feature || !feature.geometry) {
+      console.warn("[Grid 48] ⚠️ Geometria não encontrada no IBGE para o código:", cidade.codIbge);
+      return;
+    }
+
+    // 3. Achar o centróide achatando as coordenadas da Bounding Box
+    try {
+      const flatCoords = feature.geometry.coordinates.flat(Infinity);
+      let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+      for (let i = 0; i < flatCoords.length; i += 2) {
+        if (flatCoords[i] < minX) minX = flatCoords[i];
+        if (flatCoords[i] > maxX) maxX = flatCoords[i];
+        if (flatCoords[i+1] < minY) minY = flatCoords[i+1];
+        if (flatCoords[i+1] > maxY) maxY = flatCoords[i+1];
+      }
+      const lon = (minX + maxX) / 2;
+      const lat = (minY + maxY) / 2;
+
+      console.log(`[Grid 48] 🎯 Voando para ${cidade.nome} [Lat: ${lat.toFixed(4)}, Lon: ${lon.toFixed(4)}]`);
+
+      // 4. Preparar e Injetar a nova câmera no Deck.gl
+      const novaCamera = {
+        ...(this.viewState || {}),
+        longitude: lon,
+        latitude: lat,
+        zoom: 11.5,
+        transitionDuration: 1500,
+        transitionInterpolator: new FlyToInterpolator()
+      };
+
+      if (this.deck) {
+        this.deck.setProps({ viewState: novaCamera });
+        this.viewState = novaCamera;
+      } else {
+        console.error("[Grid 48] ❌ Instância this.deck não encontrada!");
+        // Instância alternativa para garantir fallback de compatibilidade com maplibre
+        if (this.maplibreMap) this.maplibreMap.flyTo({ center: [lon, lat], zoom: 11.5, duration: 1500 });
+      }
+
+      // 5. Acionar a fábrica sintética do Tooltip
+      if (typeof this.setSelectedCityInfo === 'function') {
+        this.setSelectedCityInfo(cidade);
+      } else {
+        console.warn("[Grid 48] ⚠️ Função setSelectedCityInfo ausente. Tooltip não será exibido.");
+      }
+
+    } catch (err) {
+      console.error("[Grid 48] ❌ Falha crítica no cálculo de FlyTo:", err);
+    }
   }
 
 
