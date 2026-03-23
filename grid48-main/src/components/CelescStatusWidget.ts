@@ -102,7 +102,7 @@ export class CelescStatusWidget extends Panel {
     return `
       <div>
         <div class="celesc-row ${bgClass}" 
-             onclick="this.nextElementSibling.classList.toggle('hidden'); window.dispatchEvent(new CustomEvent('map-focus-municipio', { detail: '${m.nome}' }));">
+             onclick="this.nextElementSibling.classList.toggle('hidden'); window.dispatchEvent(new CustomEvent('CELESC_CITY_SELECTED', { detail: ${JSON.stringify(m).replace(/"/g, '&quot;')} }));">
           <span class="celesc-col-left" title="${m.nome}">${m.nome}</span>
           <span class="celesc-col-center">
             <span class="celesc-col-center-val">${m.pct.toFixed(2)}%</span> ${m.tendencia}

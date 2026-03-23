@@ -353,7 +353,7 @@ export class DeckGLMap {
 
   // Celesc Sensor Data
   private celescOutages: CelescMunicipioPayload[] = [];
-  private celescLookup = new Map<number, CelescMunicipioPayload>();
+  private celescLookup = new Map<string, CelescMunicipioPayload>();
   private lastUpdate = Date.now();
   private geojsonData: FeatureCollection | null = null;
 
@@ -787,7 +787,7 @@ export class DeckGLMap {
 
   public setCelescOutages(data: CelescMunicipioPayload[]): void {
     this.celescOutages = data;
-    this.celescLookup = new Map(data.map(d => [d.codIbge, d]));
+    this.celescLookup = new Map(data.map(d => [String(d.codIbge), d]));
     this.lastUpdate = Date.now();
     this.debouncedRebuildLayers();
   }
@@ -1566,12 +1566,13 @@ export class DeckGLMap {
         new GeoJsonLayer({
           id: 'sc-municipios',
           data: this.geojsonData,
+          visible: this.state.layers.celescOutages ?? true,
           pickable: true,
           autoHighlight: true,
           highlightColor: [255, 255, 255, 80] as [number, number, number, number],
           getFillColor: (feature: any) => {
-            const id = feature.properties?.id;
-            const cidade = id ? this.celescLookup.get(Number(id)) : null;
+            const codFeature = String(feature.properties?.id);
+            const cidade = codFeature ? this.celescLookup.get(codFeature) : null;
             if (!cidade || !cidade.pct || cidade.pct === 0) return [60, 60, 60, 40] as [number, number, number, number];
             const pct = cidade.pct;
             if (pct > 50) return [255, 0, 0, 200] as [number, number, number, number];
@@ -3483,8 +3484,8 @@ export class DeckGLMap {
         return { html: `<div class="deckgl-tooltip"><strong>📰 ${t('components.deckgl.tooltip.news')}</strong><br/>${text(obj.title?.slice(0, 80) || '')}</div>` };
       case 'sc-municipios': {
         const feature = obj;
-        const cidadeId = Number(feature.properties?.id);
-        const cidade = this.celescLookup.get(cidadeId);
+        const codFeature = String(feature.properties?.id);
+        const cidade = this.celescLookup.get(codFeature);
         if (!cidade) {
           return { html: `<div class="deckgl-tooltip"><strong>${escapeHtml(feature.properties?.name || '')}</strong></div>` };
         }
