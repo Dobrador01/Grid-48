@@ -442,10 +442,16 @@ export class DeckGLMap {
       })
       .catch(err => console.warn('[DeckGLMap] Failed to load SC GeoJSON', err));
 
-    window.addEventListener('CELESC_DATA_READY', (e: Event) => {
-      const customEvent = e as CustomEvent;
-      if (customEvent.detail) this.setCelescOutages(customEvent.detail);
+    window.addEventListener('CELESC_DATA_READY', () => {
+      if ((window as any).__CELESC_GLOBAL_DATA__) {
+        this.setCelescOutages((window as any).__CELESC_GLOBAL_DATA__);
+      }
     });
+
+    // Avaliação sincrônica para bater a inanição na carga assíncrona da malha (Race Condition)
+    if ((window as any).__CELESC_GLOBAL_DATA__) {
+      this.setCelescOutages((window as any).__CELESC_GLOBAL_DATA__);
+    }
 
     window.addEventListener('CELESC_CITY_SELECTED', this.handleCityFocus.bind(this));
 
