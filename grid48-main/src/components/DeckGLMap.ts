@@ -752,10 +752,15 @@ export class DeckGLMap {
   public setCelescOutages(data: CelescMunicipioPayload[]): void {
     this.celescOutages = data;
     this.celescLookup = new Map(data.map(d => [String(d.codIbge), d]));
+    
     this.lastUpdate = Date.now();
-    this.debouncedRebuildLayers();
+    
     if (this.deckOverlay) {
-      try { this.deckOverlay.setProps({ layers: this.buildLayers() }); } catch {}
+      this.deckOverlay.setProps({
+        layers: this.buildLayers()
+      });
+    } else {
+      console.error("[Grid 48] ❌ Instância do deckOverlay não encontrada para atualizar camadas.");
     }
   }
 
@@ -1643,25 +1648,11 @@ export class DeckGLMap {
           autoHighlight: true,
           highlightColor: [255, 255, 255, 80] as [number, number, number, number],
           getFillColor: (feature: any) => {
-            const codIbge = String(feature.properties?.id);
-            const cidade = this.celescLookup ? this.celescLookup.get(codIbge) : undefined;
+            if (!this.celescLookup) return [60, 60, 60, 40] as [number, number, number, number];
+            const cidade = this.celescLookup.get(String(feature.properties.id));
             
-            // 🛡️ TELEMETRIA ISOLADA PARA TREZE TÍLIAS (Código: 4218509)
-            if (codIbge === '4218509') {
-                console.log("[Grid 48] 🎨 DEBUG COR TREZE TÍLIAS:", {
-                    lookupExiste: !!this.celescLookup,
-                    cidadeEncontrada: cidade,
-                    pctValue: cidade ? cidade.pct : 'N/A',
-                    pctType: cidade ? typeof cidade.pct : 'N/A',
-                    timestampTriggers: this.lastUpdate
-                });
-            }
-
-            if (!cidade || typeof cidade.pct !== 'number' || cidade.pct === 0) {
-              return [60, 60, 60, 40] as [number, number, number, number];
-            }
+            if (!cidade || typeof cidade.pct !== 'number' || cidade.pct === 0) return [60, 60, 60, 40] as [number, number, number, number];
             
-            // Escala
             if (cidade.pct >= 50) return [255, 0, 0, 200] as [number, number, number, number];
             if (cidade.pct >= 20) return [255, 140, 0, 200] as [number, number, number, number];
             if (cidade.pct >= 5)  return [255, 204, 0, 200] as [number, number, number, number];
