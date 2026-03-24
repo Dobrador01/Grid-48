@@ -1655,6 +1655,11 @@ export class DeckGLMap {
           autoHighlight: true,
           highlightColor: [255, 255, 255, 80] as [number, number, number, number],
           getFillColor: (feature: any) => {
+            if (!(window as any).geoJsonLogPrinted) {
+              console.log("[Grid 48] 🚨 ESTRUTURA REAL DO GEOJSON:", feature.properties);
+              (window as any).geoJsonLogPrinted = true;
+            }
+
             if (!this.celescLookup) return [60, 60, 60, 40] as [number, number, number, number];
             const cidade = this.celescLookup.get(String(feature.properties.id));
             
