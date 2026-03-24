@@ -442,6 +442,11 @@ export class DeckGLMap {
       })
       .catch(err => console.warn('[DeckGLMap] Failed to load SC GeoJSON', err));
 
+    window.addEventListener('CELESC_DATA_READY', (e: Event) => {
+      const customEvent = e as CustomEvent;
+      if (customEvent.detail) this.setCelescOutages(customEvent.detail);
+    });
+
     window.addEventListener('CELESC_CITY_SELECTED', this.handleCityFocus.bind(this));
 
     this.debouncedRebuildLayers = debounce(() => {
@@ -750,11 +755,13 @@ export class DeckGLMap {
   }
 
   public setCelescOutages(data: CelescMunicipioPayload[]): void {
-    this.celescOutages = data;
-    this.celescLookup = new Map(data.map(d => [String(d.codIbge), d]));
+    if (!Array.isArray(data) || data.length === 0) return;
     
+    // Garante que a chave seja String estrita para o lookup funcionar
+    this.celescLookup = new Map(data.map(c => [String(c.codIbge), c]));
     this.lastUpdate = Date.now();
     
+    // Envia o pulso de vida para o motor do Mapbox/Deck.gl
     if (this.deckOverlay) {
       this.deckOverlay.setProps({
         layers: this.buildLayers()

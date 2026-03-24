@@ -205,6 +205,9 @@ export function initCelescPoller(onDataCallback: (payloads: CelescMunicipioPaylo
       const payloads = await pollCelescData();
       if (payloads.length > 0) {
           onDataCallback(payloads);
+          window.dispatchEvent(new CustomEvent('CELESC_DATA_READY', { 
+            detail: payloads 
+          }));
       }
   };
   
