@@ -1,6 +1,6 @@
 import type { AppContext, AppModule } from '@/app/app-context';
 import { enqueuePanelCall } from '@/app/pending-panel-data';
-import type { NewsItem, MapLayers, SocialUnrestEvent } from '@/types';
+import type { NewsItem, MapLayers } from '@/types';
 
 import type { TimeRange } from '@/components';
 import {
@@ -9,54 +9,23 @@ import {
   LAYER_TO_SOURCE,
   SITE_VARIANT,
 } from '@/config';
-import { INTEL_HOTSPOTS, CONFLICT_ZONES } from '@/config/geo';
+import { INTEL_HOTSPOTS } from '@/config/geo';
 import { tokenizeForMatch, matchKeyword } from '@/utils/keyword-match';
 import {
-  fetchCategoryFeeds,
-  getFeedFailures,
-  fetchFredData,
-  fetchInternetOutages,
-  isOutagesConfigured,
-  fetchAisSignals,
-  getAisStatus,
-  isAisConfigured,
-  fetchCableActivity,
-  fetchCableHealth,
-  fetchProtestEvents,
-  getProtestStatus,
   fetchFlightDelays,
-  fetchMilitaryFlights,
-  fetchMilitaryVessels,
-  initMilitaryVesselStream,
-  isMilitaryVesselTrackingConfigured,
-  fetchUSNIFleetReport,
   updateBaseline,
   calculateDeviation,
-  addToSignalHistory,
   analysisWorker,
-  fetchCyberThreats,
-  drainTrendingSignals,
 } from '@/services';
-import { checkBatchForBreakingAlerts, dispatchOrefBreakingAlert } from '@/services/breaking-news-alerts';
 import { mlWorker } from '@/services/ml-worker';
 import { clusterNewsHybrid } from '@/services/clustering';
-import { signalAggregator } from '@/services/signal-aggregator';
-import { updateAndCheck, consumeServerAnomalies } from '@/services/temporal-baseline';
-import { analyzeFlightsForSurge, surgeAlertToSignal, detectForeignMilitaryPresence, foreignPresenceToSignal, type TheaterPostureSummary } from '@/services/military-surge';
-import { fetchCachedTheaterPosture } from '@/services/cached-theater-posture';
-import { ingestMilitaryForCII, ingestNewsForCII, ingestOutagesForCII, ingestConflictsForCII, ingestHapiForCII, ingestDisplacementForCII, ingestClimateForCII, ingestStrikesForCII, ingestAviationForCII, ingestGpsJammingForCII, ingestAisDisruptionsForCII, ingestCyberThreatsForCII, ingestTemporalAnomaliesForCII, isInLearningMode, resetHotspotActivity, setIntelligenceSignalsLoaded, hasAnyIntelligenceData, calculateCII } from '@/services/country-instability';
-import { fetchGpsInterference } from '@/services/gps-interference';
-import { fetchSatelliteTLEs, initSatRecs, propagatePositions, startPropagationLoop } from '@/services/satellites';
-import type { SatRecEntry } from '@/services/satellites';
+import { consumeServerAnomalies } from '@/services/temporal-baseline';
+import { ingestClimateForCII, ingestAviationForCII, calculateCII } from '@/services/country-instability';
 import { dataFreshness, type DataSourceId } from '@/services/data-freshness';
-import { fetchConflictEvents, fetchHapiSummary, fetchIranEvents } from '@/services/conflict';
-import { fetchUnhcrPopulation } from '@/services/displacement';
 import { fetchClimateAnomalies } from '@/services/climate';
-import { fetchOrefAlerts, startOrefPolling, stopOrefPolling, onOrefAlertsUpdate } from '@/services/oref-alerts';
-import { enrichEventsWithExposure } from '@/services/population-exposure';
+import { stopOrefPolling } from '@/services/oref-alerts';
 import { debounce } from '@/utils';
-import { isFeatureAvailable, isFeatureEnabled } from '@/services/runtime-config';
-import { isDesktopRuntime } from '@/services/runtime';
+import { isFeatureEnabled } from '@/services/runtime-config';
 import { getAiFlowSettings } from '@/services/ai-flow-settings';
 import { t, getCurrentLanguage } from '@/services/i18n';
 import { canQueueAiClassification, AI_CLASSIFY_MAX_PER_FEED } from '@/services/ai-classify-queue';
@@ -93,10 +62,8 @@ function protoItemToNewsItem(p: ProtoNewsItem): NewsItem {
   };
 }
 
-const CYBER_LAYER_ENABLED = import.meta.env.VITE_ENABLE_CYBER_LAYER === 'true';
 
 export interface DataLoaderCallbacks {
-  renderCriticalBanner: (postures: TheaterPostureSummary[]) => void;
   refreshOpenCountryBrief: () => void;
 }
 
@@ -112,27 +79,14 @@ export class DataLoaderManager implements AppModule {
 
   public updateSearchIndex: () => void = () => {};
 
-  private callPanel(key: string, method: string, ...args: unknown[]): void {
-    const panel = this.ctx.panels[key];
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const obj = panel as any;
-    if (obj && typeof obj[method] === 'function') {
-      obj[method](...args);
-      return;
-    }
-    enqueuePanelCall(key, method, args);
-  }
-
   private boundMarketWatchlistHandler: (() => void) | null = null;
   private satellitePropagationCleanup: (() => void) | null = null;
-  private cachedSatRecs: SatRecEntry[] | null = null;
 
   private digestBreaker = { state: 'closed' as 'closed' | 'open' | 'half-open', failures: 0, cooldownUntil: 0 };
   private readonly digestRequestTimeoutMs = 8000;
   private readonly digestBreakerCooldownMs = 5 * 60 * 1000;
   private readonly perFeedFallbackCategoryFeedLimit = 3;
   private readonly perFeedFallbackIntelFeedLimit = 6;
-  private readonly perFeedFallbackBatchSize = 2;
   private lastGoodDigest: ListFeedDigestResponse | null = null;
 
   constructor(ctx: AppContext, callbacks: DataLoaderCallbacks) {
@@ -156,12 +110,6 @@ export class DataLoaderManager implements AppModule {
     }
   }
 
-  private refreshCiiAndBrief(): void {
-    this.callbacks.refreshOpenCountryBrief();
-    const scores = calculateCII();
-    this.ctx.map?.setCIIScores(scores.map(s => ({ code: s.code, score: s.score, level: s.level })));
-    this.ctx.map?.setLayerReady('ciiChoropleth', scores.length > 0);
-  }
 
   private async tryFetchDigest(): Promise<ListFeedDigestResponse | null> {
     const now = Date.now();
@@ -219,9 +167,6 @@ export class DataLoaderManager implements AppModule {
     return feeds.slice(0, maxFeeds);
   }
 
-  private shouldShowIntelligenceNotifications(): boolean {
-    return !this.ctx.isMobile && !!this.ctx.findingsBadge?.isPopupEnabled();
-  }
 
   async loadAllData(): Promise<void> {
     const runGuarded = async (name: string, fn: () => Promise<void>): Promise<void> => {
@@ -236,29 +181,11 @@ export class DataLoaderManager implements AppModule {
       }
     };
 
-    const tasks: Array<{ name: string; task: Promise<void> }> = [
-      { name: 'news', task: runGuarded('news', () => this.loadNews()) },
-    ];
+    const tasks: Array<{ name: string; task: Promise<void> }> = [];
 
-    // Happy variant only loads news data -- skip all geopolitical/financial/military data
-    if (SITE_VARIANT !== 'happy') {
-      tasks.push({ name: 'fred', task: runGuarded('fred', () => this.loadFredData()) });
-    }
+    tasks.push({ name: 'firms', task: runGuarded('firms', () => this.loadFirmsData()) });
+    if (this.ctx.mapLayers.flights) tasks.push({ name: 'flights', task: runGuarded('flights', () => this.loadFlightDelays()) });
 
-    if (SITE_VARIANT === 'full') {
-      tasks.push({ name: 'intelligence', task: runGuarded('intelligence', () => this.loadIntelligenceSignals()) });
-    }
-
-    if (SITE_VARIANT === 'full') tasks.push({ name: 'firms', task: runGuarded('firms', () => this.loadFirmsData()) });
-    if (SITE_VARIANT !== 'happy' && !isDesktopRuntime() && this.ctx.mapLayers.ais) tasks.push({ name: 'ais', task: runGuarded('ais', () => this.loadAisSignals()) });
-    if (SITE_VARIANT !== 'happy' && this.ctx.mapLayers.cables) tasks.push({ name: 'cables', task: runGuarded('cables', () => this.loadCableActivity()) });
-    if (SITE_VARIANT !== 'happy' && this.ctx.mapLayers.cables) tasks.push({ name: 'cableHealth', task: runGuarded('cableHealth', () => this.loadCableHealth()) });
-    if (SITE_VARIANT !== 'happy' && this.ctx.mapLayers.flights) tasks.push({ name: 'flights', task: runGuarded('flights', () => this.loadFlightDelays()) });
-    if (SITE_VARIANT !== 'happy' && CYBER_LAYER_ENABLED && this.ctx.mapLayers.cyberThreats) tasks.push({ name: 'cyberThreats', task: runGuarded('cyberThreats', () => this.loadCyberThreats()) });
-    if (SITE_VARIANT !== 'happy' && !isDesktopRuntime()) tasks.push({ name: 'iranAttacks', task: runGuarded('iranAttacks', () => this.loadIranEvents()) });
-    if (SITE_VARIANT !== 'happy' && this.ctx.mapLayers.satellites && this.ctx.map?.isGlobeMode?.()) tasks.push({ name: 'satellites', task: runGuarded('satellites', () => this.loadSatellites()) });
-
-    // Stagger startup: run tasks in small batches to avoid hammering upstreams
     const BATCH_SIZE = 4;
     const BATCH_DELAY_MS = 300;
     for (let i = 0; i < tasks.length; i += BATCH_SIZE) {
@@ -276,12 +203,7 @@ export class DataLoaderManager implements AppModule {
 
     this.updateSearchIndex();
 
-
-
-    const bootstrapTemporal = consumeServerAnomalies();
-    if (bootstrapTemporal.anomalies.length > 0 || bootstrapTemporal.trackedTypes.length > 0) {
-    } else {
-    }
+    consumeServerAnomalies();
   }
 
   async refreshTemporalBaseline(): Promise<void> {
@@ -299,34 +221,11 @@ export class DataLoaderManager implements AppModule {
         case 'outages':
           await this.loadOutages();
           break;
-        case 'cyberThreats':
-          await this.loadCyberThreats();
-          break;
-        case 'ais':
-          await this.loadAisSignals();
-          break;
-        case 'cables':
-          await Promise.all([this.loadCableActivity(), this.loadCableHealth()]);
-          break;
-        case 'protests':
-          await this.loadProtests();
-          break;
         case 'flights':
           await this.loadFlightDelays();
           break;
-
-        case 'iranAttacks':
-          await this.loadIranEvents();
-          break;
-        case 'satellites': {
-          await this.loadSatellites();
-          this.loadImageryFootprints();
-          break;
-        }
-        case 'displacement':
         case 'climate':
-        case 'gpsJamming':
-          await this.loadIntelligenceSignals();
+          await this.loadClimateAnomalies();
           break;
       }
     } finally {
@@ -335,17 +234,6 @@ export class DataLoaderManager implements AppModule {
     }
   }
 
-  async loadSatellites(): Promise<void> {
-    this.stopSatellitePropagation();
-    const data = await fetchSatelliteTLEs();
-    if (!data || data.length === 0) return;
-    this.cachedSatRecs = initSatRecs(data);
-    const positions = propagatePositions(this.cachedSatRecs);
-    this.ctx.map?.setSatellites(positions);
-    this.satellitePropagationCleanup = startPropagationLoop(this.cachedSatRecs, (pos) => {
-      this.ctx.map?.setSatellites(pos);
-    }, 3000);
-  }
 
   private stopSatellitePropagation(): void {
     this.satellitePropagationCleanup?.();
@@ -354,31 +242,8 @@ export class DataLoaderManager implements AppModule {
 
   private imageryRetryTimer: ReturnType<typeof setTimeout> | null = null;
 
-  private loadImageryFootprints(retries = 2): void {
-    if (!this.ctx.mapLayers.satellites) return;
-    if (this.ctx.map?.isGlobeMode()) return;
-    const bbox = this.ctx.map?.getBbox();
-    if (!bbox) {
-      if (retries > 0) {
-        this.imageryRetryTimer = setTimeout(() => this.loadImageryFootprints(retries - 1), 1500);
-      }
-      return;
-    }
-    void import('@/services/imagery').then(async ({ fetchImageryScenes }) => {
-      try {
-        const scenes = await fetchImageryScenes({ bbox, limit: 20 });
-        if (!this.ctx.mapLayers.satellites) return;
-        if (this.ctx.map?.isGlobeMode()) return;
-        this.ctx.map?.setImageryScenes(scenes);
-      } catch { /* imagery is best-effort */ }
-    });
-  }
-
-  stopLayerActivity(layer: keyof MapLayers): void {
-    if (layer === 'satellites') {
-      this.stopSatellitePropagation();
-      if (this.imageryRetryTimer) { clearTimeout(this.imageryRetryTimer); this.imageryRetryTimer = null; }
-    }
+  stopLayerActivity(_layer: keyof MapLayers): void {
+    // No satellite or imagery layers in Fat Client scope
   }
 
   private findFlashLocation(title: string): { lat: number; lon: number } | null {
@@ -404,12 +269,7 @@ export class DataLoaderManager implements AppModule {
       }
     }
 
-    for (const conflict of CONFLICT_ZONES) {
-      const matches = countKeywordMatches(conflict.keywords);
-      if (matches > 0 && (!bestMatch || matches > bestMatch.matches)) {
-        bestMatch = { lat: conflict.center[1], lon: conflict.center[0], matches };
-      }
-    }
+
 
     return bestMatch;
   }
@@ -511,7 +371,7 @@ export class DataLoaderManager implements AppModule {
       }
       const enabledNames = new Set(enabledFeeds.map(f => f.name));
 
-      // Digest branch: server already aggregated feeds — map proto items to client types
+      // Digest branch: server already aggregated feeds â€” map proto items to client types
       if (digest?.categories && category in digest.categories) {
         let items = (digest.categories[category]?.items ?? [])
           .map(protoItemToNewsItem)
@@ -533,7 +393,6 @@ export class DataLoaderManager implements AppModule {
           }).catch(() => {});
         }
 
-        checkBatchForBreakingAlerts(items);
         this.flashMapForNews(items);
         this.renderNewsForCategory(category, items);
 
@@ -615,14 +474,8 @@ export class DataLoaderManager implements AppModule {
         console.warn(`[News] Digest missing for "${category}", using per-feed fallback (${fallbackFeeds.length} feeds)`);
       }
 
-      const items = await fetchCategoryFeeds(fallbackFeeds, {
-        batchSize: this.perFeedFallbackBatchSize,
-        onBatch: (partialItems) => {
-          scheduleRender(partialItems);
-          this.flashMapForNews(partialItems);
-          checkBatchForBreakingAlerts(partialItems);
-        },
-      });
+      // Per-feed fallback disabled in fat-client (fetchCategoryFeeds removed).
+      const items: NewsItem[] = [];
 
       this.renderNewsForCategory(category, items);
       if (panel) {
@@ -633,12 +486,7 @@ export class DataLoaderManager implements AppModule {
         }
 
         if (items.length === 0) {
-          const failures = getFeedFailures();
-          const failedFeeds = fallbackFeeds.filter(f => failures.has(f.name));
-          if (failedFeeds.length > 0) {
-            const names = failedFeeds.map(f => f.name).join(', ');
-            panel.showError(`${t('common.noNewsAvailable')} (${names} failed)`);
-          }
+          panel.showError(t('common.noNewsAvailable'));
         }
 
         try {
@@ -672,7 +520,7 @@ export class DataLoaderManager implements AppModule {
       this.ctx.happyAllItems = [];
     }
 
-    // Fire digest fetch early (non-blocking) — await before category loop
+    // Fire digest fetch early (non-blocking) â€” await before category loop
     const digestPromise = this.tryFetchDigest();
 
     const categories = Object.entries(FEEDS)
@@ -719,7 +567,6 @@ export class DataLoaderManager implements AppModule {
         const intel = (digest.categories['intel']?.items ?? [])
           .map(protoItemToNewsItem)
           .filter(i => enabledIntelNames.has(i.source));
-        checkBatchForBreakingAlerts(intel);
         this.renderNewsForCategory('intel', intel);
         if (intelPanel) {
           try {
@@ -755,27 +602,9 @@ export class DataLoaderManager implements AppModule {
             console.warn(`[News] Intel digest missing, using limited per-feed fallback (${fallbackIntelFeeds.length}/${enabledIntelSources.length} feeds)`);
           }
 
-          const intelResult = await Promise.allSettled([
-            fetchCategoryFeeds(fallbackIntelFeeds, { batchSize: this.perFeedFallbackBatchSize }),
-          ]);
-          if (intelResult[0]?.status === 'fulfilled') {
-            const intel = intelResult[0].value;
-            checkBatchForBreakingAlerts(intel);
-            this.renderNewsForCategory('intel', intel);
-            if (intelPanel) {
-              try {
-                const baseline = await updateBaseline('news:intel', intel.length);
-                const deviation = calculateDeviation(intel.length, baseline);
-                intelPanel.setDeviation(deviation.zScore, deviation.percentChange, deviation.level);
-              } catch (e) { console.warn('[Baseline] news:intel write failed:', e); }
-            }
-            this.ctx.statusPanel?.updateFeed('Intel', { status: 'ok', itemCount: intel.length });
-            collectedNews.push(...intel);
-            this.flashMapForNews(intel);
-          } else {
-            delete this.ctx.newsByCategory['intel'];
-            console.error('[App] Intel feed failed:', intelResult[0]?.reason);
-          }
+          // fetchCategoryFeeds removed in fat-client DCE; intel per-feed fallback is a no-op.
+          delete this.ctx.newsByCategory['intel'];
+          console.warn('[News] Intel per-feed fallback disabled (fat-client mode)');
         }
       }
     }
@@ -785,7 +614,7 @@ export class DataLoaderManager implements AppModule {
 
     this.ctx.map?.updateHotspotActivity(this.ctx.allNews);
 
-    this.updateMonitorResults();
+    // updateMonitorResults removed in fat-client DCE
 
     try {
       this.ctx.latestClusters = mlWorker.isAvailable
@@ -821,459 +650,20 @@ export class DataLoaderManager implements AppModule {
 
 
   async loadIntelligenceSignals(): Promise<void> {
-    resetHotspotActivity();
-    const tasks: Promise<void>[] = [];
-
-    const protestsTask = (async (): Promise<SocialUnrestEvent[]> => {
-      try {
-        const protestData = await fetchProtestEvents();
-        this.ctx.intelligenceCache.protests = protestData;
-        const protestCount = protestData.sources.acled + protestData.sources.gdelt;
-        if (protestCount > 0) dataFreshness.recordUpdate('acled', protestCount);
-        if (protestData.sources.gdelt > 0) dataFreshness.recordUpdate('gdelt', protestData.sources.gdelt);
-        if (protestData.sources.gdelt > 0) dataFreshness.recordUpdate('gdelt_doc', protestData.sources.gdelt);
-        if (this.ctx.mapLayers.protests) {
-          this.ctx.map?.setProtests(protestData.events);
-          this.ctx.map?.setLayerReady('protests', protestData.events.length > 0);
-          const status = getProtestStatus();
-          this.ctx.statusPanel?.updateFeed('Protests', {
-            status: 'ok',
-            itemCount: protestData.events.length,
-            errorMessage: status.acledConfigured === false ? 'ACLED not configured - using GDELT only' : undefined,
-          });
-        }
-        return protestData.events;
-      } catch (error) {
-        console.error('[Intelligence] Protests fetch failed:', error);
-        dataFreshness.recordError('acled', String(error));
-        return [];
-      }
-    })();
-    tasks.push(protestsTask.then(() => undefined));
-
-    tasks.push((async () => {
-      try {
-        const conflictData = await fetchConflictEvents();
-        ingestConflictsForCII(conflictData.events);
-        if (conflictData.count > 0) dataFreshness.recordUpdate('acled_conflict', conflictData.count);
-      } catch (error) {
-        console.error('[Intelligence] Conflict events fetch failed:', error);
-        dataFreshness.recordError('acled_conflict', String(error));
-      }
-
-    })());
-
-    tasks.push((async () => {
-      try {
-        const summaries = await fetchHapiSummary();
-        ingestHapiForCII(summaries);
-        if (summaries.size > 0) dataFreshness.recordUpdate('hapi', summaries.size);
-      } catch (error) {
-        console.error('[Intelligence] HAPI fetch failed:', error);
-        dataFreshness.recordError('hapi', String(error));
-      }
-    })());
-
-    tasks.push((async () => {
-      try {
-        if (isMilitaryVesselTrackingConfigured()) {
-          initMilitaryVesselStream();
-        }
-        const [flightData, vesselData] = await Promise.all([
-          fetchMilitaryFlights(),
-          fetchMilitaryVessels(),
-        ]);
-      this.ctx.intelligenceCache.military = {
-        flights: flightData.flights,
-        flightClusters: flightData.clusters,
-        vessels: vesselData.vessels,
-        vesselClusters: vesselData.clusters,
-      };
-      
-      this.ctx.map?.setMilitaryFlights(flightData.flights, flightData.clusters);
-      this.ctx.map?.setMilitaryVessels(vesselData.vessels, vesselData.clusters);
-      
-      signalAggregator.ingestFlights(flightData.flights);
-      signalAggregator.ingestVessels(vesselData.vessels);
-        dataFreshness.recordUpdate('opensky', flightData.flights.length);
-        updateAndCheck([
-          { type: 'military_flights', region: 'global', count: flightData.flights.length },
-          { type: 'vessels', region: 'global', count: vesselData.vessels.length },
-        ]).then(anomalies => {
-          if (anomalies.length > 0) {
-            signalAggregator.ingestTemporalAnomalies(anomalies);
-            ingestTemporalAnomaliesForCII(anomalies);
-            this.refreshCiiAndBrief();
-          }
-        }).catch(() => { });
-        if (this.ctx.mapLayers.military) {
-          this.ctx.map?.setMilitaryFlights(flightData.flights, flightData.clusters);
-          this.ctx.map?.setMilitaryVessels(vesselData.vessels, vesselData.clusters);
-          this.ctx.map?.updateMilitaryForEscalation(flightData.flights, vesselData.vessels);
-          const militaryCount = flightData.flights.length + vesselData.vessels.length;
-          this.ctx.statusPanel?.updateFeed('Military', {
-            status: militaryCount > 0 ? 'ok' : 'warning',
-            itemCount: militaryCount,
-          });
-        }
-        if (!isInLearningMode()) {
-          const surgeAlerts = analyzeFlightsForSurge(flightData.flights);
-          if (surgeAlerts.length > 0) {
-            const surgeSignals = surgeAlerts.map(surgeAlertToSignal);
-            addToSignalHistory(surgeSignals);
-            if (this.shouldShowIntelligenceNotifications()) this.ctx.signalModal?.show(surgeSignals);
-          }
-          const foreignAlerts = detectForeignMilitaryPresence(flightData.flights);
-          if (foreignAlerts.length > 0) {
-            const foreignSignals = foreignAlerts.map(foreignPresenceToSignal);
-            addToSignalHistory(foreignSignals);
-            if (this.shouldShowIntelligenceNotifications()) this.ctx.signalModal?.show(foreignSignals);
-          }
-        }
-      } catch (error) {
-        console.error('[Intelligence] Military fetch failed:', error);
-        dataFreshness.recordError('opensky', String(error));
-      }
-    })());
-
-
-
-    tasks.push((async () => {
-      try {
-        const unhcrResult = await fetchUnhcrPopulation();
-        if (!unhcrResult.ok) {
-          dataFreshness.recordError('unhcr', 'UNHCR displacement unavailable (retaining prior displacement state)');
-          return;
-        }
-        const data = unhcrResult.data;
-        this.callPanel('displacement', 'setData', data);
-        ingestDisplacementForCII(data.countries);
-        if (this.ctx.mapLayers.displacement && data.topFlows) {
-          this.ctx.map?.setDisplacementFlows(data.topFlows);
-        }
-        if (data.countries.length > 0) dataFreshness.recordUpdate('unhcr', data.countries.length);
-      } catch (error) {
-        console.error('[Intelligence] UNHCR displacement fetch failed:', error);
-        dataFreshness.recordError('unhcr', String(error));
-      }
-    })());
-
-    tasks.push((async () => {
-      try {
-        const climateResult = await fetchClimateAnomalies();
-        if (!climateResult.ok) {
-          dataFreshness.recordError('climate', 'Climate anomalies unavailable (retaining prior climate state)');
-          return;
-        }
-        const anomalies = climateResult.anomalies;
-        this.callPanel('climate', 'setAnomalies', anomalies);
-        ingestClimateForCII(anomalies);
-        if (this.ctx.mapLayers.climate) {
-          this.ctx.map?.setClimateAnomalies(anomalies);
-        }
-        if (anomalies.length > 0) dataFreshness.recordUpdate('climate', anomalies.length);
-      } catch (error) {
-        console.error('[Intelligence] Climate anomalies fetch failed:', error);
-        dataFreshness.recordError('climate', String(error));
-      }
-    })());
-
-
-
-    // OREF sirens
-    tasks.push((async () => {
-      try {
-        const data = await fetchOrefAlerts();
-        this.callPanel('oref-sirens', 'setData', data);
-        const alertCount = data.alerts?.length ?? 0;
-        const historyCount24h = data.historyCount24h ?? 0;
-        this.ctx.intelligenceCache.orefAlerts = { alertCount, historyCount24h };
-        if (data.alerts?.length) dispatchOrefBreakingAlert(data.alerts);
-        onOrefAlertsUpdate((update) => {
-          this.callPanel('oref-sirens', 'setData', update);
-          const updAlerts = update.alerts?.length ?? 0;
-          const updHistory = update.historyCount24h ?? 0;
-          this.ctx.intelligenceCache.orefAlerts = { alertCount: updAlerts, historyCount24h: updHistory };
-          if (update.alerts?.length) dispatchOrefBreakingAlert(update.alerts);
-        });
-        startOrefPolling();
-      } catch (error) {
-        console.error('[Intelligence] OREF alerts fetch failed:', error);
-      }
-    })());
-
-    // GPS/GNSS jamming (cloud-only — seeded by Wingbits API via fetch-gpsjam.mjs)
-    if (!isDesktopRuntime()) {
-      tasks.push((async () => {
-        try {
-          const data = await fetchGpsInterference();
-          if (!data) {
-            ingestGpsJammingForCII([]);
-            this.ctx.map?.setLayerReady('gpsJamming', false);
-            return;
-          }
-          ingestGpsJammingForCII(data.hexes);
-          if (this.ctx.mapLayers.gpsJamming) {
-            this.ctx.map?.setGpsJamming(data.hexes);
-            this.ctx.map?.setLayerReady('gpsJamming', data.hexes.length > 0);
-          }
-          this.ctx.statusPanel?.updateFeed('GPS Jam', { status: 'ok', itemCount: data.hexes.length });
-          dataFreshness.recordUpdate('gpsjam', data.hexes.length);
-        } catch (error) {
-          this.ctx.map?.setLayerReady('gpsJamming', false);
-          this.ctx.statusPanel?.updateFeed('GPS Jam', { status: 'error' });
-          dataFreshness.recordError('gpsjam', String(error));
-        }
-      })());
-    }
-
-    await Promise.allSettled(tasks);
-
-    try {
-      const events = [
-        ...(this.ctx.intelligenceCache.protests?.events || []).slice(0, 10).map(e => ({
-          id: e.id, lat: e.lat, lon: e.lon, type: 'conflict' as const, name: e.title || 'Protest',
-        })),
-      ];
-      if (events.length > 0) {
-        const exposures = await enrichEventsWithExposure(events);
-        this.callPanel('population-exposure', 'setExposures', exposures);
-        if (exposures.length > 0) dataFreshness.recordUpdate('worldpop', exposures.length);
-      } else {
-        this.callPanel('population-exposure', 'setExposures', []);
-      }
-    } catch (error) {
-      console.error('[Intelligence] Population exposure fetch failed:', error);
-      dataFreshness.recordError('worldpop', String(error));
-    }
-
-    if (hasAnyIntelligenceData()) {
-      setIntelligenceSignalsLoaded();
-    }
-    this.refreshCiiAndBrief();
-    console.log('[Intelligence] All signals loaded for CII calculation');
+    // Removed: military/conflict/displacement/GPS jamming. Keeping: climate anomalies only.
+    await this.loadClimateAnomalies();
   }
 
-  async loadOutages(): Promise<void> {
-    if (this.ctx.intelligenceCache.outages) {
-      const outages = this.ctx.intelligenceCache.outages;
-      this.ctx.map?.setOutages(outages);
-      this.ctx.map?.setLayerReady('outages', outages.length > 0);
-      this.ctx.statusPanel?.updateFeed('NetBlocks', { status: 'ok', itemCount: outages.length });
-      return;
-    }
+  async loadClimateAnomalies(): Promise<void> {
     try {
-      const outages = await fetchInternetOutages();
-      this.ctx.intelligenceCache.outages = outages;
-      this.ctx.map?.setOutages(outages);
-      this.ctx.map?.setLayerReady('outages', outages.length > 0);
-      ingestOutagesForCII(outages);
-      signalAggregator.ingestOutages(outages);
-      this.ctx.statusPanel?.updateFeed('NetBlocks', { status: 'ok', itemCount: outages.length });
-      dataFreshness.recordUpdate('outages', outages.length);
-    } catch (error) {
-      this.ctx.map?.setLayerReady('outages', false);
-      this.ctx.statusPanel?.updateFeed('NetBlocks', { status: 'error' });
-      dataFreshness.recordError('outages', String(error));
-    }
-  }
-
-  async loadCyberThreats(): Promise<void> {
-    if (!CYBER_LAYER_ENABLED) {
-      this.ctx.mapLayers.cyberThreats = false;
-      this.ctx.map?.setLayerReady('cyberThreats', false);
-      return;
-    }
-
-    if (this.ctx.cyberThreatsCache) {
-      this.ctx.map?.setCyberThreats(this.ctx.cyberThreatsCache);
-      this.ctx.map?.setLayerReady('cyberThreats', this.ctx.cyberThreatsCache.length > 0);
-      ingestCyberThreatsForCII(this.ctx.cyberThreatsCache);
-      this.refreshCiiAndBrief();
-      this.ctx.statusPanel?.updateFeed('Cyber Threats', { status: 'ok', itemCount: this.ctx.cyberThreatsCache.length });
-      return;
-    }
-
-    try {
-      const threats = await fetchCyberThreats({ limit: 500, days: 14 });
-      this.ctx.cyberThreatsCache = threats;
-      this.ctx.map?.setCyberThreats(threats);
-      this.ctx.map?.setLayerReady('cyberThreats', threats.length > 0);
-      ingestCyberThreatsForCII(threats);
-      this.refreshCiiAndBrief();
-      this.ctx.statusPanel?.updateFeed('Cyber Threats', { status: 'ok', itemCount: threats.length });
-      this.ctx.statusPanel?.updateApi('Cyber Threats API', { status: 'ok' });
-      dataFreshness.recordUpdate('cyber_threats', threats.length);
-    } catch (error) {
-      this.ctx.map?.setLayerReady('cyberThreats', false);
-      this.ctx.statusPanel?.updateFeed('Cyber Threats', { status: 'error', errorMessage: String(error) });
-      this.ctx.statusPanel?.updateApi('Cyber Threats API', { status: 'error' });
-      dataFreshness.recordError('cyber_threats', String(error));
-    }
-  }
-
-  async loadIranEvents(): Promise<void> {
-    try {
-      const events = await fetchIranEvents();
-      this.ctx.intelligenceCache.iranEvents = events;
-      this.ctx.map?.setIranEvents(events);
-      this.ctx.map?.setLayerReady('iranAttacks', events.length > 0);
-      const coerced = events.map(e => ({ ...e, timestamp: Number(e.timestamp) || 0 }));
-      signalAggregator.ingestConflictEvents(coerced);
-      ingestStrikesForCII(coerced);
-      this.refreshCiiAndBrief();
-    } catch {
-      this.ctx.map?.setLayerReady('iranAttacks', false);
-    }
-  }
-
-  async loadAisSignals(): Promise<void> {
-    try {
-      const { disruptions, density } = await fetchAisSignals();
-      const aisStatus = getAisStatus();
-      console.log('[Ships] Events:', { disruptions: disruptions.length, density: density.length, vessels: aisStatus.vessels });
-      this.ctx.map?.setAisData(disruptions, density);
-      signalAggregator.ingestAisDisruptions(disruptions);
-      ingestAisDisruptionsForCII(disruptions);
-      this.refreshCiiAndBrief();
-      updateAndCheck([
-        { type: 'ais_gaps', region: 'global', count: disruptions.length },
-      ]).then(anomalies => {
-        if (anomalies.length > 0) {
-          signalAggregator.ingestTemporalAnomalies(anomalies);
-          ingestTemporalAnomaliesForCII(anomalies);
-          this.refreshCiiAndBrief();
-        }
-      }).catch(() => { });
-
-      const hasData = disruptions.length > 0 || density.length > 0;
-      this.ctx.map?.setLayerReady('ais', hasData);
-
-      const shippingCount = disruptions.length + density.length;
-      const shippingStatus = shippingCount > 0 ? 'ok' : (aisStatus.connected ? 'warning' : 'error');
-      this.ctx.statusPanel?.updateFeed('Shipping', {
-        status: shippingStatus,
-        itemCount: shippingCount,
-        errorMessage: !aisStatus.connected && shippingCount === 0 ? 'AIS snapshot unavailable' : undefined,
-      });
-      this.ctx.statusPanel?.updateApi('AISStream', {
-        status: aisStatus.connected ? 'ok' : 'warning',
-      });
-      if (hasData) {
-        dataFreshness.recordUpdate('ais', shippingCount);
-      }
-    } catch (error) {
-      this.ctx.map?.setLayerReady('ais', false);
-      this.ctx.statusPanel?.updateFeed('Shipping', { status: 'error', errorMessage: String(error) });
-      this.ctx.statusPanel?.updateApi('AISStream', { status: 'error' });
-      dataFreshness.recordError('ais', String(error));
-    }
-  }
-
-  waitForAisData(): void {
-    const maxAttempts = 30;
-    let attempts = 0;
-
-    const checkData = () => {
-      if (this.ctx.isDestroyed) return;
-      attempts++;
-      const status = getAisStatus();
-
-      if (status.vessels > 0 || status.connected) {
-        this.loadAisSignals();
-        this.ctx.map?.setLayerLoading('ais', false);
-        return;
-      }
-
-      if (attempts >= maxAttempts) {
-        this.ctx.map?.setLayerLoading('ais', false);
-        this.ctx.map?.setLayerReady('ais', false);
-        this.ctx.statusPanel?.updateFeed('Shipping', {
-          status: 'error',
-          errorMessage: 'Connection timeout'
-        });
-        return;
-      }
-
-      setTimeout(checkData, 1000);
-    };
-
-    checkData();
-  }
-
-  async loadCableActivity(): Promise<void> {
-    try {
-      const activity = await fetchCableActivity();
-      this.ctx.map?.setCableActivity(activity.advisories, activity.repairShips);
-      const itemCount = activity.advisories.length + activity.repairShips.length;
-      this.ctx.statusPanel?.updateFeed('CableOps', { status: 'ok', itemCount });
-    } catch {
-      this.ctx.statusPanel?.updateFeed('CableOps', { status: 'error' });
-    }
-  }
-
-  async loadCableHealth(): Promise<void> {
-    try {
-      const healthData = await fetchCableHealth();
-      this.ctx.map?.setCableHealth(healthData.cables);
-      const cableIds = Object.keys(healthData.cables);
-      const faultCount = cableIds.filter((id) => healthData.cables[id]?.status === 'fault').length;
-      const degradedCount = cableIds.filter((id) => healthData.cables[id]?.status === 'degraded').length;
-      this.ctx.statusPanel?.updateFeed('CableHealth', { status: 'ok', itemCount: faultCount + degradedCount });
-    } catch {
-      this.ctx.statusPanel?.updateFeed('CableHealth', { status: 'error' });
-    }
-  }
-
-  async loadProtests(): Promise<void> {
-    if (this.ctx.intelligenceCache.protests) {
-      const protestData = this.ctx.intelligenceCache.protests;
-      this.ctx.map?.setProtests(protestData.events);
-      this.ctx.map?.setLayerReady('protests', protestData.events.length > 0);
-      const status = getProtestStatus();
-      this.ctx.statusPanel?.updateFeed('Protests', {
-        status: 'ok',
-        itemCount: protestData.events.length,
-        errorMessage: status.acledConfigured === false ? 'ACLED not configured - using GDELT only' : undefined,
-      });
-      if (status.acledConfigured === true) {
-        this.ctx.statusPanel?.updateApi('ACLED', { status: 'ok' });
-      } else if (status.acledConfigured === null) {
-        this.ctx.statusPanel?.updateApi('ACLED', { status: 'warning' });
-      }
-      this.ctx.statusPanel?.updateApi('GDELT Doc', { status: 'ok' });
-      if (protestData.sources.gdelt > 0) dataFreshness.recordUpdate('gdelt_doc', protestData.sources.gdelt);
-      return;
-    }
-    try {
-      const protestData = await fetchProtestEvents();
-      this.ctx.intelligenceCache.protests = protestData;
-      this.ctx.map?.setProtests(protestData.events);
-      this.ctx.map?.setLayerReady('protests', protestData.events.length > 0);
-      signalAggregator.ingestProtests(protestData.events);
-      const protestCount = protestData.sources.acled + protestData.sources.gdelt;
-      if (protestCount > 0) dataFreshness.recordUpdate('acled', protestCount);
-      if (protestData.sources.gdelt > 0) dataFreshness.recordUpdate('gdelt', protestData.sources.gdelt);
-      if (protestData.sources.gdelt > 0) dataFreshness.recordUpdate('gdelt_doc', protestData.sources.gdelt);
-      this.refreshCiiAndBrief();
-      const status = getProtestStatus();
-      this.ctx.statusPanel?.updateFeed('Protests', {
-        status: 'ok',
-        itemCount: protestData.events.length,
-        errorMessage: status.acledConfigured === false ? 'ACLED not configured - using GDELT only' : undefined,
-      });
-      if (status.acledConfigured === true) {
-        this.ctx.statusPanel?.updateApi('ACLED', { status: 'ok' });
-      } else if (status.acledConfigured === null) {
-        this.ctx.statusPanel?.updateApi('ACLED', { status: 'warning' });
-      }
-      this.ctx.statusPanel?.updateApi('GDELT Doc', { status: 'ok' });
-    } catch (error) {
-      this.ctx.map?.setLayerReady('protests', false);
-      this.ctx.statusPanel?.updateFeed('Protests', { status: 'error', errorMessage: String(error) });
-      this.ctx.statusPanel?.updateApi('ACLED', { status: 'error' });
-      this.ctx.statusPanel?.updateApi('GDELT Doc', { status: 'error' });
-      dataFreshness.recordError('gdelt_doc', String(error));
+      const result = await fetchClimateAnomalies();
+      const anomalies = result.anomalies;
+      this.ctx.map?.setClimateAnomalies(anomalies);
+      ingestClimateForCII(anomalies);
+      const ciiScores = calculateCII();
+      this.ctx.map?.setCIIScores(ciiScores.map(s => ({ code: s.code, score: s.score, level: s.level })));
+    } catch (e) {
+      console.warn('[App] Climate anomalies load failed:', e);
     }
   }
 
@@ -1281,203 +671,12 @@ export class DataLoaderManager implements AppModule {
     try {
       const delays = await fetchFlightDelays();
       this.ctx.map?.setFlightDelays(delays);
-      this.ctx.map?.setLayerReady('flights', delays.length > 0);
-      this.ctx.intelligenceCache.flightDelays = delays;
-      const severe = delays.filter(d => d.severity === 'major' || d.severity === 'severe' || d.delayType === 'closure');
-      if (severe.length > 0) ingestAviationForCII(severe);
-      this.ctx.statusPanel?.updateFeed('Flights', {
-        status: 'ok',
-        itemCount: delays.length,
-      });
-      this.ctx.statusPanel?.updateApi('FAA', { status: 'ok' });
-    } catch (error) {
-      this.ctx.map?.setLayerReady('flights', false);
-      this.ctx.statusPanel?.updateFeed('Flights', { status: 'error', errorMessage: String(error) });
-      this.ctx.statusPanel?.updateApi('FAA', { status: 'error' });
-    }
-  }
-
-  async loadMilitary(): Promise<void> {
-    if (this.ctx.intelligenceCache.military) {
-      const { flights, flightClusters, vessels, vesselClusters } = this.ctx.intelligenceCache.military;
-      this.ctx.map?.setMilitaryFlights(flights, flightClusters);
-      this.ctx.map?.setMilitaryVessels(vessels, vesselClusters);
-      this.ctx.map?.updateMilitaryForEscalation(flights, vessels);
-      this.loadCachedPosturesForBanner();
-      const hasData = flights.length > 0 || vessels.length > 0;
-      this.ctx.map?.setLayerReady('military', hasData);
-      const militaryCount = flights.length + vessels.length;
-      this.ctx.statusPanel?.updateFeed('Military', {
-        status: militaryCount > 0 ? 'ok' : 'warning',
-        itemCount: militaryCount,
-        errorMessage: militaryCount === 0 ? 'No military activity in view' : undefined,
-      });
-      this.ctx.statusPanel?.updateApi('OpenSky', { status: 'ok' });
-      return;
-    }
-    try {
-      if (isMilitaryVesselTrackingConfigured()) {
-        initMilitaryVesselStream();
-      }
-      const [flightData, vesselData] = await Promise.all([
-        fetchMilitaryFlights(),
-        fetchMilitaryVessels(),
-      ]);
-      this.ctx.intelligenceCache.military = {
-        flights: flightData.flights,
-        flightClusters: flightData.clusters,
-        vessels: vesselData.vessels,
-        vesselClusters: vesselData.clusters,
-      };
-      fetchUSNIFleetReport().then((report) => {
-        if (report) this.ctx.intelligenceCache.usniFleet = report;
-      }).catch(() => {});
-      this.ctx.map?.setMilitaryFlights(flightData.flights, flightData.clusters);
-      this.ctx.map?.setMilitaryVessels(vesselData.vessels, vesselData.clusters);
-      ingestMilitaryForCII(flightData.flights, vesselData.vessels);
-      signalAggregator.ingestFlights(flightData.flights);
-      signalAggregator.ingestVessels(vesselData.vessels);
-      updateAndCheck([
-        { type: 'military_flights', region: 'global', count: flightData.flights.length },
-        { type: 'vessels', region: 'global', count: vesselData.vessels.length },
-      ]).then(anomalies => {
-        if (anomalies.length > 0) {
-          signalAggregator.ingestTemporalAnomalies(anomalies);
-          ingestTemporalAnomaliesForCII(anomalies);
-          this.refreshCiiAndBrief();
-        }
-      }).catch(() => { });
-      this.ctx.map?.updateMilitaryForEscalation(flightData.flights, vesselData.vessels);
-      this.refreshCiiAndBrief();
-      if (!isInLearningMode()) {
-        const surgeAlerts = analyzeFlightsForSurge(flightData.flights);
-        if (surgeAlerts.length > 0) {
-          const surgeSignals = surgeAlerts.map(surgeAlertToSignal);
-          addToSignalHistory(surgeSignals);
-          if (this.shouldShowIntelligenceNotifications()) this.ctx.signalModal?.show(surgeSignals);
-        }
-        const foreignAlerts = detectForeignMilitaryPresence(flightData.flights);
-        if (foreignAlerts.length > 0) {
-          const foreignSignals = foreignAlerts.map(foreignPresenceToSignal);
-          addToSignalHistory(foreignSignals);
-          if (this.shouldShowIntelligenceNotifications()) this.ctx.signalModal?.show(foreignSignals);
-        }
-      }
-
-      this.loadCachedPosturesForBanner();
-
-      const hasData = flightData.flights.length > 0 || vesselData.vessels.length > 0;
-      this.ctx.map?.setLayerReady('military', hasData);
-      const militaryCount = flightData.flights.length + vesselData.vessels.length;
-      this.ctx.statusPanel?.updateFeed('Military', {
-        status: militaryCount > 0 ? 'ok' : 'warning',
-        itemCount: militaryCount,
-        errorMessage: militaryCount === 0 ? 'No military activity in view' : undefined,
-      });
-      this.ctx.statusPanel?.updateApi('OpenSky', { status: 'ok' });
-      dataFreshness.recordUpdate('opensky', flightData.flights.length);
-    } catch (error) {
-      this.ctx.map?.setLayerReady('military', false);
-      this.ctx.statusPanel?.updateFeed('Military', { status: 'error', errorMessage: String(error) });
-      this.ctx.statusPanel?.updateApi('OpenSky', { status: 'error' });
-      dataFreshness.recordError('opensky', String(error));
-    }
-  }
-
-  private async loadCachedPosturesForBanner(): Promise<void> {
-    try {
-      const data = await fetchCachedTheaterPosture();
-      if (data && data.postures.length > 0) {
-        this.callbacks.renderCriticalBanner(data.postures);
-      }
-    } catch (error) {
-      console.warn('[App] Failed to load cached postures for banner:', error);
-    }
-  }
-
-  async loadFredData(): Promise<void> {
-
-    try {
-      const data = await fetchFredData();
-
-      if (data.length === 0) {
-        if (!isFeatureAvailable('economicFred')) {
-          this.ctx.statusPanel?.updateApi('FRED', { status: 'error' });
-          return;
-        }
-        await new Promise(r => setTimeout(r, 20_000));
-        const retryData = await fetchFredData();
-        if (retryData.length === 0) {
-          this.ctx.statusPanel?.updateApi('FRED', { status: 'error' });
-          return;
-        }
-        this.ctx.statusPanel?.updateApi('FRED', { status: 'ok' });
-        dataFreshness.recordUpdate('economic', retryData.length);
-        return;
-      }
-
-      this.ctx.statusPanel?.updateApi('FRED', { status: 'ok' });
-      dataFreshness.recordUpdate('economic', data.length);
-    } catch {
-      if (isFeatureAvailable('economicFred')) {
-        try {
-          await new Promise(r => setTimeout(r, 20_000));
-          const retryData = await fetchFredData();
-          if (retryData.length > 0) {
-            this.ctx.statusPanel?.updateApi('FRED', { status: 'ok' });
-            dataFreshness.recordUpdate('economic', retryData.length);
-            return;
-          }
-        } catch { /* fall through */ }
-      }
-      this.ctx.statusPanel?.updateApi('FRED', { status: 'error' });
-    }
-  }
-
-  async loadOilAnalytics(): Promise<void> {
-    try {
-      this.ctx.statusPanel?.updateApi('EIA', { status: 'ok' });
+      ingestAviationForCII(delays);
     } catch (e) {
-      console.error('[App] Oil analytics failed:', e);
-      this.ctx.statusPanel?.updateApi('EIA', { status: 'error' });
-      dataFreshness.recordError('oil', String(e));
+      console.warn('[App] Flight delays load failed:', e);
     }
   }
 
-
-  updateMonitorResults(): void {
-  }
-
-  async runCorrelationAnalysis(): Promise<void> {
-    try {
-      if (this.ctx.latestClusters.length === 0 && this.ctx.allNews.length > 0) {
-        this.ctx.latestClusters = mlWorker.isAvailable
-          ? await clusterNewsHybrid(this.ctx.allNews)
-          : await analysisWorker.clusterNews(this.ctx.allNews);
-      }
-
-      if (this.ctx.latestClusters.length > 0) {
-        ingestNewsForCII(this.ctx.latestClusters);
-        dataFreshness.recordUpdate('gdelt', this.ctx.latestClusters.length);
-        this.refreshCiiAndBrief();
-      }
-
-      const signals = await analysisWorker.analyzeCorrelations(
-        this.ctx.latestClusters,
-        this.ctx.latestPredictions,
-        this.ctx.latestMarkets
-      );
-
-      const keywordSpikeSignals = drainTrendingSignals();
-      const allSignals = [...signals, ...keywordSpikeSignals];
-      if (allSignals.length > 0) {
-        addToSignalHistory(allSignals);
-        if (this.shouldShowIntelligenceNotifications()) this.ctx.signalModal?.show(allSignals);
-      }
-    } catch (error) {
-      console.error('[App] Correlation analysis failed:', error);
-    }
-  }
 
   async loadFirmsData(): Promise<void> {
     try {
@@ -1489,6 +688,19 @@ export class DataLoaderManager implements AppModule {
     }
   }
 
+  async loadOutages(): Promise<void> {
+    // Internet outage data â€” stubbed until outage service is reconfigured for Fat Client.
+  }
+
+  async loadOilAnalytics(): Promise<void> { /* removed */ }
+  async loadFredData(): Promise<void> { /* removed */ }
+  async loadAisSignals(): Promise<void> { /* removed */ }
+  async loadCableActivity(): Promise<void> { /* removed */ }
+  async loadCableHealth(): Promise<void> { /* removed */ }
+  async loadProtests(): Promise<void> { /* removed */ }
+  async loadCyberThreats(): Promise<void> { /* removed */ }
+  async loadIranEvents(): Promise<void> { /* removed */ }
+
   syncDataFreshnessWithLayers(): void {
     for (const [layer, sourceIds] of Object.entries(LAYER_TO_SOURCE)) {
       const enabled = this.ctx.mapLayers[layer as keyof MapLayers] ?? false;
@@ -1496,13 +708,7 @@ export class DataLoaderManager implements AppModule {
         dataFreshness.setEnabled(sourceId as DataSourceId, enabled);
       }
     }
-
-    if (!isAisConfigured()) {
-      dataFreshness.setEnabled('ais', false);
-    }
-    if (isOutagesConfigured() === false) {
-      dataFreshness.setEnabled('outages', false);
-    }
   }
 
 }
+

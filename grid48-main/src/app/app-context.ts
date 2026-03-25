@@ -3,7 +3,6 @@ import type { AirportDelayAlert, PositionSample } from '@/services/aviation';
 import type { IranEvent } from '@/generated/client/worldmonitor/conflict/v1/service_client';
 import type { SecurityAdvisory } from '@/services/security-advisories';
 import type { MapContainer, Panel, NewsPanel, SignalModal, StatusPanel, SearchModal } from '@/components';
-import type { IntelligenceGapBadge } from '@/components';
 import type { MarketData, ClusteredEvent } from '@/types';
 import type { PredictionMarket } from '@/services/prediction';
 import type { TimeRange } from '@/components';
@@ -24,7 +23,6 @@ import type { GoodThingsDigestPanel } from '@/components/GoodThingsDigestPanel';
 import type { SpeciesComebackPanel } from '@/components/SpeciesComebackPanel';
 import type { RenewableEnergyPanel } from '@/components/RenewableEnergyPanel';
 import type { TvModeController } from '@/services/tv-mode';
-import type { BreakingNewsBanner } from '@/components/BreakingNewsBanner';
 
 export interface CountryBriefSignals {
   criticalNews: number;
@@ -99,8 +97,8 @@ export interface AppContext {
   signalModal: SignalModal | null;
   statusPanel: StatusPanel | null;
   searchModal: SearchModal | null;
-  findingsBadge: IntelligenceGapBadge | null;
-  breakingBanner: BreakingNewsBanner | null;
+  findingsBadge: null;
+  breakingBanner: null;
   playbackControl: PlaybackControl | null;
   exportPanel: ExportPanel | null;
   unifiedSettings: UnifiedSettings | null;

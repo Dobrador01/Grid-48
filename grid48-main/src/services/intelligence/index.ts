@@ -7,12 +7,6 @@
  */
 
 // PizzINT dashboard + GDELT tensions
-export {
-  fetchPizzIntStatus,
-  fetchGdeltTensions,
-  getPizzIntStatus,
-  getGdeltStatus,
-} from '../pizzint';
 
 // Risk scores (CII + strategic risk)
 export {
@@ -32,13 +26,3 @@ export {
 } from '../threat-classifier';
 export type { ThreatClassification, ThreatLevel, EventCategory } from '../threat-classifier';
 
-// GDELT intelligence
-export {
-  fetchGdeltArticles,
-  fetchTopicIntelligence,
-  fetchAllTopicIntelligence,
-  fetchHotspotContext,
-  formatArticleDate,
-  extractDomain,
-} from '../gdelt-intel';
-export type { GdeltArticle } from '../gdelt-intel';

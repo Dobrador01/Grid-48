@@ -28,8 +28,6 @@ import {
 import { VARIANT_META } from '@/config/variant-meta';
 import {
   saveSnapshot,
-  initAisStream,
-  disconnectAisStream,
 } from '@/services';
 import {
   trackPanelView,
@@ -55,7 +53,6 @@ export interface EventHandlerCallbacks {
   flushStaleRefreshes: () => void;
   setHiddenSince: (ts: number) => void;
   loadDataForLayer: (layer: string) => void;
-  waitForAisData: () => void;
   syncDataFreshnessWithLayers: () => void;
   ensureCorrectZones: () => void;
   refreshOpenCountryBrief?: () => void;
@@ -921,16 +918,6 @@ export class EventHandlerManager implements AppModule {
         }
       }
 
-      if (layer === 'ais') {
-        if (enabled) {
-          this.ctx.map?.setLayerLoading('ais', true);
-          initAisStream();
-          this.callbacks.waitForAisData();
-        } else {
-          disconnectAisStream();
-        }
-        return;
-      }
 
       if (layer === 'flights') {
         const airlineIntel = this.ctx.panels['airline-intel'] as AirlineIntelPanel | undefined;
@@ -987,7 +974,7 @@ export class EventHandlerManager implements AppModule {
   }
 
   shouldShowIntelligenceNotifications(): boolean {
-    return !this.ctx.isMobile && !!this.ctx.findingsBadge?.isPopupEnabled();
+    return false;
   }
 
   setupMapResize(): void {

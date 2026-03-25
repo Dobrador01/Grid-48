@@ -7,8 +7,7 @@
  * to sebuf RPCs as those handlers get implemented.
  */
 
-// RSS feed fetching (client-side with DOMParser)
-export { fetchFeed, fetchCategoryFeeds, getFeedFailures } from '../rss';
+// RSS feed fetching removed (fat-client DCE - rss module deleted)
 
 // Summarization (client-side with Groq/OpenRouter/Browser T5 fallback)
 export { generateSummary, translateText } from '../summarization';

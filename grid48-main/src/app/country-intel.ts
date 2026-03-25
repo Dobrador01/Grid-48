@@ -86,7 +86,7 @@ export class CountryIntelManager implements AppModule {
           signalTypes: [...cluster.signalTypes],
           regionalDescriptions: regional.map(r => r.description),
         } : null;
-        const postures: import('@/services/military-surge').TheaterPostureSummary[] = [];
+        const postures: any[] = [];
         const data = collectStoryData(code, name, this.ctx.latestClusters, postures, this.ctx.latestPredictions, signals, convergence);
         const canvas = await renderStoryToCanvas(data);
         const dataUrl = canvas.toDataURL('image/png');

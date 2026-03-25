@@ -1,7 +1,6 @@
 import type { Monitor, PanelConfig, MapLayers } from '@/types';
 import type { AppContext } from '@/app/app-context';
 import {
-  REFRESH_INTERVALS,
   DEFAULT_PANELS,
   DEFAULT_MAP_LAYERS,
   MOBILE_DEFAULT_MAP_LAYERS,
@@ -10,7 +9,7 @@ import {
 } from '@/config';
 import { sanitizeLayersForVariant } from '@/config/map-layer-definitions';
 import type { MapVariant } from '@/config/map-layer-definitions';
-import { initDB, cleanOldSnapshots, isAisConfigured, initAisStream, disconnectAisStream } from '@/services';
+import { initDB, cleanOldSnapshots } from '@/services';
 import { mlWorker } from '@/services/ml-worker';
 import { getAiFlowSettings, subscribeAiFlowChange, isHeadlineMemoryEnabled } from '@/services/ai-flow-settings';
 
@@ -22,8 +21,6 @@ import { BETA_MODE } from '@/config/beta';
 import { trackEvent, trackDeeplinkOpened } from '@/services/analytics';
 import { preloadCountryGeometry, getCountryNameByCode } from '@/services/country-geometry';
 import { initI18n } from '@/services/i18n';
-import { ConvexClient } from 'convex/browser';
-import { api } from '../convex/_generated/api';
 
 import { computeDefaultDisabledSources, getLocaleBoostedSources, getTotalFeedCount } from '@/config/feeds';
 import { fetchBootstrapData } from '@/services/bootstrap';
@@ -37,7 +34,6 @@ import { EventHandlerManager } from '@/app/event-handlers';
 import { resolveUserRegion, resolvePreciseUserCoordinates, type PreciseCoordinates } from '@/utils/user-location';
 
 
-const CYBER_LAYER_ENABLED = import.meta.env.VITE_ENABLE_CYBER_LAYER === 'true';
 
 export type { CountryBriefSignals } from '@/app/app-context';
 
@@ -211,9 +207,6 @@ export class App {
       mapLayers = sanitizeLayersForVariant(initialUrlState.layers, currentVariant as MapVariant);
       initialUrlState.layers = mapLayers;
     }
-    if (!CYBER_LAYER_ENABLED) {
-      mapLayers.cyberThreats = false;
-    }
     // One-time migration: reduce default-enabled sources (full variant only)
     if (currentVariant === 'full') {
       const baseKey = 'grid48-sources-reduction-v3';
@@ -300,7 +293,6 @@ export class App {
     this.desktopUpdater = new DesktopUpdater(this.state);
 
     this.dataLoader = new DataLoaderManager(this.state, {
-      renderCriticalBanner: (postures) => this.panelLayout.renderCriticalBanner(postures),
       refreshOpenCountryBrief: () => this.countryIntel.refreshOpenBrief(),
     });
 
@@ -315,7 +307,6 @@ export class App {
         void this.countryIntel.openCountryBriefByCode(code, name);
       },
       loadAllData: () => this.dataLoader.loadAllData(),
-      updateMonitorResults: () => this.dataLoader.updateMonitorResults(),
     });
 
     this.eventHandlers = new EventHandlerManager(this.state, {
@@ -324,7 +315,6 @@ export class App {
       flushStaleRefreshes: () => this.refreshScheduler.flushStaleRefreshes(),
       setHiddenSince: (ts) => this.refreshScheduler.setHiddenSince(ts),
       loadDataForLayer: (layer) => { void this.dataLoader.loadDataForLayer(layer as keyof MapLayers); },
-      waitForAisData: () => this.dataLoader.waitForAisData(),
       syncDataFreshnessWithLayers: () => this.dataLoader.syncDataFreshnessWithLayers(),
       ensureCorrectZones: () => this.panelLayout.ensureCorrectZones(),
       refreshOpenCountryBrief: () => this.countryIntel.refreshOpenBrief(),
@@ -386,12 +376,7 @@ export class App {
       }
     });
 
-    // Check AIS configuration before init
-    if (!isAisConfigured()) {
-      this.state.mapLayers.ais = false;
-    } else if (this.state.mapLayers.ais) {
-      initAisStream();
-    }
+
 
     // Wait for sidecar readiness on desktop so bootstrap hits a live server
     if (isDesktopRuntime()) {
@@ -458,7 +443,7 @@ export class App {
         
         const celescPanel = this.state.panels['celesc-status'] as import('@/components/CelescStatusWidget').CelescStatusWidget | undefined;
         if (celescPanel) {
-          const lastUpdate = outages.length > 0 ? outages[0].timestampLeitura : '';
+          const lastUpdate = outages.length > 0 ? (outages[0]?.timestampLeitura ?? '') : '';
           celescPanel.setOutages(outages, lastUpdate);
         }
       });
@@ -477,9 +462,7 @@ export class App {
 
 
 
-    if (!CYBER_LAYER_ENABLED) {
-      this.state.map?.hideLayerToggle('cyberThreats');
-    }
+
 
     // Phase 7: Refresh scheduling
     this.setupRefreshIntervals();
@@ -507,9 +490,9 @@ export class App {
 
     // Clean up subscriptions, map, AIS, and breaking news
     this.unsubAiFlow?.();
-    this.state.breakingBanner?.destroy();
+    (this.state.breakingBanner as any)?.destroy();
     this.state.map?.destroy();
-    disconnectAisStream();
+    // AIS stream disconnected (fat-client DCE - removed call)
   }
 
   private handleDeepLinks(): void {
@@ -552,48 +535,10 @@ export class App {
   }
 
   private setupRefreshIntervals(): void {
-    // Always refresh news for all variants
-    this.refreshScheduler.scheduleRefresh('news', () => this.dataLoader.loadNews(), REFRESH_INTERVALS.feeds);
-
-    // Happy variant only refreshes news -- skip all geopolitical/financial/military refreshes
-    if (SITE_VARIANT !== 'happy') {
-      this.refreshScheduler.registerAll([
-
-        { name: 'fred', fn: () => this.dataLoader.loadFredData(), intervalMs: 30 * 60 * 1000 },
-        { name: 'oil', fn: () => this.dataLoader.loadOilAnalytics(), intervalMs: 30 * 60 * 1000 },
-        { name: 'firms', fn: () => this.dataLoader.loadFirmsData(), intervalMs: 30 * 60 * 1000 },
-        { name: 'ais', fn: () => this.dataLoader.loadAisSignals(), intervalMs: REFRESH_INTERVALS.ais, condition: () => this.state.mapLayers.ais },
-        { name: 'cables', fn: () => this.dataLoader.loadCableActivity(), intervalMs: 30 * 60 * 1000, condition: () => this.state.mapLayers.cables },
-        { name: 'cableHealth', fn: () => this.dataLoader.loadCableHealth(), intervalMs: 2 * 60 * 60 * 1000, condition: () => this.state.mapLayers.cables },
-        { name: 'flights', fn: () => this.dataLoader.loadFlightDelays(), intervalMs: 2 * 60 * 60 * 1000, condition: () => this.state.mapLayers.flights },
-        {
-          name: 'cyberThreats', fn: () => {
-            this.state.cyberThreatsCache = null;
-            return this.dataLoader.loadCyberThreats();
-          }, intervalMs: 10 * 60 * 1000, condition: () => CYBER_LAYER_ENABLED && this.state.mapLayers.cyberThreats
-        },
-      ]);
-    }
-
-
-
-
-    // Server-side temporal anomalies (news + satellite_fires)
-    if (SITE_VARIANT !== 'happy') {
-      this.refreshScheduler.scheduleRefresh('temporalBaseline', () => this.dataLoader.refreshTemporalBaseline(), 600_000);
-    }
-
-
-    // Telegram Intel (near real-time, 60s refresh)
-    // Centralized intelligence refresh for geopol variant
-    if (SITE_VARIANT === 'full') {
-      this.refreshScheduler.scheduleRefresh('intelligence', () => {
-        const { military, iranEvents } = this.state.intelligenceCache;
-        this.state.intelligenceCache = {};
-        if (military) this.state.intelligenceCache.military = military;
-        if (iranEvents) this.state.intelligenceCache.iranEvents = iranEvents;
-        return this.dataLoader.loadIntelligenceSignals();
-      }, 15 * 60 * 1000);
-    }
+    // Refresh FIRMS fire data and civil flights (Grid 48 Keep List)
+    this.refreshScheduler.registerAll([
+      { name: 'firms', fn: () => this.dataLoader.loadFirmsData(), intervalMs: 30 * 60 * 1000 },
+      { name: 'flights', fn: () => this.dataLoader.loadFlightDelays(), intervalMs: 2 * 60 * 60 * 1000, condition: () => this.state.mapLayers.flights },
+    ]);
   }
 }

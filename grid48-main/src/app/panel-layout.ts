@@ -1,11 +1,9 @@
 import type { AppContext, AppModule } from '@/app/app-context';
 import { replayPendingCalls, clearAllPendingCalls } from '@/app/pending-panel-data';
 import type { RelatedAsset } from '@/types';
-import type { TheaterPostureSummary } from '@/services/military-surge';
 import {
   MapContainer,
   NewsPanel,
-  GdeltIntelPanel,
   RuntimeConfigPanel,
   InvestmentsPanel,
   GulfEconomiesPanel,
@@ -15,7 +13,6 @@ import {
 } from '@/components';
 import { CelescStatusWidget } from '@/components/CelescStatusWidget';
 import { debounce, saveToStorage, loadFromStorage } from '@/utils';
-import { escapeHtml } from '@/utils/sanitize';
 import {
   FEEDS,
   INTEL_SOURCES,
@@ -26,14 +23,12 @@ import {
 import { BETA_MODE } from '@/config/beta';
 import { t } from '@/services/i18n';
 import { getCurrentTheme } from '@/utils';
-import { trackCriticalBannerAction } from '@/services/analytics';
 import { getSecretState } from '@/services/runtime-config';
 
 export interface PanelLayoutCallbacks {
   openCountryStory: (code: string, name: string) => void;
   openCountryBrief: (code: string) => void;
   loadAllData: () => Promise<void>;
-  updateMonitorResults: () => void;
 }
 
 export class PanelLayoutManager implements AppModule {
@@ -327,74 +322,6 @@ export class PanelLayoutManager implements AppModule {
     });
   }
 
-  renderCriticalBanner(postures: TheaterPostureSummary[]): void {
-    if (this.ctx.isMobile) {
-      if (this.criticalBannerEl) {
-        this.criticalBannerEl.remove();
-        this.criticalBannerEl = null;
-      }
-      document.body.classList.remove('has-critical-banner');
-      return;
-    }
-
-    const dismissedAt = sessionStorage.getItem('banner-dismissed');
-    if (dismissedAt && Date.now() - parseInt(dismissedAt, 10) < 30 * 60 * 1000) {
-      return;
-    }
-
-    const critical = postures.filter(
-      (p) => p.postureLevel === 'critical' || (p.postureLevel === 'elevated' && p.strikeCapable)
-    );
-
-    if (critical.length === 0) {
-      if (this.criticalBannerEl) {
-        this.criticalBannerEl.remove();
-        this.criticalBannerEl = null;
-        document.body.classList.remove('has-critical-banner');
-      }
-      return;
-    }
-
-    const top = critical[0]!;
-    const isCritical = top.postureLevel === 'critical';
-
-    if (!this.criticalBannerEl) {
-      this.criticalBannerEl = document.createElement('div');
-      this.criticalBannerEl.className = 'critical-posture-banner';
-      const header = document.querySelector('.header');
-      if (header) header.insertAdjacentElement('afterend', this.criticalBannerEl);
-    }
-
-    document.body.classList.add('has-critical-banner');
-    this.criticalBannerEl.className = `critical-posture-banner ${isCritical ? 'severity-critical' : 'severity-elevated'}`;
-    this.criticalBannerEl.innerHTML = `
-      <div class="banner-content">
-        <span class="banner-icon">${isCritical ? '🚨' : '⚠️'}</span>
-        <span class="banner-headline">${escapeHtml(top.headline)}</span>
-        <span class="banner-stats">${top.totalAircraft} aircraft • ${escapeHtml(top.summary)}</span>
-        ${top.strikeCapable ? '<span class="banner-strike">STRIKE CAPABLE</span>' : ''}
-      </div>
-      <button class="banner-view" data-lat="${top.centerLat}" data-lon="${top.centerLon}">View Region</button>
-      <button class="banner-dismiss">×</button>
-    `;
-
-    this.criticalBannerEl.querySelector('.banner-view')?.addEventListener('click', () => {
-      console.log('[Banner] View Region clicked:', top.theaterId, 'lat:', top.centerLat, 'lon:', top.centerLon);
-      trackCriticalBannerAction('view', top.theaterId);
-      if (typeof top.centerLat === 'number' && typeof top.centerLon === 'number') {
-        this.ctx.map?.setCenter(top.centerLat, top.centerLon, 4);
-      } else {
-        console.error('[Banner] Missing coordinates for', top.theaterId);
-      }
-    });
-
-    this.criticalBannerEl.querySelector('.banner-dismiss')?.addEventListener('click', () => {
-      trackCriticalBannerAction('dismiss', top.theaterId);
-      this.criticalBannerEl?.classList.add('dismissed');
-      document.body.classList.remove('has-critical-banner');
-      sessionStorage.setItem('banner-dismissed', Date.now().toString());
-    });
-  }
 
   applyPanelSettings(): void {
     Object.entries(this.ctx.panelSettings).forEach(([key, config]) => {
@@ -424,13 +351,6 @@ export class PanelLayoutManager implements AppModule {
     const panel = new NewsPanel(key, t(labelKey));
     this.attachRelatedAssetHandlers(panel);
     this.ctx.newsPanels[key] = panel;
-    this.ctx.panels[key] = panel;
-    return panel;
-  }
-
-  private createPanel<T extends import('@/components/Panel').Panel>(key: string, factory: () => T): T | null {
-    if (!this.shouldCreatePanel(key)) return null;
-    const panel = factory();
     this.ctx.panels[key] = panel;
     return panel;
   }
@@ -502,25 +422,6 @@ export class PanelLayoutManager implements AppModule {
       this.ctx.panels['celesc-status'] = widget;
     }
 
-    this.createPanel('gdelt-intel', () => new GdeltIntelPanel());
-
-    if (SITE_VARIANT === 'full' && this.ctx.isDesktopApp) {
-      import('@/components/DeductionPanel').then(({ DeductionPanel }) => {
-        const deductionPanel = new DeductionPanel(() => this.ctx.allNews);
-        this.ctx.panels['deduction'] = deductionPanel;
-        const el = deductionPanel.getElement();
-        this.makeDraggable(el, 'deduction');
-        const grid = document.getElementById('panelsGrid');
-        if (grid) {
-          const gdeltEl = this.ctx.panels['gdelt-intel']?.getElement();
-          if (gdeltEl?.nextSibling) {
-            grid.insertBefore(el, gdeltEl.nextSibling);
-          } else {
-            grid.appendChild(el);
-          }
-        }
-      });
-    }
 
 
 
@@ -1047,41 +948,8 @@ export class PanelLayoutManager implements AppModule {
     });
   }
 
-  private handleRelatedAssetClick(asset: RelatedAsset): void {
-    if (!this.ctx.map) return;
-
-    switch (asset.type) {
-      case 'pipeline':
-        this.ctx.map.enableLayer('pipelines');
-        this.ctx.mapLayers.pipelines = true;
-        saveToStorage(STORAGE_KEYS.mapLayers, this.ctx.mapLayers);
-        this.ctx.map.triggerPipelineClick(asset.id);
-        break;
-      case 'cable':
-        this.ctx.map.enableLayer('cables');
-        this.ctx.mapLayers.cables = true;
-        saveToStorage(STORAGE_KEYS.mapLayers, this.ctx.mapLayers);
-        this.ctx.map.triggerCableClick(asset.id);
-        break;
-      case 'datacenter':
-        this.ctx.map.enableLayer('datacenters');
-        this.ctx.mapLayers.datacenters = true;
-        saveToStorage(STORAGE_KEYS.mapLayers, this.ctx.mapLayers);
-        this.ctx.map.triggerDatacenterClick(asset.id);
-        break;
-      case 'base':
-        this.ctx.map.enableLayer('bases');
-        this.ctx.mapLayers.bases = true;
-        saveToStorage(STORAGE_KEYS.mapLayers, this.ctx.mapLayers);
-        this.ctx.map.triggerBaseClick(asset.id);
-        break;
-      case 'nuclear':
-        this.ctx.map.enableLayer('nuclear');
-        this.ctx.mapLayers.nuclear = true;
-        saveToStorage(STORAGE_KEYS.mapLayers, this.ctx.mapLayers);
-        this.ctx.map.triggerNuclearClick(asset.id);
-        break;
-    }
+  private handleRelatedAssetClick(_asset: RelatedAsset): void {
+    // RelatedAsset layers (pipelines, cables, datacenters, bases, nuclear) removed from MapLayers.
   }
 
   private lazyPanel<T extends { getElement(): HTMLElement }>(
