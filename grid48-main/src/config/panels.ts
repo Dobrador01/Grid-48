@@ -1,4 +1,4 @@
-import type { PanelConfig, MapLayers } from '@/types';
+﻿import type { PanelConfig } from '@/types';
 import type { DataSourceId } from '@/services/data-freshness';
 import { SITE_VARIANT } from './variant';
 import { isDesktopRuntime } from '@/services/runtime';
@@ -11,7 +11,7 @@ const _desktop = isDesktopRuntime();
 // Panel order matters! First panels appear at top of grid.
 // Desired order: live-news, AI Insights, AI Strategic Posture, cii, strategic-risk, then rest
 const FULL_PANELS: Record<string, PanelConfig> = {
-  map: { name: 'Mapa — Grande Florianópolis', enabled: true, priority: 1 },
+  map: { name: 'Mapa â€” Grande FlorianÃ³polis', enabled: true, priority: 1 },
   'celesc-status': { name: 'Celesc Status', enabled: true, priority: 1 },
   insights: { name: 'AI Insights', enabled: true, priority: 1 },
   'strategic-posture': { name: 'AI Strategic Posture', enabled: true, priority: 1 },
@@ -27,8 +27,8 @@ const FULL_PANELS: Record<string, PanelConfig> = {
   'world-clock': { name: 'World Clock', enabled: true, priority: 2 },
 };
 
-const FULL_MAP_LAYERS: MapLayers = {
-  // Grid 48: todas as camadas geopolíticas globais desativadas por padrão
+const FULL_MAP_LAYERS: any = {
+  // Grid 48: todas as camadas geopolÃ­ticas globais desativadas por padrÃ£o
   iranAttacks: false,
   gpsJamming: false,
   satellites: false,
@@ -89,8 +89,8 @@ const FULL_MAP_LAYERS: MapLayers = {
   commodityPorts: false,
 };
 
-const FULL_MOBILE_MAP_LAYERS: MapLayers = {
-  // Grid 48: todas as camadas geopolíticas globais desativadas por padrão
+const FULL_MOBILE_MAP_LAYERS: any = {
+  // Grid 48: todas as camadas geopolÃ­ticas globais desativadas por padrÃ£o
   iranAttacks: false,
   gpsJamming: false,
   satellites: false,
@@ -183,7 +183,7 @@ const TECH_PANELS: Record<string, PanelConfig> = {
   'world-clock': { name: 'World Clock', enabled: true, priority: 2 },
 };
 
-const TECH_MAP_LAYERS: MapLayers = {
+const TECH_MAP_LAYERS: any = {
   gpsJamming: false,
   satellites: false,
   notamOverlay: false,
@@ -243,7 +243,7 @@ const TECH_MAP_LAYERS: MapLayers = {
   commodityPorts: false,
 };
 
-const TECH_MOBILE_MAP_LAYERS: MapLayers = {
+const TECH_MOBILE_MAP_LAYERS: any = {
   gpsJamming: false,
   satellites: false,
   notamOverlay: false,
@@ -336,7 +336,7 @@ const FINANCE_PANELS: Record<string, PanelConfig> = {
   'world-clock': { name: 'World Clock', enabled: true, priority: 2 },
 };
 
-const FINANCE_MAP_LAYERS: MapLayers = {
+const FINANCE_MAP_LAYERS: any = {
   gpsJamming: false,
   satellites: false,
   notamOverlay: false,
@@ -396,7 +396,7 @@ const FINANCE_MAP_LAYERS: MapLayers = {
   commodityPorts: false,
 };
 
-const FINANCE_MOBILE_MAP_LAYERS: MapLayers = {
+const FINANCE_MOBILE_MAP_LAYERS: any = {
   gpsJamming: false,
   satellites: false,
   notamOverlay: false,
@@ -472,7 +472,7 @@ const HAPPY_PANELS: Record<string, PanelConfig> = {
   giving: { name: 'Global Giving', enabled: true, priority: 1 },
 };
 
-const HAPPY_MAP_LAYERS: MapLayers = {
+const HAPPY_MAP_LAYERS: any = {
   gpsJamming: false,
   satellites: false,
   notamOverlay: false,
@@ -532,7 +532,7 @@ const HAPPY_MAP_LAYERS: MapLayers = {
   commodityPorts: false,
 };
 
-const HAPPY_MOBILE_MAP_LAYERS: MapLayers = {
+const HAPPY_MOBILE_MAP_LAYERS: any = {
   gpsJamming: false,
   satellites: false,
   notamOverlay: false,
@@ -613,7 +613,7 @@ const COMMODITY_PANELS: Record<string, PanelConfig> = {
   'world-clock': { name: 'World Clock', enabled: true, priority: 2 },
 };
 
-const COMMODITY_MAP_LAYERS: MapLayers = {
+const COMMODITY_MAP_LAYERS: any = {
   gpsJamming: false,
   satellites: false,
   notamOverlay: false,
@@ -673,7 +673,7 @@ const COMMODITY_MAP_LAYERS: MapLayers = {
   commodityPorts: true,
 };
 
-const COMMODITY_MOBILE_MAP_LAYERS: MapLayers = {
+const COMMODITY_MOBILE_MAP_LAYERS: any = {
   gpsJamming: false,
   satellites: false,
   notamOverlay: false,
@@ -767,7 +767,7 @@ export const MOBILE_DEFAULT_MAP_LAYERS = SITE_VARIANT === 'happy'
         : FULL_MOBILE_MAP_LAYERS;
 
 /** Maps map-layer toggle keys to their data-freshness source IDs (single source of truth). */
-export const LAYER_TO_SOURCE: Partial<Record<keyof MapLayers, DataSourceId[]>> = {
+export const LAYER_TO_SOURCE: Partial<Record<any, DataSourceId[]>> = {
   military: ['opensky', 'wingbits'],
   ais: ['ais'],
   natural: ['usgs'],
@@ -788,7 +788,7 @@ export const LAYER_TO_SOURCE: Partial<Record<keyof MapLayers, DataSourceId[]>> =
 // The `variants` field restricts a category to specific site variants;
 // omit it to show the category for all variants.
 export const PANEL_CATEGORY_MAP: Record<string, { labelKey: string; panelKeys: string[]; variants?: string[] }> = {
-  // All variants — essential panels
+  // All variants â€” essential panels
   core: {
     labelKey: 'header.panelCatCore',
     panelKeys: ['map', 'insights', 'strategic-posture'],
@@ -881,7 +881,7 @@ export const PANEL_CATEGORY_MAP: Record<string, { labelKey: string; panelKeys: s
   },
 };
 
-// Monitor palette — fixed category colors persisted to localStorage (not theme-dependent)
+// Monitor palette â€” fixed category colors persisted to localStorage (not theme-dependent)
 export const MONITOR_COLORS = [
   '#44ff88',
   '#ff8844',

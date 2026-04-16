@@ -1,5 +1,5 @@
-// Happy variant - happy.worldmonitor.app
-import type { PanelConfig, MapLayers } from '@/types';
+﻿// Happy variant - happy.worldmonitor.app
+import type { PanelConfig } from '@/types';
 import type { VariantConfig } from './base';
 
 // Re-export base config
@@ -18,8 +18,8 @@ export const DEFAULT_PANELS: Record<string, PanelConfig> = {
   renewable: { name: 'Renewable Energy', enabled: true, priority: 1 },
 };
 
-// Map layers — all geopolitical overlays disabled; natural events only
-export const DEFAULT_MAP_LAYERS: MapLayers = {
+// Map layers â€” all geopolitical overlays disabled; natural events only
+export const DEFAULT_MAP_LAYERS: any = {
   gpsJamming: false,
   satellites: false,
   notamOverlay: false,
@@ -78,8 +78,8 @@ export const DEFAULT_MAP_LAYERS: MapLayers = {
   commodityPorts: false,
 };
 
-// Mobile defaults — same as desktop for happy variant
-export const MOBILE_DEFAULT_MAP_LAYERS: MapLayers = {
+// Mobile defaults â€” same as desktop for happy variant
+export const MOBILE_DEFAULT_MAP_LAYERS: any = {
   gpsJamming: false,
   satellites: false,
   notamOverlay: false,

@@ -1,5 +1,4 @@
-import type { AppContext, AppModule } from '@/app/app-context';
-import { enqueuePanelCall } from '@/app/pending-panel-data';
+﻿import type { AppContext, AppModule } from '@/app/app-context';
 import type { NewsItem, MapLayers } from '@/types';
 
 import type { TimeRange } from '@/components';
@@ -69,7 +68,6 @@ export interface DataLoaderCallbacks {
 
 export class DataLoaderManager implements AppModule {
   private ctx: AppContext;
-  private callbacks: DataLoaderCallbacks;
 
   private mapFlashCache: Map<string, number> = new Map();
   private readonly MAP_FLASH_COOLDOWN_MS = 10 * 60 * 1000;
@@ -89,9 +87,8 @@ export class DataLoaderManager implements AppModule {
   private readonly perFeedFallbackIntelFeedLimit = 6;
   private lastGoodDigest: ListFeedDigestResponse | null = null;
 
-  constructor(ctx: AppContext, callbacks: DataLoaderCallbacks) {
+  constructor(ctx: AppContext, _callbacks: DataLoaderCallbacks) {
     this.ctx = ctx;
-    this.callbacks = callbacks;
   }
 
   init(): void {
@@ -371,7 +368,7 @@ export class DataLoaderManager implements AppModule {
       }
       const enabledNames = new Set(enabledFeeds.map(f => f.name));
 
-      // Digest branch: server already aggregated feeds â€” map proto items to client types
+      // Digest branch: server already aggregated feeds Ã¢â‚¬â€ map proto items to client types
       if (digest?.categories && category in digest.categories) {
         let items = (digest.categories[category]?.items ?? [])
           .map(protoItemToNewsItem)
@@ -412,39 +409,6 @@ export class DataLoaderManager implements AppModule {
         return items;
       }
 
-      // Per-feed fallback: fetch each feed individually (first load or digest unavailable)
-      const renderIntervalMs = 100;
-      let lastRenderTime = 0;
-      let renderTimeout: ReturnType<typeof setTimeout> | null = null;
-      let pendingItems: NewsItem[] | null = null;
-
-      const flushPendingRender = () => {
-        if (!pendingItems) return;
-        this.renderNewsForCategory(category, pendingItems);
-        pendingItems = null;
-        lastRenderTime = Date.now();
-      };
-
-      const scheduleRender = (partialItems: NewsItem[]) => {
-        if (!panel) return;
-        pendingItems = partialItems;
-        const elapsed = Date.now() - lastRenderTime;
-        if (elapsed >= renderIntervalMs) {
-          if (renderTimeout) {
-            clearTimeout(renderTimeout);
-            renderTimeout = null;
-          }
-          flushPendingRender();
-          return;
-        }
-
-        if (!renderTimeout) {
-          renderTimeout = setTimeout(() => {
-            renderTimeout = null;
-            flushPendingRender();
-          }, renderIntervalMs - elapsed);
-        }
-      };
 
       const staleItems = this.getStaleNewsItems(category).filter(i => enabledNames.has(i.source));
       if (staleItems.length > 0) {
@@ -479,11 +443,6 @@ export class DataLoaderManager implements AppModule {
 
       this.renderNewsForCategory(category, items);
       if (panel) {
-        if (renderTimeout) {
-          clearTimeout(renderTimeout);
-          renderTimeout = null;
-          pendingItems = null;
-        }
 
         if (items.length === 0) {
           panel.showError(t('common.noNewsAvailable'));
@@ -520,7 +479,7 @@ export class DataLoaderManager implements AppModule {
       this.ctx.happyAllItems = [];
     }
 
-    // Fire digest fetch early (non-blocking) â€” await before category loop
+    // Fire digest fetch early (non-blocking) Ã¢â‚¬â€ await before category loop
     const digestPromise = this.tryFetchDigest();
 
     const categories = Object.entries(FEEDS)
@@ -689,7 +648,7 @@ export class DataLoaderManager implements AppModule {
   }
 
   async loadOutages(): Promise<void> {
-    // Internet outage data â€” stubbed until outage service is reconfigured for Fat Client.
+    // Internet outage data Ã¢â‚¬â€ stubbed until outage service is reconfigured for Fat Client.
   }
 
   async loadOilAnalytics(): Promise<void> { /* removed */ }
@@ -704,7 +663,7 @@ export class DataLoaderManager implements AppModule {
   syncDataFreshnessWithLayers(): void {
     for (const [layer, sourceIds] of Object.entries(LAYER_TO_SOURCE)) {
       const enabled = this.ctx.mapLayers[layer as keyof MapLayers] ?? false;
-      for (const sourceId of sourceIds) {
+      for (const sourceId of sourceIds!) {
         dataFreshness.setEnabled(sourceId as DataSourceId, enabled);
       }
     }

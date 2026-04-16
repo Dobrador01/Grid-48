@@ -1,10 +1,9 @@
-import { getLocationName, type GeoConvergenceAlert } from './geo-convergence';
+﻿import { getLocationName, type GeoConvergenceAlert } from './geo-convergence';
 import type { CountryScore } from './country-instability';
 import type { CascadeResult, CascadeImpactLevel } from '@/types';
 import { calculateCII, isInLearningMode } from './country-instability';
 import { getCountryNameByCode } from './country-geometry';
 import { t } from '@/services/i18n';
-import type { TheaterPostureSummary } from '@/services/military-surge';
 
 export type AlertPriority = 'critical' | 'high' | 'medium' | 'low';
 export type AlertType = 'convergence' | 'cii_spike' | 'cascade' | 'composite';
@@ -274,13 +273,13 @@ function generateCompositeSummary(a: UnifiedAlert, b: UnifiedAlert): string {
     return t(summaryKey, { from: earliest.previousScore, to: latest.currentScore, change: changeStr, driver: latest.driver });
   }
 
-  // Otherwise combine summaries — limit to avoid unbounded growth
-  // Extract unique bullet segments from both summaries (they may already contain ' • ' from prior merges)
+  // Otherwise combine summaries â€” limit to avoid unbounded growth
+  // Extract unique bullet segments from both summaries (they may already contain ' â€¢ ' from prior merges)
   const seen = new Set<string>();
   const parts: string[] = [];
   for (const s of [a.summary, b.summary]) {
     if (!s) continue;
-    for (const seg of s.split(' • ')) {
+    for (const seg of s.split(' â€¢ ')) {
       const trimmed = seg.trim();
       if (trimmed && !seen.has(trimmed)) {
         seen.add(trimmed);
@@ -291,9 +290,9 @@ function generateCompositeSummary(a: UnifiedAlert, b: UnifiedAlert): string {
   // Cap at 3 evidence items to prevent wall-of-text
   if (parts.length > 3) {
     const extra = parts.length - 3;
-    return parts.slice(0, 3).join(' • ') + ` (+${extra} more)`;
+    return parts.slice(0, 3).join(' â€¢ ') + ` (+${extra} more)`;
   }
-  return parts.join(' • ');
+  return parts.join(' â€¢ ');
 }
 
 function addAndMergeAlert(alert: UnifiedAlert): UnifiedAlert {
@@ -416,7 +415,7 @@ function updateAlerts(convergenceAlerts: GeoConvergenceAlert[]): void {
 
 export function calculateStrategicRiskOverview(
   convergenceAlerts: GeoConvergenceAlert[],
-  theaterPostures?: TheaterPostureSummary[],
+  theaterPostures?: any /* TheaterPostureSummary */[],
   breakingAlertScore?: number,
   theaterStaleFactor?: number
 ): StrategicRiskOverview {

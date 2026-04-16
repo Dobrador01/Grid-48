@@ -1,5 +1,5 @@
-// Commodity variant - commodity.worldmonitor.app -- Focused on mining, metals, energy commodities, and critical minerals
-import type { PanelConfig, MapLayers } from '@/types';
+﻿// Commodity variant - commodity.worldmonitor.app -- Focused on mining, metals, energy commodities, and critical minerals
+import type { PanelConfig } from '@/types';
 import type { VariantConfig } from './base';
 
 // Re-export base config
@@ -10,9 +10,9 @@ export { COMMODITY_SECTORS, COMMODITY_PRICES, COMMODITY_MARKET_SYMBOLS } from '@
 export type { MineralType, MineSiteStatus, MineSite, ProcessingPlant, CommodityPort } from '@/config/commodity-geo';
 export { MINING_SITES, PROCESSING_PLANTS, COMMODITY_PORTS } from '@/config/commodity-geo';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// PANEL CONFIGURATION — Commodity-only panels
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// PANEL CONFIGURATION â€” Commodity-only panels
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export const DEFAULT_PANELS: Record<string, PanelConfig> = {
   // Core
   map: { name: 'Commodity & Mining Map', enabled: true, priority: 1 },
@@ -34,12 +34,12 @@ export const DEFAULT_PANELS: Record<string, PanelConfig> = {
   'airline-intel': { name: 'Airline Intelligence', enabled: true, priority: 2 },
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// MAP LAYERS — Commodity-focused (mirrors Finance variant pattern)
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// MAP LAYERS â€” Commodity-focused (mirrors Finance variant pattern)
 // Only commodity-relevant layers are enabled; all others are explicitly false.
-// ─────────────────────────────────────────────────────────────────────────────
-export const DEFAULT_MAP_LAYERS: MapLayers = {
-  // ── Core commodity map layers (ENABLED) ───────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+export const DEFAULT_MAP_LAYERS: any = {
+  // â”€â”€ Core commodity map layers (ENABLED) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   minerals: true,           // Critical minerals projects (existing layer)
   miningSites: true,        // ~70 major mine sites from commodity-geo.ts
   processingPlants: true,   // Smelters, refineries, separation plants
@@ -51,7 +51,7 @@ export const DEFAULT_MAP_LAYERS: MapLayers = {
   natural: true,            // Earthquakes/natural events (affect mine operations)
   weather: true,            // Weather impacting operations
 
-  // ── All non-commodity layers (DISABLED) ───────────────────────────────────
+  // â”€â”€ All non-commodity layers (DISABLED) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // Geopolitical / military
   gpsJamming: false,
   satellites: false,
@@ -106,10 +106,10 @@ export const DEFAULT_MAP_LAYERS: MapLayers = {
   ciiChoropleth: false,
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// MOBILE MAP LAYERS — Minimal set for commodity mobile view
-// ─────────────────────────────────────────────────────────────────────────────
-export const MOBILE_DEFAULT_MAP_LAYERS: MapLayers = {
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// MOBILE MAP LAYERS â€” Minimal set for commodity mobile view
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+export const MOBILE_DEFAULT_MAP_LAYERS: any = {
   // Core commodity layers (limited on mobile for performance)
   minerals: true,
   miningSites: true,

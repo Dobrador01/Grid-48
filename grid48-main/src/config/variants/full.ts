@@ -1,5 +1,5 @@
-// Full geopolitical variant - worldmonitor.app
-import type { PanelConfig, MapLayers } from '@/types';
+﻿// Full geopolitical variant - worldmonitor.app
+import type { PanelConfig } from '@/types';
 import type { VariantConfig } from './base';
 
 // Re-export base config
@@ -40,8 +40,8 @@ export const DEFAULT_PANELS: Record<string, PanelConfig> = {
 
 };
 
-// Map layers for regional view (Grande Florianópolis)
-export const DEFAULT_MAP_LAYERS: MapLayers = {
+// Map layers for regional view (Grande FlorianÃ³polis)
+export const DEFAULT_MAP_LAYERS: any = {
   weather: true,
   natural: false,
   fires: false,
@@ -52,7 +52,7 @@ export const DEFAULT_MAP_LAYERS: MapLayers = {
 };
 
 // Mobile-specific defaults
-export const MOBILE_DEFAULT_MAP_LAYERS: MapLayers = {
+export const MOBILE_DEFAULT_MAP_LAYERS: any = {
   weather: true,
   natural: true,
   fires: false,

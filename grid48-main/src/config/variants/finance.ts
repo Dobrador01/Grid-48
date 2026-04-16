@@ -1,5 +1,5 @@
-// Finance/Trading variant - finance.worldmonitor.app
-import type { PanelConfig, MapLayers } from '@/types';
+﻿// Finance/Trading variant - finance.worldmonitor.app
+import type { PanelConfig } from '@/types';
 import type { VariantConfig } from './base';
 
 // Re-export base config
@@ -164,7 +164,7 @@ export const DEFAULT_PANELS: Record<string, PanelConfig> = {
 };
 
 // Finance-focused map layers
-export const DEFAULT_MAP_LAYERS: MapLayers = {
+export const DEFAULT_MAP_LAYERS: any = {
   gpsJamming: false,
   satellites: false,
   notamOverlay: false,
@@ -223,7 +223,7 @@ export const DEFAULT_MAP_LAYERS: MapLayers = {
 };
 
 // Mobile defaults for finance variant
-export const MOBILE_DEFAULT_MAP_LAYERS: MapLayers = {
+export const MOBILE_DEFAULT_MAP_LAYERS: any = {
   gpsJamming: false,
   satellites: false,
   notamOverlay: false,

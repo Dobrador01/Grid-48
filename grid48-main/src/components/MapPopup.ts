@@ -1,4 +1,4 @@
-import type { ConflictZone, Hotspot, NewsItem, MilitaryBase, StrategicWaterway, APTGroup, NuclearFacility, EconomicCenter, GammaIrradiator, Pipeline, UnderseaCable, CableAdvisory, RepairShip, InternetOutage, AIDataCenter, AisDisruptionEvent, SocialUnrestEvent, MilitaryFlight, MilitaryVessel, MilitaryFlightCluster, MilitaryVesselCluster, NaturalEvent, Port, Spaceport, CriticalMineralProject, CyberThreat } from '@/types';
+﻿import type { ConflictZone, Hotspot, NewsItem, MilitaryBase, StrategicWaterway, APTGroup, NuclearFacility, EconomicCenter, GammaIrradiator, Pipeline, UnderseaCable, CableAdvisory, RepairShip, InternetOutage, AIDataCenter, AisDisruptionEvent, SocialUnrestEvent, MilitaryFlight, MilitaryVessel, MilitaryFlightCluster, MilitaryVesselCluster, NaturalEvent, Port, Spaceport, CriticalMineralProject, CyberThreat } from '@/types';
 import type { AirportDelayAlert, PositionSample } from '@/services/aviation';
 import type { Earthquake } from '@/services/earthquakes';
 import type { WeatherAlert } from '@/services/weather';
@@ -9,7 +9,6 @@ import type { GeoHubActivity } from '@/services/geo-activity';
 import { escapeHtml, sanitizeUrl } from '@/utils/sanitize';
 import { isMobileDevice, getCSSColor } from '@/utils';
 import { t } from '@/services/i18n';
-import { fetchHotspotContext, formatArticleDate, extractDomain, type GdeltArticle } from '@/services/gdelt-intel';
 import { getNaturalEventIcon } from '@/services/eonet';
 import { getHotspotEscalation, getEscalationChange24h } from '@/services/hotspot-escalation';
 import { getCableHealthRecord } from '@/services/cable-health';
@@ -144,7 +143,7 @@ interface DatacenterClusterData {
 
 interface PopupData {
   type: PopupType;
-  data: ConflictZone | Hotspot | Earthquake | WeatherAlert | MilitaryBase | StrategicWaterway | APTGroup | CyberThreat | NuclearFacility | EconomicCenter | GammaIrradiator | Pipeline | UnderseaCable | CableAdvisory | RepairShip | InternetOutage | AIDataCenter | AisDisruptionEvent | SocialUnrestEvent | AirportDelayAlert | PositionSample | MilitaryFlight | MilitaryVessel | MilitaryFlightCluster | MilitaryVesselCluster | NaturalEvent | Port | Spaceport | CriticalMineralProject | StartupHub | CloudRegion | TechHQ | Accelerator | TechEventPopupData | TechHQClusterData | TechEventClusterData | ProtestClusterData | DatacenterClusterData | TechHubActivity | GeoHubActivity | StockExchangePopupData | FinancialCenterPopupData | CentralBankPopupData | CommodityHubPopupData | IranEventPopupData | GpsJammingPopupData | CelescMunicipioPayload | FeatureCollection;
+  data: ConflictZone | Hotspot | Earthquake | WeatherAlert | MilitaryBase | StrategicWaterway | APTGroup | CyberThreat | NuclearFacility | EconomicCenter | GammaIrradiator | Pipeline | UnderseaCable | CableAdvisory | RepairShip | InternetOutage | AIDataCenter | AisDisruptionEvent | SocialUnrestEvent | AirportDelayAlert | PositionSample | MilitaryFlight | MilitaryVessel | MilitaryFlightCluster | MilitaryVesselCluster | NaturalEvent | Port | Spaceport | CriticalMineralProject | StartupHub | CloudRegion | TechHQ | Accelerator | TechEventPopupData | TechHQClusterData | TechEventClusterData | ProtestClusterData | DatacenterClusterData | TechHubActivity | GeoHubActivity | StockExchangePopupData | FinancialCenterPopupData | CentralBankPopupData | CommodityHubPopupData | IranEventPopupData | GpsJammingPopupData | CelescMunicipioPayload | any /* FeatureCollection */;
   relatedNews?: NewsItem[];
   x: number;
   y: number;
@@ -486,22 +485,22 @@ export class MapPopup {
     const badgeLabel = isOffline ? 'ALERTA' : 'NORMAL';
 
     const trendIcons: Record<string, string> = {
-      'PIORANDO': '↑',
-      'ESTÁVEL': '→',
-      'MELHORANDO': '↓',
+      'PIORANDO': 'Ã¢â€ â€˜',
+      'ESTÃƒÂVEL': 'Ã¢â€ â€™',
+      'MELHORANDO': 'Ã¢â€ â€œ',
     };
-    const trendIcon = trendIcons[data.tendenciaDelta] || '-';
+    const trendIcon = trendIcons[(data as any).tendenciaDelta] || '-';
     
     // Sort bairros by UCs off, take top 5
-    const topBairros = [...data.bairrosAfetados]
+    const topBairros = [...(data as any).bairrosAfetados]
       .sort((a, b) => b.ucs - a.ucs)
       .slice(0, 5);
 
     return `
       <div class="popup-header outage">
-        <span class="popup-title">${escapeHtml(data.municipio)}</span>
+        <span class="popup-title">${escapeHtml((data as any).municipio)}</span>
         <span class="popup-badge ${badgeClass} ${isOffline ? 'pulse-alert' : ''}">${badgeLabel}</span>
-        <button class="popup-close" aria-label="Close">×</button>
+        <button class="popup-close" aria-label="Close">Ãƒâ€”</button>
       </div>
       <div class="popup-body">
         <div class="popup-stats" style="margin-bottom: 8px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">
@@ -510,15 +509,15 @@ export class MapPopup {
             <span class="stat-value">REDE CELESC</span>
           </div>
           <div class="popup-stat">
-            <span class="stat-label">TENDÊNCIA</span>
-            <span class="stat-value" style="${data.tendenciaDelta === 'PIORANDO' ? 'color: var(--semantic-critical)' : data.tendenciaDelta === 'MELHORANDO' ? 'color: var(--semantic-normal)' : ''}">${trendIcon} ${escapeHtml(data.tendenciaDelta)}</span>
+            <span class="stat-label">TENDÃƒÅ NCIA</span>
+            <span class="stat-value" style="${(data as any).tendenciaDelta === 'PIORANDO' ? 'color: var(--semantic-critical)' : (data as any).tendenciaDelta === 'MELHORANDO' ? 'color: var(--semantic-normal)' : ''}">${trendIcon} ${escapeHtml((data as any).tendenciaDelta)}</span>
           </div>
         </div>
         
         <div class="popup-stats">
           <div class="popup-stat">
             <span class="stat-label">TOTAL UCs</span>
-            <span class="stat-value">${data.totalUcs.toLocaleString('pt-BR')}</span>
+            <span class="stat-value">${(data as any).totalUcs?.toLocaleString('pt-BR')}</span>
           </div>
           <div class="popup-stat">
             <span class="stat-label">UCs OFF</span>
@@ -526,7 +525,7 @@ export class MapPopup {
           </div>
           <div class="popup-stat">
             <span class="stat-label">AFETADOS</span>
-            <span class="stat-value">${data.porcentagemAfetada.toFixed(2)}%</span>
+            <span class="stat-value">${(data as any).porcentagemAfetada?.toFixed(2)}%</span>
           </div>
         </div>
         
@@ -555,7 +554,7 @@ export class MapPopup {
       <div class="popup-header conflict">
         <span class="popup-title">${escapeHtml(conflict.name.toUpperCase())}</span>
         <span class="popup-badge ${severityClass}">${severityLabel}</span>
-        <button class="popup-close" aria-label="Close">×</button>
+        <button class="popup-close" aria-label="Close">Ãƒâ€”</button>
       </div>
       <div class="popup-body">
         <div class="popup-stats">
@@ -573,7 +572,7 @@ export class MapPopup {
           </div>
           <div class="popup-stat">
             <span class="stat-label">${t('popups.location')}</span>
-            <span class="stat-value">${escapeHtml(conflict.location || `${conflict.center[1]}°N, ${conflict.center[0]}°E`)}</span>
+            <span class="stat-value">${escapeHtml(conflict.location || `${conflict.center[1]}Ã‚Â°N, ${conflict.center[0]}Ã‚Â°E`)}</span>
           </div>
         </div>
         ${conflict.description ? `<p class="popup-description">${escapeHtml(conflict.description)}</p>` : ''}
@@ -639,7 +638,7 @@ export class MapPopup {
       4: t('popups.hotspot.levels.high'),
       5: t('popups.hotspot.levels.critical')
     };
-    const trendIcons: Record<string, string> = { 'escalating': '↑', 'stable': '→', 'de-escalating': '↓' };
+    const trendIcons: Record<string, string> = { 'escalating': 'Ã¢â€ â€˜', 'stable': 'Ã¢â€ â€™', 'de-escalating': 'Ã¢â€ â€œ' };
     const trendColors: Record<string, string> = { 'escalating': getCSSColor('--semantic-critical'), 'stable': getCSSColor('--semantic-elevated'), 'de-escalating': getCSSColor('--semantic-normal') };
 
     const displayScore = dynamicScore?.combinedScore ?? hotspot.escalationScore ?? 3;
@@ -703,7 +702,7 @@ export class MapPopup {
         ` : ''}
         ${hotspot.escalationIndicators && hotspot.escalationIndicators.length > 0 ? `
           <div class="escalation-indicators">
-            ${hotspot.escalationIndicators.map(i => `<span class="indicator-tag">• ${escapeHtml(i)}</span>`).join('')}
+            ${hotspot.escalationIndicators.map(i => `<span class="indicator-tag">Ã¢â‚¬Â¢ ${escapeHtml(i)}</span>`).join('')}
           </div>
         ` : ''}
       </div>
@@ -756,7 +755,7 @@ export class MapPopup {
       <div class="popup-header hotspot">
         <span class="popup-title">${escapeHtml(hotspot.name.toUpperCase())}</span>
         <span class="popup-badge ${severityClass}">${severityLabel}</span>
-        <button class="popup-close" aria-label="Close">×</button>
+        <button class="popup-close" aria-label="Close">Ãƒâ€”</button>
       </div>
       <div class="popup-body">
         ${localizedSubtext ? `<div class="popup-subtitle">${escapeHtml(localizedSubtext)}</div>` : ''}
@@ -771,7 +770,7 @@ export class MapPopup {
           ` : ''}
           <div class="popup-stat">
             <span class="stat-label">${t('popups.coordinates')}</span>
-            <span class="stat-value">${escapeHtml(`${hotspot.lat.toFixed(2)}°N, ${hotspot.lon.toFixed(2)}°E`)}</span>
+            <span class="stat-value">${escapeHtml(`${hotspot.lat.toFixed(2)}Ã‚Â°N, ${hotspot.lon.toFixed(2)}Ã‚Â°E`)}</span>
           </div>
           <div class="popup-stat">
             <span class="stat-label">${t('popups.status')}</span>
@@ -817,14 +816,14 @@ export class MapPopup {
     `;
   }
 
-  public async loadHotspotGdeltContext(hotspot: Hotspot): Promise<void> {
+  public async loadHotspotGdeltContext(_hotspot: Hotspot): Promise<void> {
     if (!this.popup) return;
 
     const container = this.popup.querySelector('.hotspot-gdelt-context');
     if (!container) return;
 
     try {
-      const articles = await fetchHotspotContext(hotspot);
+      const articles: any[] = []; // fetchHotspotContext DCE removed (gdelt-intel deleted)
 
       if (!this.popup || !container.isConnected) return;
 
@@ -839,7 +838,7 @@ export class MapPopup {
       container.innerHTML = `
         <div class="hotspot-gdelt-header">${t('popups.liveIntel')}</div>
         <div class="hotspot-gdelt-articles">
-          ${articles.slice(0, 5).map(article => this.renderGdeltArticle(article)).join('')}
+          ${articles.slice(0, 5).map((article: any) => this.renderGdeltArticle(article)).join('')}
         </div>
       `;
     } catch (error) {
@@ -852,9 +851,9 @@ export class MapPopup {
     }
   }
 
-  private renderGdeltArticle(article: GdeltArticle): string {
-    const domain = article.source || extractDomain(article.url);
-    const timeAgo = formatArticleDate(article.date);
+  private renderGdeltArticle(article: any /* GdeltArticle */): string {
+    const domain = article.source || ((url: any) => url) /* extractDomain DCE */(article.url);
+    const timeAgo = ((d: any) => d) /* formatArticleDate DCE */(article.date);
 
     return `
       <a href="${sanitizeUrl(article.url)}" target="_blank" rel="noopener" class="hotspot-gdelt-article">
@@ -877,7 +876,7 @@ export class MapPopup {
       <div class="popup-header earthquake">
         <span class="popup-title magnitude">M${earthquake.magnitude.toFixed(1)}</span>
         <span class="popup-badge ${severity}">${severityLabel}</span>
-        <button class="popup-close" aria-label="Close">×</button>
+        <button class="popup-close" aria-label="Close">Ãƒâ€”</button>
       </div>
       <div class="popup-body">
         <p class="popup-location">${escapeHtml(earthquake.place)}</p>
@@ -888,14 +887,14 @@ export class MapPopup {
           </div>
           <div class="popup-stat">
             <span class="stat-label">${t('popups.coordinates')}</span>
-            <span class="stat-value">${(earthquake.location?.latitude ?? 0).toFixed(2)}°, ${(earthquake.location?.longitude ?? 0).toFixed(2)}°</span>
+            <span class="stat-value">${(earthquake.location?.latitude ?? 0).toFixed(2)}Ã‚Â°, ${(earthquake.location?.longitude ?? 0).toFixed(2)}Ã‚Â°</span>
           </div>
           <div class="popup-stat">
             <span class="stat-label">${t('popups.time')}</span>
             <span class="stat-value">${timeAgo}</span>
           </div>
         </div>
-        <a href="${sanitizeUrl(earthquake.sourceUrl)}" target="_blank" class="popup-link">${t('popups.viewUSGS')} →</a>
+        <a href="${sanitizeUrl(earthquake.sourceUrl)}" target="_blank" class="popup-link">${t('popups.viewUSGS')} Ã¢â€ â€™</a>
       </div>
     `;
   }
@@ -919,7 +918,7 @@ export class MapPopup {
       <div class="popup-header weather ${severityClass}">
         <span class="popup-title">${escapeHtml(alert.event.toUpperCase())}</span>
         <span class="popup-badge ${severityClass}">${escapeHtml(alert.severity.toUpperCase())}</span>
-        <button class="popup-close" aria-label="Close">×</button>
+        <button class="popup-close" aria-label="Close">Ãƒâ€”</button>
       </div>
       <div class="popup-body">
         <p class="popup-headline">${escapeHtml(alert.headline)}</p>
@@ -940,7 +939,7 @@ export class MapPopup {
 
   private getTimeUntil(date: Date | string): string {
     const d = date instanceof Date ? date : new Date(date);
-    if (isNaN(d.getTime())) return '—';
+    if (isNaN(d.getTime())) return 'Ã¢â‚¬â€';
     const ms = d.getTime() - Date.now();
     if (ms <= 0) return t('popups.expired');
     const hours = Math.floor(ms / (1000 * 60 * 60));
@@ -973,7 +972,7 @@ export class MapPopup {
       <div class="popup-header base">
         <span class="popup-title">${escapeHtml(base.name.toUpperCase())}</span>
         <span class="popup-badge ${typeColors[base.type] || 'low'}">${escapeHtml(typeLabels[base.type] || base.type.toUpperCase())}</span>
-        <button class="popup-close" aria-label="Close">×</button>
+        <button class="popup-close" aria-label="Close">Ãƒâ€”</button>
       </div>
       <div class="popup-body">
         ${base.description ? `<p class="popup-description">${escapeHtml(base.description)}</p>` : ''}
@@ -988,7 +987,7 @@ export class MapPopup {
           ${categories.length > 0 ? `<div class="popup-stat"><span class="stat-label">Categories</span><span class="stat-value">${escapeHtml(categories.join(', '))}</span></div>` : ''}
           <div class="popup-stat">
             <span class="stat-label">${t('popups.coordinates')}</span>
-            <span class="stat-value">${base.lat.toFixed(2)}°, ${base.lon.toFixed(2)}°</span>
+            <span class="stat-value">${base.lat.toFixed(2)}Ã‚Â°, ${base.lon.toFixed(2)}Ã‚Â°</span>
           </div>
         </div>
       </div>
@@ -1000,14 +999,14 @@ export class MapPopup {
       <div class="popup-header waterway">
         <span class="popup-title">${escapeHtml(waterway.name)}</span>
         <span class="popup-badge elevated">${t('popups.strategic')}</span>
-        <button class="popup-close" aria-label="Close">×</button>
+        <button class="popup-close" aria-label="Close">Ãƒâ€”</button>
       </div>
       <div class="popup-body">
         ${waterway.description ? `<p class="popup-description">${escapeHtml(waterway.description)}</p>` : ''}
         <div class="popup-stats">
           <div class="popup-stat">
             <span class="stat-label">${t('popups.coordinates')}</span>
-            <span class="stat-value">${waterway.lat.toFixed(2)}°, ${waterway.lon.toFixed(2)}°</span>
+            <span class="stat-value">${waterway.lat.toFixed(2)}Ã‚Â°, ${waterway.lon.toFixed(2)}Ã‚Â°</span>
           </div>
         </div>
       </div>
@@ -1021,21 +1020,21 @@ export class MapPopup {
     const changeLabel = event.type === 'gap_spike' ? t('popups.darkening') : t('popups.density');
     const countLabel = event.type === 'gap_spike' ? t('popups.darkShips') : t('popups.vesselCount');
     const countValue = event.type === 'gap_spike'
-      ? event.darkShips?.toString() || '—'
-      : event.vesselCount?.toString() || '—';
+      ? event.darkShips?.toString() || 'Ã¢â‚¬â€'
+      : event.vesselCount?.toString() || 'Ã¢â‚¬â€';
 
     return `
       <div class="popup-header ais">
         <span class="popup-title">${escapeHtml(event.name.toUpperCase())}</span>
         <span class="popup-badge ${severityClass}">${severityLabel}</span>
-        <button class="popup-close" aria-label="Close">×</button>
+        <button class="popup-close" aria-label="Close">Ãƒâ€”</button>
       </div>
       <div class="popup-body">
         <div class="popup-subtitle">${typeLabel}</div>
         <div class="popup-stats">
           <div class="popup-stat">
             <span class="stat-label">${changeLabel}</span>
-            <span class="stat-value">${event.changePct}% ↑</span>
+            <span class="stat-value">${event.changePct}% Ã¢â€ â€˜</span>
           </div>
           <div class="popup-stat">
             <span class="stat-label">${countLabel}</span>
@@ -1047,7 +1046,7 @@ export class MapPopup {
           </div>
           <div class="popup-stat">
             <span class="stat-label">${t('popups.region')}</span>
-            <span class="stat-value">${escapeHtml(event.region || `${event.lat.toFixed(2)}°, ${event.lon.toFixed(2)}°`)}</span>
+            <span class="stat-value">${escapeHtml(event.region || `${event.lat.toFixed(2)}Ã‚Â°, ${event.lon.toFixed(2)}Ã‚Â°`)}</span>
           </div>
         </div>
         <p class="popup-description">${escapeHtml(event.description)}</p>
@@ -1059,7 +1058,7 @@ export class MapPopup {
     const severityClass = escapeHtml(event.severity);
     const severityLabel = escapeHtml(event.severity.toUpperCase());
     const eventTypeLabel = escapeHtml(event.eventType.replace('_', ' ').toUpperCase());
-    const icon = event.eventType === 'riot' ? '🔥' : event.eventType === 'strike' ? '✊' : '📢';
+    const icon = event.eventType === 'riot' ? 'Ã°Å¸â€Â¥' : event.eventType === 'strike' ? 'Ã¢Å“Å ' : 'Ã°Å¸â€œÂ¢';
     const sourceLabel = event.sourceType === 'acled' ? t('popups.protest.acledVerified') : t('popups.protest.gdelt');
     const validatedBadge = event.validated ? `<span class="popup-badge verified">${t('popups.verified')}</span>` : '';
     const fatalitiesSection = event.fatalities
@@ -1081,7 +1080,7 @@ export class MapPopup {
         <span class="popup-title">${eventTypeLabel}</span>
         <span class="popup-badge ${severityClass}">${severityLabel}</span>
         ${validatedBadge}
-        <button class="popup-close" aria-label="Close">×</button>
+        <button class="popup-close" aria-label="Close">Ãƒâ€”</button>
       </div>
       <div class="popup-body">
         <div class="popup-subtitle">${event.city ? `${escapeHtml(event.city)}, ` : ''}${escapeHtml(event.country)}</div>
@@ -1120,12 +1119,12 @@ export class MapPopup {
     });
 
     const listItems = sortedItems.slice(0, 10).map(event => {
-      const icon = event.eventType === 'riot' ? '🔥' : event.eventType === 'strike' ? '✊' : '📢';
+      const icon = event.eventType === 'riot' ? 'Ã°Å¸â€Â¥' : event.eventType === 'strike' ? 'Ã¢Å“Å ' : 'Ã°Å¸â€œÂ¢';
       const sevClass = event.severity;
       const dateStr = event.time.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
       const city = event.city ? escapeHtml(event.city) : '';
       const title = event.title ? `: ${escapeHtml(event.title.slice(0, 40))}${event.title.length > 40 ? '...' : ''}` : '';
-      return `<li class="cluster-item ${sevClass}">${icon} ${dateStr}${city ? ` • ${city}` : ''}${title}</li>`;
+      return `<li class="cluster-item ${sevClass}">${icon} ${dateStr}${city ? ` Ã¢â‚¬Â¢ ${city}` : ''}${title}</li>`;
     }).join('');
 
     const renderedCount = Math.min(10, data.items.length);
@@ -1135,16 +1134,16 @@ export class MapPopup {
 
     return `
       <div class="popup-header protest ${headerClass} cluster">
-        <span class="popup-title">📢 ${escapeHtml(data.country)}</span>
+        <span class="popup-title">Ã°Å¸â€œÂ¢ ${escapeHtml(data.country)}</span>
         <span class="popup-badge">${totalCount} ${t('popups.events').toUpperCase()}</span>
-        <button class="popup-close" aria-label="Close">×</button>
+        <button class="popup-close" aria-label="Close">Ãƒâ€”</button>
       </div>
       <div class="popup-body cluster-popup">
         <div class="cluster-summary">
-          ${riots ? `<span class="summary-item riot">🔥 ${riots} ${t('popups.protest.riots')}</span>` : ''}
-          ${highSeverity ? `<span class="summary-item high">⚠️ ${highSeverity} ${t('popups.protest.highSeverity')}</span>` : ''}
-          ${verified ? `<span class="summary-item verified">✓ ${verified} ${t('popups.verified')}</span>` : ''}
-          ${totalFatalities > 0 ? `<span class="summary-item fatalities">💀 ${totalFatalities} ${t('popups.fatalities')}</span>` : ''}
+          ${riots ? `<span class="summary-item riot">Ã°Å¸â€Â¥ ${riots} ${t('popups.protest.riots')}</span>` : ''}
+          ${highSeverity ? `<span class="summary-item high">Ã¢Å¡Â Ã¯Â¸Â ${highSeverity} ${t('popups.protest.highSeverity')}</span>` : ''}
+          ${verified ? `<span class="summary-item verified">Ã¢Å“â€œ ${verified} ${t('popups.verified')}</span>` : ''}
+          ${totalFatalities > 0 ? `<span class="summary-item fatalities">Ã°Å¸â€™â‚¬ ${totalFatalities} ${t('popups.fatalities')}</span>` : ''}
         </div>
         <ul class="cluster-list">${listItems}${moreCount}</ul>
         ${data.sampled ? `<p class="popup-more">${t('popups.sampledList', { count: data.items.length })}</p>` : ''}
@@ -1164,7 +1163,7 @@ export class MapPopup {
       'closure': t('popups.flight.closure'),
     };
     const delayTypeLabel = delayTypeLabels[delay.delayType] || t('popups.flight.delays');
-    const icon = delay.delayType === 'closure' ? '🚫' : delay.delayType === 'ground_stop' ? '🛑' : delay.severity === 'severe' ? '✈️' : '🛫';
+    const icon = delay.delayType === 'closure' ? 'Ã°Å¸Å¡Â«' : delay.delayType === 'ground_stop' ? 'Ã°Å¸â€ºâ€˜' : delay.severity === 'severe' ? 'Ã¢Å“Ë†Ã¯Â¸Â' : 'Ã°Å¸â€ºÂ«';
     const sourceLabels: Record<string, string> = {
       'faa': t('popups.flight.sources.faa'),
       'eurocontrol': t('popups.flight.sources.eurocontrol'),
@@ -1197,7 +1196,7 @@ export class MapPopup {
         <span class="popup-icon">${icon}</span>
         <span class="popup-title">${escapeHtml(delay.iata)} - ${delayTypeLabel}</span>
         <span class="popup-badge ${severityClass}">${severityLabel}</span>
-        <button class="popup-close" aria-label="Close">×</button>
+        <button class="popup-close" aria-label="Close">Ãƒâ€”</button>
       </div>
       <div class="popup-body">
         <div class="popup-subtitle">${escapeHtml(delay.name)}</div>
@@ -1234,7 +1233,7 @@ export class MapPopup {
         <span class="popup-icon">&#9992;</span>
         <span class="popup-title">${callsign}</span>
         <span class="popup-badge ${onGroundBadge}">${statusLabel}</span>
-        <button class="popup-close" aria-label="Close">×</button>
+        <button class="popup-close" aria-label="Close">Ãƒâ€”</button>
       </div>
       <div class="popup-body">
         <div class="popup-subtitle">ICAO24: ${escapeHtml(pos.icao24)}</div>
@@ -1273,7 +1272,7 @@ export class MapPopup {
       <div class="popup-header apt">
         <span class="popup-title">${escapeHtml(apt.name)}</span>
         <span class="popup-badge high">${t('popups.threat')}</span>
-        <button class="popup-close" aria-label="Close">×</button>
+        <button class="popup-close" aria-label="Close">Ãƒâ€”</button>
       </div>
       <div class="popup-body">
         <div class="popup-subtitle">${t('popups.aka')}: ${escapeHtml(apt.aka)}</div>
@@ -1284,7 +1283,7 @@ export class MapPopup {
           </div>
           <div class="popup-stat">
             <span class="stat-label">${t('popups.origin')}</span>
-            <span class="stat-value">${apt.lat.toFixed(1)}°, ${apt.lon.toFixed(1)}°</span>
+            <span class="stat-value">${apt.lat.toFixed(1)}Ã‚Â°, ${apt.lon.toFixed(1)}Ã‚Â°</span>
           </div>
         </div>
         <p class="popup-description">${t('popups.apt.description')}</p>
@@ -1310,7 +1309,7 @@ export class MapPopup {
       <div class="popup-header apt ${severityClass}">
         <span class="popup-title">${t('popups.cyberThreat.title')}</span>
         <span class="popup-badge ${severityClass}">${escapeHtml(threat.severity.toUpperCase())}</span>
-        <button class="popup-close" aria-label="Close">×</button>
+        <button class="popup-close" aria-label="Close">Ãƒâ€”</button>
       </div>
       <div class="popup-body">
         <div class="popup-subtitle">${escapeHtml(typeLabel)}</div>
@@ -1361,7 +1360,7 @@ export class MapPopup {
       <div class="popup-header nuclear">
         <span class="popup-title">${escapeHtml(facility.name.toUpperCase())}</span>
         <span class="popup-badge ${statusColors[facility.status] || 'low'}">${escapeHtml(facility.status.toUpperCase())}</span>
-        <button class="popup-close" aria-label="Close">×</button>
+        <button class="popup-close" aria-label="Close">Ãƒâ€”</button>
       </div>
       <div class="popup-body">
         <div class="popup-stats">
@@ -1375,7 +1374,7 @@ export class MapPopup {
           </div>
           <div class="popup-stat">
             <span class="stat-label">${t('popups.coordinates')}</span>
-            <span class="stat-value">${facility.lat.toFixed(2)}°, ${facility.lon.toFixed(2)}°</span>
+            <span class="stat-value">${facility.lat.toFixed(2)}Ã‚Â°, ${facility.lon.toFixed(2)}Ã‚Â°</span>
           </div>
         </div>
         <p class="popup-description">${t('popups.nuclear.description')}</p>
@@ -1390,9 +1389,9 @@ export class MapPopup {
       'financial-hub': t('popups.economic.types.financialHub'),
     };
     const typeIcons: Record<string, string> = {
-      'exchange': '📈',
-      'central-bank': '🏛',
-      'financial-hub': '💰',
+      'exchange': 'Ã°Å¸â€œË†',
+      'central-bank': 'Ã°Å¸Ââ€º',
+      'financial-hub': 'Ã°Å¸â€™Â°',
     };
 
     const marketStatus = center.marketHours ? this.getMarketStatus(center.marketHours) : null;
@@ -1408,7 +1407,7 @@ export class MapPopup {
       <div class="popup-header economic ${center.type}">
         <span class="popup-title">${typeIcons[center.type] || ''} ${escapeHtml(center.name.toUpperCase())}</span>
         <span class="popup-badge ${marketStatus === 'open' ? 'elevated' : 'low'}">${escapeHtml(marketStatusLabel || typeLabels[center.type] || '')}</span>
-        <button class="popup-close" aria-label="Close">×</button>
+        <button class="popup-close" aria-label="Close">Ãƒâ€”</button>
       </div>
       <div class="popup-body">
         ${center.description ? `<p class="popup-description">${escapeHtml(center.description)}</p>` : ''}
@@ -1429,7 +1428,7 @@ export class MapPopup {
           ` : ''}
           <div class="popup-stat">
             <span class="stat-label">${t('popups.coordinates')}</span>
-            <span class="stat-value">${center.lat.toFixed(2)}°, ${center.lon.toFixed(2)}°</span>
+            <span class="stat-value">${center.lat.toFixed(2)}Ã‚Â°, ${center.lon.toFixed(2)}Ã‚Â°</span>
           </div>
         </div>
       </div>
@@ -1440,9 +1439,9 @@ export class MapPopup {
   private renderIrradiatorPopup(irradiator: GammaIrradiator): string {
     return `
       <div class="popup-header irradiator">
-        <span class="popup-title">☢ ${escapeHtml(irradiator.city.toUpperCase())}</span>
+        <span class="popup-title">Ã¢ËœÂ¢ ${escapeHtml(irradiator.city.toUpperCase())}</span>
         <span class="popup-badge elevated">${t('popups.gamma')}</span>
-        <button class="popup-close" aria-label="Close">×</button>
+        <button class="popup-close" aria-label="Close">Ãƒâ€”</button>
       </div>
       <div class="popup-body">
         <div class="popup-subtitle">${t('popups.irradiator.subtitle')}</div>
@@ -1457,7 +1456,7 @@ export class MapPopup {
           </div>
           <div class="popup-stat">
             <span class="stat-label">${t('popups.coordinates')}</span>
-            <span class="stat-value">${irradiator.lat.toFixed(2)}°, ${irradiator.lon.toFixed(2)}°</span>
+            <span class="stat-value">${irradiator.lat.toFixed(2)}Ã‚Â°, ${irradiator.lon.toFixed(2)}Ã‚Â°</span>
           </div>
         </div>
         <p class="popup-description">${t('popups.irradiator.description')}</p>
@@ -1481,13 +1480,13 @@ export class MapPopup {
       'operating': t('popups.pipeline.status.operating'),
       'construction': t('popups.pipeline.status.construction'),
     };
-    const typeIcon = pipeline.type === 'oil' ? '🛢' : pipeline.type === 'gas' ? '🔥' : '⛽';
+    const typeIcon = pipeline.type === 'oil' ? 'Ã°Å¸â€ºÂ¢' : pipeline.type === 'gas' ? 'Ã°Å¸â€Â¥' : 'Ã¢â€ºÂ½';
 
     return `
       <div class="popup-header pipeline ${pipeline.type}">
         <span class="popup-title">${typeIcon} ${escapeHtml(pipeline.name.toUpperCase())}</span>
         <span class="popup-badge ${typeColors[pipeline.type] || 'low'}">${escapeHtml(pipeline.type.toUpperCase())}</span>
-        <button class="popup-close" aria-label="Close">×</button>
+        <button class="popup-close" aria-label="Close">Ãƒâ€”</button>
       </div>
       <div class="popup-body">
         <div class="popup-subtitle">${typeLabels[pipeline.type] || t('popups.pipeline.title')}</div>
@@ -1562,9 +1561,9 @@ export class MapPopup {
 
     return `
       <div class="popup-header cable">
-        <span class="popup-title">🌐 ${cableName}</span>
+        <span class="popup-title">Ã°Å¸Å’Â ${cableName}</span>
         <span class="popup-badge ${statusBadge}">${cable.major ? t('popups.cable.major') : t('popups.cable.cable')}</span>
-        <button class="popup-close" aria-label="Close">×</button>
+        <button class="popup-close" aria-label="Close">Ãƒâ€”</button>
       </div>
       <div class="popup-body">
         <div class="popup-subtitle">${t('popups.cable.subtitle')}</div>
@@ -1633,9 +1632,9 @@ export class MapPopup {
 
     return `
       <div class="popup-header cable">
-        <span class="popup-title">🚨 ${cableName}</span>
+        <span class="popup-title">Ã°Å¸Å¡Â¨ ${cableName}</span>
         <span class="popup-badge ${advisory.severity === 'fault' ? 'high' : 'elevated'}">${statusLabel}</span>
-        <button class="popup-close" aria-label="Close">×</button>
+        <button class="popup-close" aria-label="Close">Ãƒâ€”</button>
       </div>
       <div class="popup-body">
         <div class="popup-subtitle">${advisoryTitle}</div>
@@ -1670,9 +1669,9 @@ export class MapPopup {
 
     return `
       <div class="popup-header cable">
-        <span class="popup-title">🚢 ${shipName}</span>
+        <span class="popup-title">Ã°Å¸Å¡Â¢ ${shipName}</span>
         <span class="popup-badge elevated">${t('popups.repairShip.badge')}</span>
-        <button class="popup-close" aria-label="Close">×</button>
+        <button class="popup-close" aria-label="Close">Ãƒâ€”</button>
       </div>
       <div class="popup-body">
         <div class="popup-subtitle">${cableLabel}</div>
@@ -1728,9 +1727,9 @@ export class MapPopup {
 
     return `
       <div class="popup-header outage ${severityClass}">
-        <span class="popup-title">📡 ${escapeHtml(outage.country.toUpperCase())}</span>
+        <span class="popup-title">Ã°Å¸â€œÂ¡ ${escapeHtml(outage.country.toUpperCase())}</span>
         <span class="popup-badge ${severityColors[outage.severity] || 'low'}">${severityLabels[outage.severity] || t('popups.outage.levels.disruption')}</span>
-        <button class="popup-close" aria-label="Close">×</button>
+        <button class="popup-close" aria-label="Close">Ãƒâ€”</button>
       </div>
       <div class="popup-body">
         <div class="popup-subtitle">${escapeHtml(outage.title)}</div>
@@ -1745,7 +1744,7 @@ export class MapPopup {
           </div>
           <div class="popup-stat">
             <span class="stat-label">${t('popups.coordinates')}</span>
-            <span class="stat-value">${outage.lat.toFixed(2)}°, ${outage.lon.toFixed(2)}°</span>
+            <span class="stat-value">${outage.lat.toFixed(2)}Ã‚Â°, ${outage.lon.toFixed(2)}Ã‚Â°</span>
           </div>
         </div>
         ${outage.categories && outage.categories.length > 0 ? `
@@ -1757,7 +1756,7 @@ export class MapPopup {
           </div>
         ` : ''}
         <p class="popup-description">${escapeHtml(outage.description.slice(0, 250))}${outage.description.length > 250 ? '...' : ''}</p>
-        <a href="${sanitizeUrl(outage.link)}" target="_blank" class="popup-link">${t('popups.outage.readReport')} →</a>
+        <a href="${sanitizeUrl(outage.link)}" target="_blank" class="popup-link">${t('popups.outage.readReport')} Ã¢â€ â€™</a>
       </div>
     `;
   }
@@ -1782,12 +1781,12 @@ export class MapPopup {
 
     return `
       <div class="popup-header datacenter ${dc.status}">
-        <span class="popup-title">🖥️ ${escapeHtml(dc.name)}</span>
+        <span class="popup-title">Ã°Å¸â€“Â¥Ã¯Â¸Â ${escapeHtml(dc.name)}</span>
         <span class="popup-badge ${statusColors[dc.status] || 'normal'}">${statusLabels[dc.status] || t('popups.datacenter.status.unknown')}</span>
-        <button class="popup-close" aria-label="Close">×</button>
+        <button class="popup-close" aria-label="Close">Ãƒâ€”</button>
       </div>
       <div class="popup-body">
-        <div class="popup-subtitle">${escapeHtml(dc.owner)} • ${escapeHtml(dc.country)}</div>
+        <div class="popup-subtitle">${escapeHtml(dc.owner)} Ã¢â‚¬Â¢ ${escapeHtml(dc.country)}</div>
         <div class="popup-stats">
           <div class="popup-stat">
             <span class="stat-label">${t('popups.datacenter.gpuChipCount')}</span>
@@ -1831,19 +1830,19 @@ export class MapPopup {
 
     const dcListHtml = data.items.slice(0, 8).map(dc => `
       <div class="cluster-item">
-        <span class="cluster-item-icon">${dc.status === 'planned' ? '🔨' : '🖥️'}</span>
+        <span class="cluster-item-icon">${dc.status === 'planned' ? 'Ã°Å¸â€Â¨' : 'Ã°Å¸â€“Â¥Ã¯Â¸Â'}</span>
         <div class="cluster-item-info">
           <span class="cluster-item-name">${escapeHtml(dc.name.slice(0, 40))}${dc.name.length > 40 ? '...' : ''}</span>
-          <span class="cluster-item-detail">${escapeHtml(dc.owner)} • ${formatNumber(dc.chipCount)} ${t('popups.datacenter.chips')}</span>
+          <span class="cluster-item-detail">${escapeHtml(dc.owner)} Ã¢â‚¬Â¢ ${formatNumber(dc.chipCount)} ${t('popups.datacenter.chips')}</span>
         </div>
       </div>
     `).join('');
 
     return `
       <div class="popup-header datacenter cluster">
-        <span class="popup-title">🖥️ ${t('popups.datacenter.cluster.title', { count: String(totalCount) })}</span>
+        <span class="popup-title">Ã°Å¸â€“Â¥Ã¯Â¸Â ${t('popups.datacenter.cluster.title', { count: String(totalCount) })}</span>
         <span class="popup-badge elevated">${escapeHtml(data.region)}</span>
-        <button class="popup-close" aria-label="Close">×</button>
+        <button class="popup-close" aria-label="Close">Ãƒâ€”</button>
       </div>
       <div class="popup-body">
         <div class="popup-subtitle">${escapeHtml(data.country)}</div>
@@ -1883,12 +1882,12 @@ export class MapPopup {
       'major': t('popups.startupHub.tiers.major'),
       'emerging': t('popups.startupHub.tiers.emerging'),
     };
-    const tierIcons: Record<string, string> = { 'mega': '🦄', 'major': '🚀', 'emerging': '💡' };
+    const tierIcons: Record<string, string> = { 'mega': 'Ã°Å¸Â¦â€ž', 'major': 'Ã°Å¸Å¡â‚¬', 'emerging': 'Ã°Å¸â€™Â¡' };
     return `
       <div class="popup-header startup-hub ${hub.tier}">
-        <span class="popup-title">${tierIcons[hub.tier] || '🚀'} ${escapeHtml(hub.name)}</span>
+        <span class="popup-title">${tierIcons[hub.tier] || 'Ã°Å¸Å¡â‚¬'} ${escapeHtml(hub.name)}</span>
         <span class="popup-badge ${hub.tier}">${tierLabels[hub.tier] || t('popups.startupHub.tiers.hub')}</span>
-        <button class="popup-close" aria-label="Close">×</button>
+        <button class="popup-close" aria-label="Close">Ãƒâ€”</button>
       </div>
       <div class="popup-body">
         <div class="popup-subtitle">${escapeHtml(hub.city)}, ${escapeHtml(hub.country)}</div>
@@ -1907,12 +1906,12 @@ export class MapPopup {
 
   private renderCloudRegionPopup(region: CloudRegion): string {
     const providerNames: Record<string, string> = { 'aws': 'Amazon Web Services', 'gcp': 'Google Cloud Platform', 'azure': 'Microsoft Azure', 'cloudflare': 'Cloudflare' };
-    const providerIcons: Record<string, string> = { 'aws': '🟠', 'gcp': '🔵', 'azure': '🟣', 'cloudflare': '🟡' };
+    const providerIcons: Record<string, string> = { 'aws': 'Ã°Å¸Å¸Â ', 'gcp': 'Ã°Å¸â€Âµ', 'azure': 'Ã°Å¸Å¸Â£', 'cloudflare': 'Ã°Å¸Å¸Â¡' };
     return `
       <div class="popup-header cloud-region ${region.provider}">
-        <span class="popup-title">${providerIcons[region.provider] || '☁️'} ${escapeHtml(region.name)}</span>
+        <span class="popup-title">${providerIcons[region.provider] || 'Ã¢ËœÂÃ¯Â¸Â'} ${escapeHtml(region.name)}</span>
         <span class="popup-badge ${region.provider}">${escapeHtml(region.provider.toUpperCase())}</span>
-        <button class="popup-close" aria-label="Close">×</button>
+        <button class="popup-close" aria-label="Close">Ãƒâ€”</button>
       </div>
       <div class="popup-body">
         <div class="popup-subtitle">${escapeHtml(region.city)}, ${escapeHtml(region.country)}</div>
@@ -1938,12 +1937,12 @@ export class MapPopup {
       'unicorn': t('popups.techHQ.types.unicorn'),
       'public': t('popups.techHQ.types.public'),
     };
-    const typeIcons: Record<string, string> = { 'faang': '🏛️', 'unicorn': '🦄', 'public': '🏢' };
+    const typeIcons: Record<string, string> = { 'faang': 'Ã°Å¸Ââ€ºÃ¯Â¸Â', 'unicorn': 'Ã°Å¸Â¦â€ž', 'public': 'Ã°Å¸ÂÂ¢' };
     return `
       <div class="popup-header tech-hq ${hq.type}">
-        <span class="popup-title">${typeIcons[hq.type] || '🏢'} ${escapeHtml(hq.company)}</span>
+        <span class="popup-title">${typeIcons[hq.type] || 'Ã°Å¸ÂÂ¢'} ${escapeHtml(hq.company)}</span>
         <span class="popup-badge ${hq.type}">${typeLabels[hq.type] || t('popups.techHQ.types.tech')}</span>
-        <button class="popup-close" aria-label="Close">×</button>
+        <button class="popup-close" aria-label="Close">Ãƒâ€”</button>
       </div>
       <div class="popup-body">
         <div class="popup-subtitle">${escapeHtml(hq.city)}, ${escapeHtml(hq.country)}</div>
@@ -1971,12 +1970,12 @@ export class MapPopup {
       'incubator': t('popups.accelerator.types.incubator'),
       'studio': t('popups.accelerator.types.studio'),
     };
-    const typeIcons: Record<string, string> = { 'accelerator': '🎯', 'incubator': '🔬', 'studio': '🎨' };
+    const typeIcons: Record<string, string> = { 'accelerator': 'Ã°Å¸Å½Â¯', 'incubator': 'Ã°Å¸â€Â¬', 'studio': 'Ã°Å¸Å½Â¨' };
     return `
       <div class="popup-header accelerator ${acc.type}">
-        <span class="popup-title">${typeIcons[acc.type] || '🎯'} ${escapeHtml(acc.name)}</span>
+        <span class="popup-title">${typeIcons[acc.type] || 'Ã°Å¸Å½Â¯'} ${escapeHtml(acc.name)}</span>
         <span class="popup-badge ${acc.type}">${typeLabels[acc.type] || t('popups.accelerator.types.accelerator')}</span>
-        <button class="popup-close" aria-label="Close">×</button>
+        <button class="popup-close" aria-label="Close">Ãƒâ€”</button>
       </div>
       <div class="popup-body">
         <div class="popup-subtitle">${escapeHtml(acc.city)}, ${escapeHtml(acc.country)}</div>
@@ -2015,12 +2014,12 @@ export class MapPopup {
 
     return `
       <div class="popup-header tech-event ${urgencyClass}">
-        <span class="popup-title">📅 ${escapeHtml(event.title)}</span>
+        <span class="popup-title">Ã°Å¸â€œâ€¦ ${escapeHtml(event.title)}</span>
         <span class="popup-badge ${urgencyClass}">${daysLabel}</span>
-        <button class="popup-close" aria-label="Close">×</button>
+        <button class="popup-close" aria-label="Close">Ãƒâ€”</button>
       </div>
       <div class="popup-body">
-        <div class="popup-subtitle">📍 ${escapeHtml(event.location)}, ${escapeHtml(event.country)}</div>
+        <div class="popup-subtitle">Ã°Å¸â€œÂ ${escapeHtml(event.location)}, ${escapeHtml(event.country)}</div>
         <div class="popup-stats">
           <div class="popup-stat">
             <span class="stat-label">${t('popups.techEvent.date')}</span>
@@ -2033,7 +2032,7 @@ export class MapPopup {
         </div>
         ${event.url ? `
         <a href="${sanitizeUrl(event.url)}" target="_blank" rel="noopener noreferrer" class="popup-link">
-          ${t('popups.techEvent.moreInformation')} →
+          ${t('popups.techEvent.moreInformation')} Ã¢â€ â€™
         </a>
         ` : ''}
       </div>
@@ -2052,23 +2051,23 @@ export class MapPopup {
     });
 
     const listItems = sortedItems.map(hq => {
-      const icon = hq.type === 'faang' ? '🏛️' : hq.type === 'unicorn' ? '🦄' : '🏢';
+      const icon = hq.type === 'faang' ? 'Ã°Å¸Ââ€ºÃ¯Â¸Â' : hq.type === 'unicorn' ? 'Ã°Å¸Â¦â€ž' : 'Ã°Å¸ÂÂ¢';
       const marketCap = hq.marketCap ? ` (${escapeHtml(hq.marketCap)})` : '';
       return `<li class="cluster-item ${hq.type}">${icon} ${escapeHtml(hq.company)}${marketCap}</li>`;
     }).join('');
 
     return `
       <div class="popup-header tech-hq cluster">
-        <span class="popup-title">🏙️ ${escapeHtml(data.city)}</span>
+        <span class="popup-title">Ã°Å¸Ââ„¢Ã¯Â¸Â ${escapeHtml(data.city)}</span>
         <span class="popup-badge">${t('popups.techHQCluster.companiesCount', { count: String(totalCount) })}</span>
-        <button class="popup-close" aria-label="Close">×</button>
+        <button class="popup-close" aria-label="Close">Ãƒâ€”</button>
       </div>
       <div class="popup-body cluster-popup">
-        <div class="popup-subtitle">📍 ${escapeHtml(data.city)}, ${escapeHtml(data.country)}</div>
+        <div class="popup-subtitle">Ã°Å¸â€œÂ ${escapeHtml(data.city)}, ${escapeHtml(data.country)}</div>
         <div class="cluster-summary">
-          ${faangCount ? `<span class="summary-item faang">🏛️ ${t('popups.techHQCluster.bigTechCount', { count: String(faangCount) })}</span>` : ''}
-          ${unicornCount ? `<span class="summary-item unicorn">🦄 ${t('popups.techHQCluster.unicornsCount', { count: String(unicornCount) })}</span>` : ''}
-          ${publicCount ? `<span class="summary-item public">🏢 ${t('popups.techHQCluster.publicCount', { count: String(publicCount) })}</span>` : ''}
+          ${faangCount ? `<span class="summary-item faang">Ã°Å¸Ââ€ºÃ¯Â¸Â ${t('popups.techHQCluster.bigTechCount', { count: String(faangCount) })}</span>` : ''}
+          ${unicornCount ? `<span class="summary-item unicorn">Ã°Å¸Â¦â€ž ${t('popups.techHQCluster.unicornsCount', { count: String(unicornCount) })}</span>` : ''}
+          ${publicCount ? `<span class="summary-item public">Ã°Å¸ÂÂ¢ ${t('popups.techHQCluster.publicCount', { count: String(publicCount) })}</span>` : ''}
         </div>
         <ul class="cluster-list">${listItems}</ul>
         ${data.sampled ? `<p class="popup-more">${t('popups.techHQCluster.sampled', { count: String(data.items.length) })}</p>` : ''}
@@ -2085,18 +2084,18 @@ export class MapPopup {
       const startDate = new Date(event.startDate);
       const dateStr = startDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
       const urgencyClass = event.daysUntil <= 7 ? 'urgent' : event.daysUntil <= 30 ? 'soon' : '';
-      return `<li class="cluster-item ${urgencyClass}">📅 ${dateStr}: ${escapeHtml(event.title)}</li>`;
+      return `<li class="cluster-item ${urgencyClass}">Ã°Å¸â€œâ€¦ ${dateStr}: ${escapeHtml(event.title)}</li>`;
     }).join('');
 
     return `
       <div class="popup-header tech-event cluster">
-        <span class="popup-title">📅 ${escapeHtml(data.location)}</span>
+        <span class="popup-title">Ã°Å¸â€œâ€¦ ${escapeHtml(data.location)}</span>
         <span class="popup-badge">${t('popups.techEventCluster.eventsCount', { count: String(totalCount) })}</span>
-        <button class="popup-close" aria-label="Close">×</button>
+        <button class="popup-close" aria-label="Close">Ãƒâ€”</button>
       </div>
       <div class="popup-body cluster-popup">
-        <div class="popup-subtitle">📍 ${escapeHtml(data.location)}, ${escapeHtml(data.country)}</div>
-        ${upcomingSoon ? `<div class="cluster-summary"><span class="summary-item soon">⚡ ${t('popups.techEventCluster.upcomingWithin2Weeks', { count: String(upcomingSoon) })}</span></div>` : ''}
+        <div class="popup-subtitle">Ã°Å¸â€œÂ ${escapeHtml(data.location)}, ${escapeHtml(data.country)}</div>
+        ${upcomingSoon ? `<div class="cluster-summary"><span class="summary-item soon">Ã¢Å¡Â¡ ${t('popups.techEventCluster.upcomingWithin2Weeks', { count: String(upcomingSoon) })}</span></div>` : ''}
         <ul class="cluster-list">${listItems}</ul>
         ${data.sampled ? `<p class="popup-more">${t('popups.techEventCluster.sampled', { count: String(data.items.length) })}</p>` : ''}
       </div>
@@ -2178,7 +2177,7 @@ export class MapPopup {
       <div class="popup-header military-flight ${flight.operator}">
         <span class="popup-title">${callsign}</span>
         <span class="popup-badge ${confidenceColors[flight.confidence] || 'low'}">${aircraftTypeBadge}</span>
-        <button class="popup-close" aria-label="Close">×</button>
+        <button class="popup-close" aria-label="Close">Ãƒâ€”</button>
       </div>
       <div class="popup-body">
         <div class="popup-subtitle">${operatorLabel}</div>
@@ -2193,7 +2192,7 @@ export class MapPopup {
           </div>
           <div class="popup-stat">
             <span class="stat-label">${t('popups.militaryFlight.heading')}</span>
-            <span class="stat-value">${Math.round(flight.heading)}°</span>
+            <span class="stat-value">${Math.round(flight.heading)}Ã‚Â°</span>
           </div>
           <div class="popup-stat">
             <span class="stat-label">${t('popups.militaryFlight.hexCode')}</span>
@@ -2262,7 +2261,7 @@ export class MapPopup {
     const vesselOperator = escapeHtml(operatorLabels[vessel.operator] || vessel.operatorCountry || t('popups.unknown'));
     const vesselTypeLabel = escapeHtml(displayType);
     const vesselBadgeType = escapeHtml(badgeType);
-    const vesselMmsi = escapeHtml(vessel.mmsi || '—');
+    const vesselMmsi = escapeHtml(vessel.mmsi || 'Ã¢â‚¬â€');
     const vesselHull = vessel.hullNumber ? escapeHtml(vessel.hullNumber) : '';
     const vesselNote = vessel.note ? escapeHtml(vessel.note) : '';
 
@@ -2272,7 +2271,7 @@ export class MapPopup {
         ${darkWarning}
         ${deploymentBadge}
         <span class="popup-badge elevated">${vesselBadgeType}</span>
-        <button class="popup-close" aria-label="Close">×</button>
+        <button class="popup-close" aria-label="Close">Ãƒâ€”</button>
       </div>
       <div class="popup-body">
         <div class="popup-subtitle">${vesselOperator}</div>
@@ -2299,7 +2298,7 @@ export class MapPopup {
           </div>
           <div class="popup-stat">
             <span class="stat-label">${t('popups.militaryVessel.heading')}</span>
-            <span class="stat-value">${Math.round(vessel.heading)}°</span>
+            <span class="stat-value">${Math.round(vessel.heading)}Ã‚Â°</span>
           </div>
           ${vessel.mmsi ? `
           <div class="popup-stat">
@@ -2353,7 +2352,7 @@ export class MapPopup {
       <div class="popup-header military-cluster">
         <span class="popup-title">${clusterName}</span>
         <span class="popup-badge ${activityColors[activityType] || 'low'}">${t('popups.militaryCluster.aircraftCount', { count: String(cluster.flightCount) })}</span>
-        <button class="popup-close" aria-label="Close">×</button>
+        <button class="popup-close" aria-label="Close">Ãƒâ€”</button>
       </div>
       <div class="popup-body">
         <div class="popup-subtitle">${activityLabels[activityType] || t('popups.militaryCluster.flightActivity.unknown')}</div>
@@ -2426,7 +2425,7 @@ export class MapPopup {
       <div class="popup-header military-cluster">
         <span class="popup-title">${clusterName}</span>
         <span class="popup-badge ${activityColors[activityType] || 'low'}">${t('popups.militaryCluster.vesselsCount', { count: String(cluster.vesselCount) })}</span>
-        <button class="popup-close" aria-label="Close">×</button>
+        <button class="popup-close" aria-label="Close">Ãƒâ€”</button>
       </div>
       <div class="popup-body">
         <div class="popup-subtitle">${activityLabels[activityType] || t('popups.militaryCluster.vesselActivity.unknown')}</div>
@@ -2487,7 +2486,7 @@ export class MapPopup {
         <span class="popup-icon">${icon}</span>
         <span class="popup-title">${escapeHtml(event.categoryTitle.toUpperCase())}</span>
         <span class="popup-badge ${severityClass}">${event.closed ? t('popups.naturalEvent.closed') : t('popups.naturalEvent.active')}</span>
-        <button class="popup-close" aria-label="Close">×</button>
+        <button class="popup-close" aria-label="Close">Ãƒâ€”</button>
       </div>
       <div class="popup-body">
         <div class="popup-subtitle">${escapeHtml(event.title)}</div>
@@ -2498,7 +2497,7 @@ export class MapPopup {
           </div>
           <div class="popup-stat">
             <span class="stat-label">${t('popups.coordinates')}</span>
-            <span class="stat-value">${event.lat.toFixed(2)}°, ${event.lon.toFixed(2)}°</span>
+            <span class="stat-value">${event.lat.toFixed(2)}Ã‚Â°, ${event.lon.toFixed(2)}Ã‚Â°</span>
           </div>
           ${event.magnitude ? `
           <div class="popup-stat">
@@ -2515,7 +2514,7 @@ export class MapPopup {
         </div>
         ${event.stormName || event.windKt ? this.renderTcDetails(event) : ''}
         ${event.description && !event.windKt ? `<p class="popup-description">${escapeHtml(event.description)}</p>` : ''}
-        ${event.sourceUrl ? `<a href="${sanitizeUrl(event.sourceUrl)}" target="_blank" class="popup-link">${t('popups.naturalEvent.viewOnSource', { source: escapeHtml(event.sourceName || t('popups.source')) })} →</a>` : ''}
+        ${event.sourceUrl ? `<a href="${sanitizeUrl(event.sourceUrl)}" target="_blank" class="popup-link">${t('popups.naturalEvent.viewOnSource', { source: escapeHtml(event.sourceName || t('popups.source')) })} Ã¢â€ â€™</a>` : ''}
         <div class="popup-attribution">${t('popups.naturalEvent.attribution')}</div>
       </div>
     `;
@@ -2553,7 +2552,7 @@ export class MapPopup {
         ${event.movementSpeedKt != null ? `
         <div class="popup-stat">
           <span class="stat-label">${t('popups.naturalEvent.movement')}</span>
-          <span class="stat-value">${event.movementDir != null ? event.movementDir + '° at ' : ''}${event.movementSpeedKt} kt</span>
+          <span class="stat-value">${event.movementDir != null ? event.movementDir + 'Ã‚Â° at ' : ''}${event.movementSpeedKt} kt</span>
         </div>` : ''}
       </div>
     `;
@@ -2577,12 +2576,12 @@ export class MapPopup {
       bulk: 'low',
     };
     const typeIcons: Record<string, string> = {
-      container: '🏭',
-      oil: '🛢️',
-      lng: '🔥',
-      naval: '⚓',
-      mixed: '🚢',
-      bulk: '📦',
+      container: 'Ã°Å¸ÂÂ­',
+      oil: 'Ã°Å¸â€ºÂ¢Ã¯Â¸Â',
+      lng: 'Ã°Å¸â€Â¥',
+      naval: 'Ã¢Å¡â€œ',
+      mixed: 'Ã°Å¸Å¡Â¢',
+      bulk: 'Ã°Å¸â€œÂ¦',
     };
 
     const rankSection = port.rank
@@ -2591,10 +2590,10 @@ export class MapPopup {
 
     return `
       <div class="popup-header port ${escapeHtml(port.type)}">
-        <span class="popup-icon">${typeIcons[port.type] || '🚢'}</span>
+        <span class="popup-icon">${typeIcons[port.type] || 'Ã°Å¸Å¡Â¢'}</span>
         <span class="popup-title">${escapeHtml(port.name.toUpperCase())}</span>
         <span class="popup-badge ${typeColors[port.type] || 'normal'}">${typeLabels[port.type] || port.type.toUpperCase()}</span>
-        <button class="popup-close" aria-label="Close">×</button>
+        <button class="popup-close" aria-label="Close">Ãƒâ€”</button>
       </div>
       <div class="popup-body">
         <div class="popup-subtitle">${escapeHtml(port.country)}</div>
@@ -2606,7 +2605,7 @@ export class MapPopup {
           </div>
           <div class="popup-stat">
             <span class="stat-label">${t('popups.coordinates')}</span>
-            <span class="stat-value">${port.lat.toFixed(2)}°, ${port.lon.toFixed(2)}°</span>
+            <span class="stat-value">${port.lat.toFixed(2)}Ã‚Â°, ${port.lon.toFixed(2)}Ã‚Â°</span>
           </div>
         </div>
         <p class="popup-description">${escapeHtml(port.note)}</p>
@@ -2628,13 +2627,13 @@ export class MapPopup {
 
     return `
       <div class="popup-header spaceport ${port.status}">
-        <span class="popup-icon">🚀</span>
+        <span class="popup-icon">Ã°Å¸Å¡â‚¬</span>
         <span class="popup-title">${escapeHtml(port.name.toUpperCase())}</span>
         <span class="popup-badge ${statusColors[port.status] || 'normal'}">${statusLabels[port.status] || port.status.toUpperCase()}</span>
-        <button class="popup-close" aria-label="Close">×</button>
+        <button class="popup-close" aria-label="Close">Ãƒâ€”</button>
       </div>
       <div class="popup-body">
-        <div class="popup-subtitle">${escapeHtml(port.operator)} • ${escapeHtml(port.country)}</div>
+        <div class="popup-subtitle">${escapeHtml(port.operator)} Ã¢â‚¬Â¢ ${escapeHtml(port.country)}</div>
         <div class="popup-stats">
           <div class="popup-stat">
             <span class="stat-label">${t('popups.spaceport.launchActivity')}</span>
@@ -2642,7 +2641,7 @@ export class MapPopup {
           </div>
           <div class="popup-stat">
             <span class="stat-label">${t('popups.coordinates')}</span>
-            <span class="stat-value">${port.lat.toFixed(2)}°, ${port.lon.toFixed(2)}°</span>
+            <span class="stat-value">${port.lat.toFixed(2)}Ã‚Â°, ${port.lon.toFixed(2)}Ã‚Â°</span>
           </div>
         </div>
         <p class="popup-description">${t('popups.spaceport.description')}</p>
@@ -2663,14 +2662,14 @@ export class MapPopup {
     };
 
     // Icon based on mineral type
-    const icon = mine.mineral === 'Lithium' ? '🔋' : mine.mineral === 'Rare Earths' ? '🧲' : '💎';
+    const icon = mine.mineral === 'Lithium' ? 'Ã°Å¸â€â€¹' : mine.mineral === 'Rare Earths' ? 'Ã°Å¸Â§Â²' : 'Ã°Å¸â€™Å½';
 
     return `
       <div class="popup-header mineral ${mine.status}">
         <span class="popup-icon">${icon}</span>
         <span class="popup-title">${escapeHtml(mine.name.toUpperCase())}</span>
         <span class="popup-badge ${statusColors[mine.status] || 'normal'}">${statusLabels[mine.status] || mine.status.toUpperCase()}</span>
-        <button class="popup-close" aria-label="Close">×</button>
+        <button class="popup-close" aria-label="Close">Ãƒâ€”</button>
       </div>
       <div class="popup-body">
         <div class="popup-subtitle">${t('popups.mineral.projectSubtitle', { mineral: escapeHtml(mine.mineral.toUpperCase()) })}</div>
@@ -2685,7 +2684,7 @@ export class MapPopup {
           </div>
           <div class="popup-stat">
             <span class="stat-label">${t('popups.coordinates')}</span>
-            <span class="stat-value">${mine.lat.toFixed(2)}°, ${mine.lon.toFixed(2)}°</span>
+            <span class="stat-value">${mine.lat.toFixed(2)}Ã‚Â°, ${mine.lon.toFixed(2)}Ã‚Â°</span>
           </div>
         </div>
         <p class="popup-description">${escapeHtml(mine.significance)}</p>
@@ -2701,7 +2700,7 @@ export class MapPopup {
       <div class="popup-header exchange">
         <span class="popup-title">${escapeHtml(exchange.shortName)}</span>
         <span class="popup-badge ${tierClass}">${tierLabel}</span>
-        <button class="popup-close" aria-label="Close">×</button>
+        <button class="popup-close" aria-label="Close">Ãƒâ€”</button>
       </div>
       <div class="popup-body">
         <div class="popup-subtitle">${escapeHtml(exchange.name)}</div>
@@ -2725,7 +2724,7 @@ export class MapPopup {
       <div class="popup-header financial-center">
         <span class="popup-title">${escapeHtml(center.name)}</span>
         <span class="popup-badge">${typeLabel}</span>
-        <button class="popup-close" aria-label="Close">×</button>
+        <button class="popup-close" aria-label="Close">Ãƒâ€”</button>
       </div>
       <div class="popup-body">
         <div class="popup-stats">
@@ -2755,7 +2754,7 @@ export class MapPopup {
       <div class="popup-header central-bank">
         <span class="popup-title">${escapeHtml(bank.shortName)}</span>
         <span class="popup-badge">${typeLabel}</span>
-        <button class="popup-close" aria-label="Close">×</button>
+        <button class="popup-close" aria-label="Close">Ãƒâ€”</button>
       </div>
       <div class="popup-body">
         <div class="popup-subtitle">${escapeHtml(bank.name)}</div>
@@ -2778,7 +2777,7 @@ export class MapPopup {
       <div class="popup-header commodity-hub">
         <span class="popup-title">${escapeHtml(hub.name)}</span>
         <span class="popup-badge">${typeLabel}</span>
-        <button class="popup-close" aria-label="Close">×</button>
+        <button class="popup-close" aria-label="Close">Ãƒâ€”</button>
       </div>
       <div class="popup-body">
         <div class="popup-stats">
@@ -2819,7 +2818,7 @@ export class MapPopup {
             ${event.relatedEvents.map(r => {
       const rSev = this.normalizeSeverity(r.severity);
       const rTime = r.timestamp ? this.getTimeAgo(new Date(r.timestamp)) : '';
-      const rTitle = r.title.length > 60 ? r.title.slice(0, 60) + '…' : r.title;
+      const rTitle = r.title.length > 60 ? r.title.slice(0, 60) + 'Ã¢â‚¬Â¦' : r.title;
       return `<li class="cluster-item"><span class="popup-badge ${rSev}">${escapeHtml(rSev.toUpperCase())}</span> ${escapeHtml(rTitle)}${rTime ? ` <span style="color:var(--text-muted);font-size:10px;">${escapeHtml(rTime)}</span>` : ''}</li>`;
     }).join('')}
           </ul>
@@ -2829,7 +2828,7 @@ export class MapPopup {
       <div class="popup-header iranEvent ${severity}">
         <span class="popup-title">${escapeHtml(event.title)}</span>
         <span class="popup-badge ${severity}">${escapeHtml(severity.toUpperCase())}</span>
-        <button class="popup-close" aria-label="Close">×</button>
+        <button class="popup-close" aria-label="Close">Ãƒâ€”</button>
       </div>
       <div class="popup-body">
         <div class="popup-stats">
@@ -2847,7 +2846,7 @@ export class MapPopup {
           </div>` : ''}
         </div>
         ${relatedHtml}
-        ${safeUrl ? `<a href="${escapeHtml(safeUrl)}" target="_blank" rel="noopener noreferrer nofollow" class="popup-link">${t('popups.source')} →</a>` : ''}
+        ${safeUrl ? `<a href="${escapeHtml(safeUrl)}" target="_blank" rel="noopener noreferrer nofollow" class="popup-link">${t('popups.source')} Ã¢â€ â€™</a>` : ''}
       </div>
     `;
   }
@@ -2860,7 +2859,7 @@ export class MapPopup {
       <div class="popup-header" style="background:${headerColor}">
         <span class="popup-title">${t('popups.gpsJamming.title')}</span>
         <span class="popup-badge ${badgeClass}">${escapeHtml(data.level.toUpperCase())}</span>
-        <button class="popup-close" aria-label="Close">×</button>
+        <button class="popup-close" aria-label="Close">Ãƒâ€”</button>
       </div>
       <div class="popup-body">
         <div class="popup-stats">

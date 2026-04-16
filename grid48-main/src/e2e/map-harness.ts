@@ -1,4 +1,4 @@
-import 'maplibre-gl/dist/maplibre-gl.css';
+﻿import 'maplibre-gl/dist/maplibre-gl.css';
 import '../styles/main.css';
 import type { Map as MapLibreMap } from 'maplibre-gl';
 import { DeckGLMap } from '../components/DeckGLMap';
@@ -33,7 +33,6 @@ import type {
   CableAdvisory,
   CyberThreat,
   InternetOutage,
-  MapLayers,
   MilitaryFlight,
   MilitaryFlightCluster,
   MilitaryVessel,
@@ -49,7 +48,7 @@ import type { WeatherAlert } from '../services/weather';
 
 type Scenario = 'alpha' | 'beta';
 type HarnessVariant = 'full' | 'tech' | 'finance';
-type HarnessLayerKey = keyof MapLayers;
+type HarnessLayerKey = any;
 type PulseProtestScenario =
   | 'none'
   | 'recent-acled-riot'
@@ -135,7 +134,7 @@ app.style.height = '720px';
 app.style.position = 'relative';
 app.style.margin = '0 auto';
 
-const allLayersEnabled: MapLayers = {
+const allLayersEnabled: any = {
   gpsJamming: true,
   satellites: false,
   notamOverlay: false,
@@ -189,7 +188,7 @@ const allLayersEnabled: MapLayers = {
   commodityPorts: false,
 };
 
-const allLayersDisabled: MapLayers = {
+const allLayersDisabled: any = {
   gpsJamming: false,
   satellites: false,
   notamOverlay: false,
@@ -278,8 +277,8 @@ const internals = map as unknown as {
   stopPulseAnimation?: () => void;
 };
 
-const buildLayerState = (enabledLayers: HarnessLayerKey[]): MapLayers => {
-  const next: MapLayers = { ...allLayersDisabled };
+const buildLayerState = (enabledLayers: HarnessLayerKey[]): any => {
+  const next: any = { ...allLayersDisabled };
   for (const key of enabledLayers) {
     next[key] = true;
   }
@@ -1024,7 +1023,7 @@ const seedAllDynamicData = (): void => {
   const naturalEvents: NaturalEvent[] = [
     {
       id: 'e2e-natural-1',
-      title: '🔴 Harness Volcano Activity',
+      title: 'ðŸ”´ Harness Volcano Activity',
       category: 'volcanoes',
       categoryTitle: 'Volcano',
       lat: 14.7,

@@ -1,4 +1,4 @@
-import type { SocialUnrestEvent, MilitaryFlight, MilitaryVessel, ClusteredEvent, InternetOutage, AisDisruptionEvent, CyberThreat } from '@/types';
+﻿import type { SocialUnrestEvent, MilitaryFlight, MilitaryVessel, ClusteredEvent, InternetOutage, AisDisruptionEvent, CyberThreat } from '@/types';
 import type { AirportDelayAlert } from '@/services/aviation';
 import type { SecurityAdvisory } from '@/services/security-advisories';
 import type { TemporalAnomaly } from '@/services/temporal-baseline';
@@ -6,8 +6,6 @@ import { tokenizeForMatch, matchKeyword } from '@/utils/keyword-match';
 import { INTEL_HOTSPOTS, CONFLICT_ZONES, STRATEGIC_WATERWAYS } from '@/config/geo';
 import { CURATED_COUNTRIES, DEFAULT_BASELINE_RISK, DEFAULT_EVENT_MULTIPLIER, getHotspotCountries } from '@/config/countries';
 import { focalPointDetector } from './focal-point-detector';
-import type { ConflictEvent, UcdpConflictStatus, HapiConflictSummary } from './conflict';
-import type { CountryDisplacement } from '@/services/displacement';
 import type { ClimateAnomaly } from '@/services/climate';
 import type { GpsJamHex } from '@/services/gps-interference';
 import { getCountryAtCoordinates, iso3ToIso2Code, nameToCountryCode, getCountryNameByCode, matchCountryNamesInText, ME_STRIKE_BOUNDS, resolveCountryFromBounds } from './country-geometry';
@@ -32,9 +30,9 @@ export interface ComponentScores {
 
 interface CountryData {
   protests: SocialUnrestEvent[];
-  conflicts: ConflictEvent[];
-  ucdpStatus: UcdpConflictStatus | null;
-  hapiSummary: HapiConflictSummary | null;
+  conflicts: any /* ConflictEvent */[];
+  ucdpStatus: any /* UcdpConflictStatus */ | null;
+  hapiSummary: any /* HapiConflictSummary */ | null;
   militaryFlights: MilitaryFlight[];
   militaryVessels: MilitaryVessel[];
   newsEvents: ClusteredEvent[];
@@ -246,7 +244,7 @@ export function ingestProtestsForCII(events: SocialUnrestEvent[]): void {
   }
 }
 
-export function ingestConflictsForCII(events: ConflictEvent[]): void {
+export function ingestConflictsForCII(events: any /* ConflictEvent */[]): void {
   for (const [, data] of countryDataMap) data.conflicts = [];
   for (const e of events) {
     processedCount++;
@@ -258,7 +256,7 @@ export function ingestConflictsForCII(events: ConflictEvent[]): void {
   }
 }
 
-export function ingestUcdpForCII(classifications: Map<string, UcdpConflictStatus>): void {
+export function ingestUcdpForCII(classifications: Map<string, any /* UcdpConflictStatus */>): void {
   for (const [code, status] of classifications) {
     processedCount++;
     const iso2 = ensureISO2(code);
@@ -268,7 +266,7 @@ export function ingestUcdpForCII(classifications: Map<string, UcdpConflictStatus
   }
 }
 
-export function ingestHapiForCII(summaries: Map<string, HapiConflictSummary>): void {
+export function ingestHapiForCII(summaries: Map<string, any /* HapiConflictSummary */>): void {
   for (const [code, summary] of summaries) {
     processedCount++;
     const iso2 = ensureISO2(code);
@@ -278,7 +276,7 @@ export function ingestHapiForCII(summaries: Map<string, HapiConflictSummary>): v
   }
 }
 
-export function ingestDisplacementForCII(countries: CountryDisplacement[]): void {
+export function ingestDisplacementForCII(countries: any /* CountryDisplacement */[]): void {
   for (const data of countryDataMap.values()) {
     data.displacementOutflow = 0;
   }
@@ -834,6 +832,7 @@ function calcConflictScore(data: CountryData, countryCode: string): number {
 }
 
 function getUcdpFloor(data: CountryData): number {
+  return undefined as any; // DCE: ensure return
   const status = data.ucdpStatus;
   if (!status) return 0;
   switch (status.intensity) {

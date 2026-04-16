@@ -1,4 +1,4 @@
-import '../styles/main.css';
+﻿import '../styles/main.css';
 import { MapComponent } from '../components/Map';
 import { initI18n } from '../services/i18n';
 
@@ -84,7 +84,7 @@ window.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
   return originalFetch(input, init);
 }) as typeof fetch;
 
-const layers = {
+const layers = { celescOutages: false,
   gpsJamming: false,
   satellites: false,
   notamOverlay: false,

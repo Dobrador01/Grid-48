@@ -1,4 +1,4 @@
-/**
+﻿/**
  * MapContainer - Conditional map renderer
  * Renders DeckGLMap (WebGL) on desktop, fallback to D3/SVG MapComponent on mobile.
  * Supports an optional 3D globe mode (globe.gl) selectable from Settings.
@@ -29,7 +29,6 @@ import type {
   CableHealthRecord,
 } from '@/types';
 import type { AirportDelayAlert, PositionSample } from '@/services/aviation';
-import type { DisplacementFlow } from '@/services/displacement';
 import type { Earthquake } from '@/services/earthquakes';
 import type { ClimateAnomaly } from '@/services/climate';
 import type { WeatherAlert } from '@/services/weather';
@@ -40,7 +39,6 @@ import type { SpeciesRecovery } from '@/services/conservation-data';
 import type { RenewableInstallation } from '@/services/renewable-installations';
 import type { GpsJamHex } from '@/services/gps-interference';
 import type { SatellitePosition } from '@/services/satellites';
-import type { IranEvent } from '@/services/conflict';
 import type { ImageryScene } from '@/generated/server/worldmonitor/imagery/v1/service_server';
 import type { CelescMunicipioPayload } from '@/types/celesc';
 
@@ -88,7 +86,7 @@ export class MapContainer {
   private isResizingInternal = false;
   private resizeObserver: ResizeObserver | null = null;
 
-  // ─── Callback cache (survives map mode switches) ───────────────────────────
+  // â”€â”€â”€ Callback cache (survives map mode switches) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   private cachedOnStateChanged: ((state: MapContainerState) => void) | null = null;
   private cachedOnLayerChange: ((layer: keyof MapLayers, enabled: boolean, source: 'user' | 'programmatic') => void) | null = null;
   private cachedOnTimeRangeChanged: ((range: TimeRange) => void) | null = null;
@@ -97,7 +95,7 @@ export class MapContainer {
   private cachedOnAircraftPositionsUpdate: ((positions: PositionSample[]) => void) | null = null;
 
 
-  // ─── Data cache (survives map mode switches) ───────────────────────────────
+  // â”€â”€â”€ Data cache (survives map mode switches) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   private cachedEarthquakes: Earthquake[] | null = null;
   private cachedWeatherAlerts: WeatherAlert[] | null = null;
   private cachedOutages: InternetOutage[] | null = null;
@@ -117,12 +115,12 @@ export class MapContainer {
   private cachedFires: FireMarker[] | null = null;
   private cachedTechEvents: TechEventMarker[] | null = null;
   private cachedUcdpEvents: UcdpGeoEvent[] | null = null;
-  private cachedDisplacementFlows: DisplacementFlow[] | null = null;
+  private cachedDisplacementFlows: any /* DisplacementFlow */[] | null = null;
   private cachedClimateAnomalies: ClimateAnomaly[] | null = null;
   private cachedGpsJamming: GpsJamHex[] | null = null;
   private cachedSatellites: SatellitePosition[] | null = null;
   private cachedCyberThreats: CyberThreat[] | null = null;
-  private cachedIranEvents: IranEvent[] | null = null;
+  private cachedIranEvents: any /* IranEvent */[] | null = null;
   private cachedNewsLocations: NewsLocationMarker[] | null = null;
   private cachedPositiveEvents: PositiveGeoEvent[] | null = null;
   private cachedKindnessData: KindnessPoint[] | null = null;
@@ -313,7 +311,7 @@ export class MapContainer {
     this.container.classList.remove('deckgl-mode', 'svg-mode');
   }
 
-  // ─── Unified public API - delegates to active map implementation ────────────
+  // â”€â”€â”€ Unified public API - delegates to active map implementation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   public render(): void {
     if (this.useGlobe) { this.globeMap?.render(); return; }
@@ -389,7 +387,7 @@ export class MapContainer {
     return this.svgMap?.getState() ?? this.initialState;
   }
 
-  // ─── Data setters ────────────────────────────────────────────────────────────
+  // â”€â”€â”€ Data setters â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   public setEarthquakes(earthquakes: Earthquake[]): void {
     this.cachedEarthquakes = earthquakes;
@@ -529,7 +527,7 @@ export class MapContainer {
     }
   }
 
-  public setDisplacementFlows(flows: DisplacementFlow[]): void {
+  public setDisplacementFlows(flows: any /* DisplacementFlow */[]): void {
     this.cachedDisplacementFlows = flows;
     if (this.useGlobe) { this.globeMap?.setDisplacementFlows(flows); return; }
     if (this.useDeckGL) {
@@ -568,7 +566,7 @@ export class MapContainer {
     }
   }
 
-  public setIranEvents(events: IranEvent[]): void {
+  public setIranEvents(events: any /* IranEvent */[]): void {
     this.cachedIranEvents = events;
     if (this.useGlobe) { this.globeMap?.setIranEvents(events); return; }
     if (this.useDeckGL) {
@@ -673,7 +671,7 @@ export class MapContainer {
     }
   }
 
-  // ─── Callback setters ────────────────────────────────────────────────────────
+  // â”€â”€â”€ Callback setters â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   public onHotspotClicked(callback: (hotspot: Hotspot) => void): void {
     this.cachedOnHotspotClicked = callback;
