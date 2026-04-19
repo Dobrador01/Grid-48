@@ -753,6 +753,37 @@ export class DeckGLMap {
     `;
   }
 
+  handleBeaconHover(info: any) {
+    let tt = document.getElementById('deckgl-forced-tooltip');
+
+    if (!info.object) {
+      if (tt && tt.parentNode) tt.parentNode.removeChild(tt);
+      return;
+    }
+
+    if (!tt) {
+      tt = document.createElement('div');
+      tt.id = 'deckgl-forced-tooltip';
+      tt.style.cssText = 'position: absolute; background-color: rgba(0, 0, 0, 0.9); border: 1px solid #374151; padding: 1rem; border-radius: 0.25rem; color: #ffffff; font-family: monospace; font-size: 0.75rem; z-index: 50; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); pointer-events: none; min-width: 200px; transform: translate(-50%, -100%) translateY(-20px);';
+      this.container.appendChild(tt);
+    }
+
+    const { titulo, risco } = info.object;
+    const color = risco === 'Alto' ? '#ef4444' : risco === 'Medio' ? '#f97316' : '#eab308';
+    tt.style.left = info.x + 'px';
+    tt.style.top = info.y + 'px';
+    const titleDiv = document.createElement('p');
+    titleDiv.style.cssText = "margin: 0; font-size: 0.85rem; font-weight: 700;";
+    titleDiv.textContent = titulo;
+    
+    tt.innerHTML = `
+      <div style="display: flex; align-items: center; justify-content: center; background-color: ${color}; color: white; padding: 2px 6px; border-radius: 4px; font-weight: bold; margin-bottom: 8px;">
+         Risco ${risco}
+      </div>
+    `;
+    tt.appendChild(titleDiv);
+  }
+
   handleCityFocus(event: any) {
     console.log("[Grid 48] Ã¢Å¡Â¡ Evento recebido no DeckGLMap:", event);
 
@@ -1158,7 +1189,7 @@ export class DeckGLMap {
       );
 
     // Beacon OSINT Hotspots via O(1) Geometry Lookup
-    if ((this as any).beaconAlerts && (this as any).beaconAlerts.length > 0 && this.geojsonData) {
+    if (this.layerStates.weather && (this as any).beaconAlerts && (this as any).beaconAlerts.length > 0 && this.geojsonData) {
        const featuresArray = (this.geojsonData as any).features || [];
        const pts: any[] = [];
        for (const al of (this as any).beaconAlerts) {
@@ -1189,6 +1220,7 @@ export class DeckGLMap {
                    getRadius: (d: any) => d.risco === 'Alto' ? 12000 : (d.risco === 'Medio' ? 8000 : 5000),
                    getFillColor: (d: any) => d.risco === 'Alto' ? [255, 0, 0, 200] : (d.risco === 'Medio' ? [255, 165, 0, 180] : [255, 255, 0, 180]),
                    pickable: true,
+                   onHover: (info: any) => this.handleBeaconHover(info),
                    opacity: 0.8,
                    stroked: true,
                    getLineColor: [255, 255, 255],
