@@ -354,7 +354,6 @@ export class DeckGLMap {
   // @ts-ignore
   private _lastPipelineHighlightSignature = '';
   private debouncedRebuildLayers: (() => void) & { cancel(): void };
-  private debouncedFetchBases!: (() => void) & { cancel(): void };
   private debouncedFetchAircraft: (() => void) & { cancel(): void };
   private rafUpdateLayers: (() => void) & { cancel(): void };
   private handleThemeChange: () => void;
@@ -661,7 +660,6 @@ export class DeckGLMap {
     this.maplibreMap.on('moveend', () => {
       (this as any).lastSCZoom = -1;
       this.rafUpdateLayers();
-      this.debouncedFetchBases();
       this.debouncedFetchAircraft();
       this.state.zoom = this.maplibreMap?.getZoom() ?? this.state.zoom;
       this.onStateChange?.(this.getState());
@@ -3691,7 +3689,6 @@ export class DeckGLMap {
     window.removeEventListener('theme-changed', this.handleThemeChange);
     window.removeEventListener('map-theme-changed', this.handleMapThemeChange);
     this.debouncedRebuildLayers.cancel();
-    this.debouncedFetchBases.cancel();
     this.debouncedFetchAircraft.cancel();
     this.rafUpdateLayers.cancel();
 
