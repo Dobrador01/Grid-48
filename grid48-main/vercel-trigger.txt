@@ -1,0 +1,2 @@
+Triggering a Hard Refresh on Vercel Pipeline.
+This forces the webhook to bypass the Ignore Build Step logic that normally discards Empty Commits.
