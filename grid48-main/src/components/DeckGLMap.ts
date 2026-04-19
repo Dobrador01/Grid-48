@@ -693,6 +693,14 @@ export class DeckGLMap {
     });
   }
 
+  // Recebedor Ativo de dados do Beacon/Convex OSINT
+  public setBeaconAlerts(alertas: import('../services/beacon-client').BeaconAlert[]): void {
+      (this as any).beaconAlerts = alertas || [];
+      if (this.deckOverlay) {
+          this.deckOverlay.setProps({ layers: this.buildLayers() });
+      }
+  }
+
   public setCelescOutages(data: CelescMunicipioPayload[]): void {
     if (!Array.isArray(data) || data.length === 0) return;
     
@@ -1148,6 +1156,50 @@ export class DeckGLMap {
           }
         })
       );
+
+    // Beacon OSINT Hotspots via O(1) Geometry Lookup
+    if ((this as any).beaconAlerts && (this as any).beaconAlerts.length > 0 && this.geojsonData) {
+       const featuresArray = (this.geojsonData as any).features || [];
+       const pts: any[] = [];
+       for (const al of (this as any).beaconAlerts) {
+           for (const ibge of al.cidades_afetadas_ibge) {
+               const f = featuresArray.find((feat: any) => String(feat.properties.id) === String(ibge));
+               if (f && f.geometry) {
+                   const flatCoords = f.geometry.coordinates.flat(Infinity);
+                   let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+                   for (let i = 0; i < flatCoords.length; i += 2) {
+                       if (flatCoords[i] < minX) minX = flatCoords[i];
+                       if (flatCoords[i] > maxX) maxX = flatCoords[i];
+                       if (flatCoords[i+1] < minY) minY = flatCoords[i+1];
+                       if (flatCoords[i+1] > maxY) maxY = flatCoords[i+1];
+                   }
+                   const lon = (minX + maxX) / 2;
+                   const lat = (minY + maxY) / 2;
+                   pts.push({ position: [lon, lat], titulo: al.titulo, risco: al.nivel_risco });
+               }
+           }
+       }
+
+       if(pts.length > 0) {
+           layers.push(
+               new ScatterplotLayer({
+                   id: 'beacon-osint-threats',
+                   data: pts,
+                   getPosition: (d: any) => d.position,
+                   getRadius: (d: any) => d.risco === 'Alto' ? 12000 : (d.risco === 'Medio' ? 8000 : 5000),
+                   getFillColor: (d: any) => d.risco === 'Alto' ? [255, 0, 0, 200] : (d.risco === 'Medio' ? [255, 165, 0, 180] : [255, 255, 0, 180]),
+                   pickable: true,
+                   opacity: 0.8,
+                   stroked: true,
+                   getLineColor: [255, 255, 255],
+                   lineWidthMinPixels: 2,
+                   updateTriggers: {
+                     getFillColor: [pts.length]
+                   }
+               })
+           );
+       }
+    }
     }
 
     const result = layers.filter(Boolean) as LayersList;

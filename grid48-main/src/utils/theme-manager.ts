@@ -98,28 +98,13 @@ export function setTheme(theme: Theme): void {
 export function applyStoredTheme(): void {
   const variant = document.documentElement.dataset.variant;
 
-  // Check raw localStorage to distinguish "no preference" from "explicitly chose dark"
-  let raw: string | null = null;
-  try { raw = localStorage.getItem(STORAGE_KEY); } catch { /* noop */ }
-  const hasExplicitPreference = raw === 'dark' || raw === 'light' || raw === 'auto';
-
-  let effective: Theme;
-  if (raw === 'auto') {
-    effective = resolveAutoTheme();
-  } else if (hasExplicitPreference) {
-    effective = raw as Theme;
-  } else {
-    // No stored preference: happy defaults to light, others to dark
-    effective = variant === 'happy' ? 'light' : DEFAULT_THEME;
-  }
+  // STRICT LIGHT MODE ENFORCEMENT: Engatilhando para pintar modo claro ignorando sessões anteriores (Pedido Humano).
+  const effective: Theme = 'light';
+  try { localStorage.setItem(STORAGE_KEY, 'light'); } catch { /* noop */ }
 
   document.documentElement.dataset.theme = effective;
   const meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
   if (meta) {
-    if (effective === 'dark') {
-      meta.content = variant === 'happy' ? '#1A2332' : '#0a0f0a';
-    } else {
-      meta.content = variant === 'happy' ? '#FAFAF5' : '#f8f9fa';
-    }
+    meta.content = variant === 'happy' ? '#FAFAF5' : '#f8f9fa';
   }
 }

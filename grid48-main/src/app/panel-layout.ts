@@ -422,6 +422,14 @@ export class PanelLayoutManager implements AppModule {
       this.ctx.panels['celesc-status'] = widget;
     }
 
+    // Injeção Prioritária O(1) do Beacon Widget (Light Mode Transparente) no topo.
+    import('@/components/BeaconStatusWidget').then(m => {
+      const beaconWidget = new m.BeaconStatusWidget();
+      this.ctx.panels['beacon-status'] = beaconWidget;
+      const el = beaconWidget.getElement();
+      document.getElementById('panelsGrid')?.insertAdjacentElement('afterbegin', el);
+    });
+
 
 
 

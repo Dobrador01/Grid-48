@@ -450,6 +450,16 @@ export class App {
       console.log('[App] Celesc local JSONP poller active');
     });
 
+    // Beacon OSINT Data Integration (ConvexClient Push Stream)
+    import('@/services/beacon-client').then(({ initBeaconClient }) => {
+      initBeaconClient((alertas) => {
+        if (this.state.map && typeof (this.state.map as any).setBeaconAlerts === 'function') {
+           (this.state.map as any).setBeaconAlerts(alertas);
+        }
+        // Futuro Painel Glassmorphism atualizará aqui
+      });
+    });
+
     // Start deep link handling early — its retry loop polls hasSufficientData()
     // independently, so it must not be gated behind loadAllData() which can hang.
     this.handleDeepLinks();
