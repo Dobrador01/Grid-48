@@ -1189,7 +1189,7 @@ export class DeckGLMap {
       );
 
     // Beacon OSINT Hotspots via O(1) Geometry Lookup
-    if (this.layerStates.weather && (this as any).beaconAlerts && (this as any).beaconAlerts.length > 0 && this.geojsonData) {
+    if (this.state.layers.weather && (this as any).beaconAlerts && (this as any).beaconAlerts.length > 0 && this.geojsonData) {
        const featuresArray = (this.geojsonData as any).features || [];
        const pts: any[] = [];
        for (const al of (this as any).beaconAlerts) {
