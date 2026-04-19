@@ -453,10 +453,24 @@ export class App {
     // Beacon OSINT Data Integration (ConvexClient Push Stream)
     import('@/services/beacon-client').then(({ initBeaconClient }) => {
       initBeaconClient((alertas) => {
-        if (this.state.map && typeof (this.state.map as any).setBeaconAlerts === 'function') {
-           (this.state.map as any).setBeaconAlerts(alertas);
+        // Enviar para o Mapa WebGL diretamente (passando pelo container)
+        if (this.state.map) {
+           (this.state.map as any).deckGLMap?.setBeaconAlerts?.(alertas);
         }
-        // Futuro Painel Glassmorphism atualizará aqui
+        
+        // Enviar para o Painel Glassmorphism com Retry (Race-condition proof)
+        const setPanel = () => {
+          const beaconPanel = this.state.panels['beacon-status'] as any;
+          if (beaconPanel && typeof beaconPanel.setAlertas === 'function') {
+            beaconPanel.setAlertas(alertas);
+            return true;
+          }
+          return false;
+        };
+        
+        if (!setPanel()) {
+           const retry = setInterval(() => { if (setPanel()) clearInterval(retry); }, 500);
+        }
       });
     });
 
