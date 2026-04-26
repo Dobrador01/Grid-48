@@ -473,19 +473,20 @@ export class App {
         console.log('[App] Telemetry updated', data.length, 'records');
         // Will be routed to a specific map layer in the future
       });
-
-      // Mount the Health Widget
-      import('@/components/HealthWidget').then(({ HealthWidget }) => {
-        const widget = new HealthWidget(containerId);
-        widget.mount();
-      });
-
-      // Mount the SITREP Button
-      import('@/components/SitrepButton').then(({ SitrepButton }) => {
-        const btn = new SitrepButton(containerId);
-        btn.mount();
-      });
+    }).catch((err) => {
+      console.error('[App] Adapter initialization failed:', err);
     });
+
+    // Mount HUD widgets independently (must not depend on adapter success)
+    import('@/components/HealthWidget').then(({ HealthWidget }) => {
+      const widget = new HealthWidget(containerId);
+      widget.mount();
+    }).catch((err) => console.error('[App] HealthWidget failed to mount:', err));
+
+    import('@/components/SitrepButton').then(({ SitrepButton }) => {
+      const btn = new SitrepButton(containerId);
+      btn.mount();
+    }).catch((err) => console.error('[App] SitrepButton failed to mount:', err));
 
     // Start deep link handling early — its retry loop polls hasSufficientData()
     // independently, so it must not be gated behind loadAllData() which can hang.

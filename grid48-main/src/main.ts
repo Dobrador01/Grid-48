@@ -3,6 +3,7 @@ import './styles/happy-theme.css';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import * as Sentry from '@sentry/browser';
 import { inject } from '@vercel/analytics';
+import { injectSpeedInsights } from '@vercel/speed-insights';
 import { App } from './App';
 import { installUtmInterceptor } from './utils/utm';
 
@@ -292,8 +293,9 @@ import { clearChunkReloadGuard, installChunkReloadGuard } from '@/bootstrap/chun
 // Auto-reload on stale chunk 404s after deployment (Vite fires this for modulepreload failures).
 const chunkReloadStorageKey = installChunkReloadGuard(__APP_VERSION__);
 
-// Initialize Vercel Analytics
+// Initialize Vercel Analytics & Speed Insights
 inject();
+injectSpeedInsights();
 
 // Initialize dynamic meta tags for sharing
 initMetaTags();
