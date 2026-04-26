@@ -1,4 +1,4 @@
-﻿/**
+/**
  * MapContainer - Conditional map renderer
  * Renders DeckGLMap (WebGL) on desktop, fallback to D3/SVG MapComponent on mobile.
  * Supports an optional 3D globe mode (globe.gl) selectable from Settings.
@@ -133,6 +133,7 @@ export class MapContainer {
   private cachedEscalationVessels: MilitaryVessel[] | null = null;
   private cachedImageryScenes: ImageryScene[] | null = null;
   private cachedCelescOutages: CelescMunicipioPayload[] | null = null;
+  private cachedBeaconAlerts: any[] | null = null;
 
   constructor(container: HTMLElement, initialState: MapContainerState, preferGlobe = false) {
     this.container = container;
@@ -296,6 +297,7 @@ export class MapContainer {
     if (this.cachedEscalationFlights && this.cachedEscalationVessels) this.updateMilitaryForEscalation(this.cachedEscalationFlights, this.cachedEscalationVessels);
     if (this.cachedImageryScenes) this.setImageryScenes(this.cachedImageryScenes);
     if (this.cachedCelescOutages) this.setCelescOutages(this.cachedCelescOutages);
+    if (this.cachedBeaconAlerts) this.setBeaconAlerts(this.cachedBeaconAlerts);
   }
 
   public isGlobeMode(): boolean {
@@ -416,6 +418,13 @@ export class MapContainer {
   public setCelescOutages(outages: CelescMunicipioPayload[]): void {
     this.cachedCelescOutages = outages;
     if (this.useDeckGL) { this.deckGLMap?.setCelescOutages(outages); } else { this.svgMap?.setCelescOutages(outages); }
+  }
+
+  public setBeaconAlerts(alertas: any[]): void {
+    this.cachedBeaconAlerts = alertas;
+    if (this.useDeckGL) {
+      this.deckGLMap?.setBeaconAlerts(alertas);
+    }
   }
 
   public setAisData(disruptions: AisDisruptionEvent[], density: AisDensityZone[]): void {

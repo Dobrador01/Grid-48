@@ -1,0 +1,17 @@
+{
+  "name": "grid48-gateway",
+  "version": "1.0.0",
+  "description": "Grid 48 Gateway Convex backend for IoT devices",
+  "scripts": {
+    "dev": "convex dev",
+    "deploy": "convex deploy"
+  },
+  "dependencies": {
+    "@google/genai": "^1.50.1",
+    "convex": "^1.13.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5",
+    "@types/node": "^20.12.11"
+  }
+}

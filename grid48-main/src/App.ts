@@ -453,9 +453,9 @@ export class App {
     // Beacon OSINT Data Integration (ConvexClient Push Stream)
     import('@/services/beacon-client').then(({ initBeaconClient }) => {
       initBeaconClient((alertas) => {
-        // Enviar para o Mapa WebGL diretamente (passando pelo container)
+        // Enviar para o Mapa via API pública do MapContainer (com cache de rehydrate)
         if (this.state.map) {
-           (this.state.map as any).deckGLMap?.setBeaconAlerts?.(alertas);
+           this.state.map.setBeaconAlerts(alertas);
         }
         
         // Enviar para o Painel Glassmorphism com Retry (Race-condition proof)

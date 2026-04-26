@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+package grid48.telemetry;
+
+// Option for typescript codegen
+option go_package = "github.com/worldmonitor/proto/grid48/telemetry";
+
+// TelemetryPacket is the core payload sent by mobile nodes (Nmax) and sensors.
+// It is heavily optimized for LoRa bandwidth using bitmasking.
+message TelemetryPacket {
+  // Unique identifier for the sending node (e.g., node short name or hash)
+  string node_id = 1;
+
+  // Packet ID to avoid duplication across multiple gateways
+  uint32 packet_id = 2;
+
+  // Timestamp of the reading in seconds since epoch
+  uint64 timestamp = 3;
+
+  // Latitude and Longitude scaled by 1e7 for integer representation
+  sint32 lat = 4;
+  sint32 lon = 5;
+
+  // Bitmask for various boolean states to save space.
+  // 1 byte can hold 8 states.
+  // bit 0: Power status (0=Battery, 1=External Power)
+  // bit 1: Movement status (0=Stationary, 1=Moving)
+  // bit 2: Emergency panic button (0=Normal, 1=Panic)
+  // bit 3-7: Reserved for future use
+  uint32 bitmask_status = 6;
+
+  // Optional sensor values
+  optional int32 rssi = 7;
+  optional uint32 battery_level = 8; // 0-100
+}
