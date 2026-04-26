@@ -4,7 +4,7 @@ import {
   type AnomalySeverity as ProtoAnomalySeverity,
   type AnomalyType as ProtoAnomalyType,
   type ListClimateAnomaliesResponse,
-} from '@/generated/client/worldmonitor/climate/v1/service_client';
+} from '@/generated/client/grid48/climate/v1/service_client';
 import { createCircuitBreaker } from '@/utils';
 import { getHydratedData } from '@/services/bootstrap';
 

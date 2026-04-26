@@ -120,7 +120,7 @@ export function getRemoteApiBaseUrl(): string {
   if (fromHosts) return fromHosts;
 
   // Desktop builds may not set VITE_WS_API_URL; default to production.
-  if (isDesktopRuntime()) return 'https://worldmonitor.app';
+  if (isDesktopRuntime()) return 'https://grid48.app';
   return '';
 }
 
@@ -147,10 +147,10 @@ function extractHostnames(...urls: (string | undefined)[]): string[] {
 }
 
 const APP_HOSTS = new Set([
-  'worldmonitor.app',
-  'www.worldmonitor.app',
-  'tech.worldmonitor.app',
-  'api.worldmonitor.app',
+  'grid48.app',
+  'www.grid48.app',
+  'tech.grid48.app',
+  'api.grid48.app',
   'localhost',
   '127.0.0.1',
   ...extractHostnames(WS_API_URL, import.meta.env.VITE_WS_RELAY_URL),
@@ -160,7 +160,7 @@ function isAppOriginUrl(urlStr: string): boolean {
   try {
     const u = new URL(urlStr);
     const host = u.hostname;
-    return APP_HOSTS.has(host) || host.endsWith('.worldmonitor.app');
+    return APP_HOSTS.has(host) || host.endsWith('.grid48.app');
   } catch {
     return false;
   }
@@ -569,7 +569,7 @@ export function installRuntimeFetchPatch(): void {
         const { getRuntimeConfigSnapshot } = await import('@/services/runtime-config');
         const wmKeyValue = getRuntimeConfigSnapshot().secrets['WORLDMONITOR_API_KEY']?.value;
         if (wmKeyValue) {
-          cloudHeaders.set('X-WorldMonitor-Key', wmKeyValue);
+          cloudHeaders.set('X-Grid48-Key', wmKeyValue);
         }
       }
       return nativeFetch(cloudUrl, { ...init, headers: cloudHeaders });
@@ -627,7 +627,7 @@ export function installRuntimeFetchPatch(): void {
   (window as unknown as Record<string, unknown>).__wmFetchPatched = true;
 }
 
-const ALLOWED_REDIRECT_HOSTS = /^https:\/\/([a-z0-9]([a-z0-9-]*[a-z0-9])?\.)*worldmonitor\.app(:\d+)?$/;
+const ALLOWED_REDIRECT_HOSTS = /^https:\/\/([a-z0-9]([a-z0-9-]*[a-z0-9])?\.)*grid48\.app(:\d+)?$/;
 
 function isAllowedRedirectTarget(url: string): boolean {
   try {

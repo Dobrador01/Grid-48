@@ -12,7 +12,7 @@ See the core system document in [PREMIUM_FINANCE.md](./PREMIUM_FINANCE.md).
 
 ## Why This Exists
 
-World Monitor is mostly feed-first:
+Grid 48 is mostly feed-first:
 
 - curated RSS feeds
 - digest aggregation
@@ -45,11 +45,11 @@ The current provider chain is:
 
 Primary implementation:
 
-- [stock-news-search.ts](../server/worldmonitor/market/v1/stock-news-search.ts)
+- [stock-news-search.ts](../server/grid48/market/v1/stock-news-search.ts)
 
 Integration point:
 
-- [analyze-stock.ts](../server/worldmonitor/market/v1/analyze-stock.ts)
+- [analyze-stock.ts](../server/grid48/market/v1/analyze-stock.ts)
 
 The helper:
 

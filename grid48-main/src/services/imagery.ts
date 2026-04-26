@@ -1,4 +1,4 @@
-import type { ImageryScene } from '@/generated/server/worldmonitor/imagery/v1/service_server';
+import type { ImageryScene } from '@/generated/server/grid48/imagery/v1/service_server';
 
 export type { ImageryScene };
 

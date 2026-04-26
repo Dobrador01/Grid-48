@@ -1,4 +1,4 @@
-﻿// Commodity variant - commodity.worldmonitor.app -- Focused on mining, metals, energy commodities, and critical minerals
+﻿// Commodity variant - commodity.grid48.app -- Focused on mining, metals, energy commodities, and critical minerals
 import type { PanelConfig } from '@/types';
 import type { VariantConfig } from './base';
 

@@ -357,13 +357,13 @@ if (urlParams.get('settings') === '1') {
 // Beta mode toggle: type `beta=true` / `beta=false` in console
 Object.defineProperty(window, 'beta', {
   get() {
-    const on = localStorage.getItem('worldmonitor-beta-mode') === 'true';
+    const on = localStorage.getItem('grid48-beta-mode') === 'true';
     console.log(`[Beta] ${on ? 'ON' : 'OFF'}`);
     return on;
   },
   set(v: boolean) {
-    if (v) localStorage.setItem('worldmonitor-beta-mode', 'true');
-    else localStorage.removeItem('worldmonitor-beta-mode');
+    if (v) localStorage.setItem('grid48-beta-mode', 'true');
+    else localStorage.removeItem('grid48-beta-mode');
     location.reload();
   },
 });

@@ -39,7 +39,7 @@ import type { AirportDelayAlert, PositionSample } from '@/services/aviation';
 import { fetchAircraftPositions } from '@/services/aviation';
 import type { GpsJamHex } from '@/services/gps-interference';
 import type { CelescMunicipioPayload } from '@/types/celesc';
-import type { ImageryScene } from '@/generated/server/worldmonitor/imagery/v1/service_server';
+import type { ImageryScene } from '@/generated/server/grid48/imagery/v1/service_server';
 import type { Earthquake } from '@/services/earthquakes';
 import type { ClimateAnomaly } from '@/services/climate';
 import { PathStyleExtension } from '@deck.gl/extensions';

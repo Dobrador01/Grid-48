@@ -39,7 +39,7 @@ import type { SpeciesRecovery } from '@/services/conservation-data';
 import type { RenewableInstallation } from '@/services/renewable-installations';
 import type { GpsJamHex } from '@/services/gps-interference';
 import type { SatellitePosition } from '@/services/satellites';
-import type { ImageryScene } from '@/generated/server/worldmonitor/imagery/v1/service_server';
+import type { ImageryScene } from '@/generated/server/grid48/imagery/v1/service_server';
 import type { CelescMunicipioPayload } from '@/types/celesc';
 
 export type TimeRange = '1h' | '6h' | '24h' | '48h' | '7d' | 'all';

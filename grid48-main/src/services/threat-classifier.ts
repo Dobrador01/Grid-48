@@ -387,7 +387,7 @@ import {
   IntelligenceServiceClient,
   ApiError,
   type ClassifyEventResponse,
-} from '@/generated/client/worldmonitor/intelligence/v1/service_client';
+} from '@/generated/client/grid48/intelligence/v1/service_client';
 
 const classifyClient = new IntelligenceServiceClient('', { fetch: (...args) => globalThis.fetch(...args) });
 

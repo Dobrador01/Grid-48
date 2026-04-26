@@ -1,5 +1,5 @@
 name: Bug Report
-description: Report a bug in World Monitor
+description: Report a bug in Grid 48
 labels: ["bug"]
 body:
   - type: markdown
@@ -13,9 +13,9 @@ body:
       label: Variant
       description: Which variant are you using?
       options:
-        - worldmonitor.app (Full / Geopolitical)
-        - tech.worldmonitor.app (Tech / Startup)
-        - finance.worldmonitor.app (Finance)
+        - grid48.app (Full / Geopolitical)
+        - tech.grid48.app (Tech / Startup)
+        - finance.grid48.app (Finance)
         - Desktop app (Windows)
         - Desktop app (macOS)
         - Desktop app (Linux)

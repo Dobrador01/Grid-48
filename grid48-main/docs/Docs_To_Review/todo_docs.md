@@ -1,4 +1,4 @@
-# Documentation Roadmap — World Monitor
+# Documentation Roadmap — Grid 48
 
 > **Purpose**: Comprehensive task list to bring project documentation to production-grade quality for AI agent-assisted development. Each task is scoped, self-contained, and AI-actionable.
 >
@@ -251,8 +251,8 @@
 
 - [ ] Full self-hosting guide (non-Vercel deployment)
 - [ ] Docker setup (if applicable, or document creating one)
-- [ ] Nginx configuration (reference `deploy/nginx-worldmonitor.conf`)
-- [ ] SystemD service setup (reference `deploy/worldmonitor-api.service`)
+- [ ] Nginx configuration (reference `deploy/nginx-grid48.conf`)
+- [ ] SystemD service setup (reference `deploy/grid48-api.service`)
 - [ ] Environment variable configuration for self-hosted
 - [ ] SSL/TLS setup
 - [ ] Performance tuning recommendations
@@ -389,7 +389,7 @@
 ### 13.2 Update `CHANGELOG.md`
 
 - [ ] Ensure all changes since v2.4.0 are documented
-- [ ] Add entries for UI customizations on `feat/ui-customizations-worldmonitor` branch
+- [ ] Add entries for UI customizations on `feat/ui-customizations-grid48` branch
 - [ ] Standardize changelog format (Keep a Changelog)
 - [ ] Add links to relevant PRs/commits
 

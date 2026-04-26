@@ -3,8 +3,8 @@ import { t } from '@/services/i18n';
 import { escapeHtml } from '@/utils/sanitize';
 import { formatPrice, formatChange, getChangeClass } from '@/utils';
 import { miniSparkline } from '@/utils/sparkline';
-import { MarketServiceClient } from '@/generated/client/worldmonitor/market/v1/service_client';
-import type { ListGulfQuotesResponse, GulfQuote } from '@/generated/client/worldmonitor/market/v1/service_client';
+import { MarketServiceClient } from '@/generated/client/grid48/market/v1/service_client';
+import type { ListGulfQuotesResponse, GulfQuote } from '@/generated/client/grid48/market/v1/service_client';
 import { startSmartPollLoop, type SmartPollLoopHandle } from '@/services/runtime';
 import { getHydratedData } from '@/services/bootstrap';
 

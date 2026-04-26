@@ -4,7 +4,7 @@ This document covers all environment variables used by the AIS/OpenSky relay pat
 
 - Railway relay process: `scripts/ais-relay.cjs`
 - Vercel relay proxy endpoints: `api/opensky.js`, `api/ais-snapshot.js`, `api/polymarket.js`, `api/rss-proxy.js`
-- Server relay callers: `server/worldmonitor/*` handlers
+- Server relay callers: `server/grid48/*` handlers
 - Optional browser local fallback callers in `src/services/*`
 
 ## 1) Minimum Production Setup

@@ -1,6 +1,6 @@
 # Algorithms & Scoring
 
-Detailed documentation of World Monitor's scoring formulas, detection algorithms, and classification pipelines.
+Detailed documentation of Grid 48's scoring formulas, detection algorithms, and classification pipelines.
 
 ---
 

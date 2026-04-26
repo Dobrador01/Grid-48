@@ -1,9 +1,9 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Grid 48",
-  "mainBinaryName": "world-monitor",
+  "mainBinaryName": "grid-48",
   "version": "2.6.0",
-  "identifier": "app.worldmonitor.desktop",
+  "identifier": "app.grid48.desktop",
   "build": {
     "beforeDevCommand": "npm run build:sidecar-sebuf && npm run dev",
     "beforeBuildCommand": "npm run build:desktop",
@@ -29,7 +29,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; connect-src 'self' https: https://celgeoweb.celesc.com.br http://localhost:5173 http://127.0.0.1:* ws: wss: blob: data:; img-src 'self' data: blob: https:; style-src 'self' 'unsafe-inline'; script-src 'self' 'wasm-unsafe-eval' https://celgeoweb.celesc.com.br https://www.youtube.com; worker-src 'self' blob:; font-src 'self' data: https:; media-src 'self' data: blob: https: http://127.0.0.1:* http://localhost:*; frame-src 'self' http://127.0.0.1:* http://localhost:* https://worldmonitor.app https://tech.worldmonitor.app https://www.youtube.com https://www.youtube-nocookie.com;"
+      "csp": "default-src 'self'; connect-src 'self' https: https://celgeoweb.celesc.com.br http://localhost:5173 http://127.0.0.1:* ws: wss: blob: data:; img-src 'self' data: blob: https:; style-src 'self' 'unsafe-inline'; script-src 'self' 'wasm-unsafe-eval' https://celgeoweb.celesc.com.br https://www.youtube.com; worker-src 'self' blob:; font-src 'self' data: https:; media-src 'self' data: blob: https: http://127.0.0.1:* http://localhost:*; frame-src 'self' http://127.0.0.1:* http://localhost:* https://grid48.app https://tech.grid48.app https://www.youtube.com https://www.youtube-nocookie.com;"
     }
   },
   "bundle": {

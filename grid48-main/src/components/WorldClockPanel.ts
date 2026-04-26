@@ -63,7 +63,7 @@ TIMEZONE_TO_CITY['Asia/Calcutta'] = 'mumbai';
 TIMEZONE_TO_CITY['Asia/Saigon'] = 'bangkok';
 TIMEZONE_TO_CITY['Pacific/Sydney'] = 'sydney';
 
-const STORAGE_KEY = 'worldmonitor-world-clock-cities';
+const STORAGE_KEY = 'grid48-world-clock-cities';
 const DEFAULT_CITIES = ['new-york', 'london', 'dubai', 'bangkok', 'tokyo', 'sydney'];
 
 function detectHomeCity(): string | null {

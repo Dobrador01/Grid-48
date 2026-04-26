@@ -1,8 +1,8 @@
-# World Monitor: Press Kit & FAQ
+# Grid 48: Press Kit & FAQ
 
-## What Is World Monitor?
+## What Is Grid 48?
 
-World Monitor is a real-time global intelligence dashboard that brings together news, markets, military activity, infrastructure data, and AI-powered analysis into a single, interactive map interface. Think of it as a situational awareness tool that was previously only available to government agencies and large corporations with six-figure OSINT budgets, now accessible to journalists, analysts, researchers, and curious citizens through a web browser or desktop app.
+Grid 48 is a real-time global intelligence dashboard that brings together news, markets, military activity, infrastructure data, and AI-powered analysis into a single, interactive map interface. Think of it as a situational awareness tool that was previously only available to government agencies and large corporations with six-figure OSINT budgets, now accessible to journalists, analysts, researchers, and curious citizens through a web browser or desktop app.
 
 The platform monitors over 200 countries using 435+ news feeds, 30+ live video streams, satellite tracking, military flight and naval vessel data, prediction markets, and dozens of specialized data layers. All of this is visualized on either a photorealistic 3D globe or a flat WebGL map, with AI summarization that distills thousands of headlines into actionable intelligence briefs.
 
@@ -12,25 +12,25 @@ The platform monitors over 200 countries using 435+ news feeds, 30+ live video s
 
 ### The Core Experience
 
-When a user opens World Monitor, they see a globe (or flat map) populated with live data points. Each point represents something happening in the world right now: a military flight over the Black Sea, an earthquake in Turkey, a protest in Nairobi, a cyberattack origin in Eastern Europe, or a spike in GPS jamming near a conflict zone.
+When a user opens Grid 48, they see a globe (or flat map) populated with live data points. Each point represents something happening in the world right now: a military flight over the Black Sea, an earthquake in Turkey, a protest in Nairobi, a cyberattack origin in Eastern Europe, or a spike in GPS jamming near a conflict zone.
 
 Users can toggle 45+ data layers on and off, zoom into regions, click on any event for details, and read AI-generated summaries that connect dots across multiple data streams. A command palette (Cmd+K) provides instant search across countries, layers, and intelligence categories.
 
 ### Five Specialized Dashboards
 
-World Monitor runs five thematic variants from a single codebase, each tailored to a different audience:
+Grid 48 runs five thematic variants from a single codebase, each tailored to a different audience:
 
 | Variant | Domain | Focus |
 |---------|--------|-------|
-| **World Monitor** | worldmonitor.app | Geopolitics, military, conflicts, infrastructure |
-| **Tech Monitor** | tech.worldmonitor.app | AI/ML, startups, cybersecurity, tech ecosystems |
-| **Finance Monitor** | finance.worldmonitor.app | Markets, central banks, Gulf FDI, commodities |
-| **Commodity Monitor** | commodity.worldmonitor.app | Mining, metals, energy, critical minerals |
-| **Happy Monitor** | happy.worldmonitor.app | Good news, conservation, positive global trends |
+| **Grid 48** | grid48.app | Geopolitics, military, conflicts, infrastructure |
+| **Tech Monitor** | tech.grid48.app | AI/ML, startups, cybersecurity, tech ecosystems |
+| **Finance Monitor** | finance.grid48.app | Markets, central banks, Gulf FDI, commodities |
+| **Commodity Monitor** | commodity.grid48.app | Mining, metals, energy, critical minerals |
+| **Happy Monitor** | happy.grid48.app | Good news, conservation, positive global trends |
 
 ### AI Intelligence Layer
 
-World Monitor uses a multi-tier AI pipeline to process and summarize information:
+Grid 48 uses a multi-tier AI pipeline to process and summarize information:
 
 1. **World Brief**: An AI-generated summary of the most significant global events, updated regularly, using a chain of language models that prioritizes speed and cost efficiency.
 2. **AI Deduction**: Users can ask free-text geopolitical questions (e.g., "What are the implications of rising tensions in the South China Sea?") and receive analysis grounded in live headlines.
@@ -44,7 +44,7 @@ All AI features can run entirely in the browser using lightweight ML models, wit
 
 ## Where Does the Data Come From?
 
-World Monitor aggregates publicly available data from dozens of sources. No proprietary or classified information is used. Key source categories:
+Grid 48 aggregates publicly available data from dozens of sources. No proprietary or classified information is used. Key source categories:
 
 ### News & Media
 
@@ -132,7 +132,7 @@ World Monitor aggregates publicly available data from dozens of sources. No prop
 
 ## Who Is It For?
 
-World Monitor serves several audiences:
+Grid 48 serves several audiences:
 
 - **Journalists & Newsrooms**: Real-time situational awareness during breaking events. Layer military flights over conflict zones, cross-reference with news feeds and prediction markets.
 - **Security & Risk Analysts**: Country instability scoring (CII), threat classification, infrastructure monitoring, and AI-generated intelligence briefs.
@@ -145,7 +145,7 @@ World Monitor serves several audiences:
 
 ## How Is It Different from Existing Tools?
 
-| Feature | World Monitor | Traditional OSINT Tools | News Aggregators |
+| Feature | Grid 48 | Traditional OSINT Tools | News Aggregators |
 |---------|--------------|------------------------|-----------------|
 | Real-time map visualization | Yes (3D globe + flat map) | Often static or delayed | No map |
 | AI summarization | Yes (multi-tier LLM) | Rarely | Basic or none |
@@ -195,7 +195,7 @@ The system identifies emerging crises by blending news clustering, geographic co
 
 ## Availability
 
-- **Web**: Available at worldmonitor.app and variant subdomains
+- **Web**: Available at grid48.app and variant subdomains
 - **Desktop**: Native apps for macOS, Windows, and Linux (via Tauri)
 - **PWA**: Installable as a progressive web app with offline map tile caching
 - **Mobile**: Mobile-optimized responsive layout with touch gestures
@@ -205,7 +205,7 @@ The system identifies emerging crises by blending news clustering, geographic co
 
 ## What's Next: Roadmap Highlights
 
-World Monitor is actively developed with planned expansions across several areas:
+Grid 48 is actively developed with planned expansions across several areas:
 
 ### Pro Tier (Planned)
 
@@ -213,7 +213,7 @@ World Monitor is actively developed with planned expansions across several areas
 - **Scheduled AI briefings** delivered via email, Slack, Telegram, Discord, or WhatsApp
 - **Advanced equity research** with financials, analyst targets, valuation metrics, and backtesting
 - **Custom alert rules** for specific countries, topics, or threshold triggers
-- **API access** for developers and organizations to integrate World Monitor data into their own tools
+- **API access** for developers and organizations to integrate Grid 48 data into their own tools
 
 ### Enterprise Features (Planned)
 
@@ -235,10 +235,10 @@ World Monitor is actively developed with planned expansions across several areas
 
 ## Frequently Asked Questions
 
-**Q: Is World Monitor free?**
+**Q: Is Grid 48 free?**
 A: Yes. The core dashboard with all map layers, news feeds, live streams, and AI features is free to use. A Pro tier with additional features is planned.
 
-**Q: Where does World Monitor get its data?**
+**Q: Where does Grid 48 get its data?**
 A: Exclusively from publicly available, open-source data. This includes government agencies (USGS, NASA, NOAA, EIA, FRED), academic institutions (ACLED, UCDP), open tracking networks (ADS-B, AIS), news RSS feeds, and public APIs. No classified or proprietary intelligence is used.
 
 **Q: Is this legal?**
@@ -250,26 +250,26 @@ A: Most data layers update every 1 to 15 minutes. Military flight and vessel tra
 **Q: Can I trust the AI analysis?**
 A: The AI summarization and deduction features are tools, not oracles. They synthesize patterns from aggregated headlines and data, but should be treated as one input among many. All AI outputs cite their source headlines, allowing users to verify claims. The system is designed to surface signals, not make definitive predictions.
 
-**Q: Does World Monitor track users or sell data?**
+**Q: Does Grid 48 track users or sell data?**
 A: No. There are no tracking cookies, no user profiling, and no data sales. The free tier requires no account. AI features can run entirely in-browser with no data sent to external servers.
 
 **Q: Is the code open source?**
-A: Yes. World Monitor is licensed under AGPL-3.0, meaning anyone can inspect, audit, modify, and redistribute the code. If you run a modified version as a service, you must share your modifications under the same license.
+A: Yes. Grid 48 is licensed under AGPL-3.0, meaning anyone can inspect, audit, modify, and redistribute the code. If you run a modified version as a service, you must share your modifications under the same license.
 
 **Q: Who built this?**
-A: World Monitor was created by Elie Habib. It is an independent project, not affiliated with any government, intelligence agency, or defense contractor.
+A: Grid 48 was created by Elie Habib. It is an independent project, not affiliated with any government, intelligence agency, or defense contractor.
 
-**Q: Can I embed World Monitor or use its data in my reporting?**
-A: The web interface can be referenced and linked in reporting. For data integration, an API tier is planned. Please attribute "World Monitor (worldmonitor.app)" when referencing the platform in published work.
+**Q: Can I embed Grid 48 or use its data in my reporting?**
+A: The web interface can be referenced and linked in reporting. For data integration, an API tier is planned. Please attribute "Grid 48 (grid48.app)" when referencing the platform in published work.
 
 **Q: How is this different from Janes, Palantir, or Dataminr?**
-A: Those are enterprise products costing tens to hundreds of thousands of dollars per year, typically sold to governments and large corporations. World Monitor aims to democratize access to situational awareness by aggregating public data and using AI to make it digestible. It is open source, free to use, and designed for individual analysts and small teams, not just large organizations.
+A: Those are enterprise products costing tens to hundreds of thousands of dollars per year, typically sold to governments and large corporations. Grid 48 aims to democratize access to situational awareness by aggregating public data and using AI to make it digestible. It is open source, free to use, and designed for individual analysts and small teams, not just large organizations.
 
 **Q: What does "Country Instability Index" mean and how reliable is it?**
 A: The CII is a composite score (0-100) that combines baseline risk data, social unrest indicators, security events, and news volume anomalies. It provides a relative comparison between countries and a directional indicator of change. It is not a predictive model and should not be used as the sole basis for security or investment decisions. It is most useful for identifying countries experiencing unusual activity relative to their baseline.
 
 **Q: How many people work on this?**
-A: World Monitor is primarily a solo project by its creator, with occasional open-source contributions from the community.
+A: Grid 48 is primarily a solo project by its creator, with occasional open-source contributions from the community.
 
 ---
 
@@ -277,9 +277,9 @@ A: World Monitor is primarily a solo project by its creator, with occasional ope
 
 For press inquiries, interview requests, or additional information:
 
-- **GitHub**: github.com/koala73/worldmonitor
-- **Website**: worldmonitor.app
+- **GitHub**: github.com/koala73/grid48
+- **Website**: grid48.app
 
 ---
 
-*This document was last updated March 2026. World Monitor is an independent, open-source project licensed under AGPL-3.0.*
+*This document was last updated March 2026. Grid 48 is an independent, open-source project licensed under AGPL-3.0.*

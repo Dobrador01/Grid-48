@@ -20,10 +20,10 @@
     "asFeaturedIn": "Được giới thiệu trên"
   },
   "livePreview": {
-    "windowTitle": "worldmonitor.app — Bảng điều khiển trực tiếp",
+    "windowTitle": "grid48.app — Bảng điều khiển trực tiếp",
     "openFullScreen": "Mở toàn màn hình",
     "tryLiveDashboard": "Thử bảng điều khiển trực tiếp",
-    "iframeTitle": "World Monitor — Bảng điều khiển OSINT trực tiếp",
+    "iframeTitle": "Grid 48 — Bảng điều khiển OSINT trực tiếp",
     "description": "Quả địa cầu 3D WebGL · Hơn 45+ lớp bản đồ tương tác · Dữ liệu địa chính trị, thị trường, năng lượng và cơ sở hạ tầng thời gian thực"
   },
   "socialProof": {
@@ -36,7 +36,7 @@
     "asToldTo": "chia sẻ với"
   },
   "dataCoverage": {
-    "title": "World Monitor theo dõi những gì",
+    "title": "Grid 48 theo dõi những gì",
     "subtitle": "22 miền dịch vụ được thu thập đồng thời. Tất cả được chuẩn hóa, định vị địa lý và hiển thị trên quả địa cầu WebGL với hàng nghìn điểm đánh dấu.",
     "geopolitical": "Sự kiện địa chính trị",
     "geopoliticalDesc": "Sự kiện ACLED & UCDP với chấm điểm leo thang và phân tích xu hướng",
@@ -118,7 +118,7 @@
   "apiSection": {
     "apiTier": "GÓI API",
     "title": "Tình báo lập trình",
-    "subtitle": "Dành cho nhà phát triển, nhà phân tích và các nhóm xây dựng trên dữ liệu World Monitor. Độc lập với Pro — dùng cả hai hoặc một trong hai.",
+    "subtitle": "Dành cho nhà phát triển, nhà phân tích và các nhóm xây dựng trên dữ liệu Grid 48. Độc lập với Pro — dùng cả hai hoặc một trong hai.",
     "restApi": "REST API trên toàn bộ 22 miền dịch vụ",
     "authenticated": "Xác thực theo khóa, giới hạn tốc độ theo gói",
     "structured": "JSON có cấu trúc với cache header và tài liệu OpenAPI 3.1",
@@ -137,7 +137,7 @@
     "security": "Bảo mật cấp chính phủ",
     "securityDesc": "Triển khai air-gapped, Docker on-premises, cloud tenant chuyên dụng, lộ trình SOC 2 Type II, SSO/MFA và nhật ký kiểm toán đầy đủ.",
     "aiAgents": "AI Agents & MCP",
-    "aiAgentsDesc": "Agents tình báo tự chủ với hồ sơ nhà đầu tư. Kết nối World Monitor như một công cụ với Claude, GPT hoặc LLM tùy chỉnh qua MCP.",
+    "aiAgentsDesc": "Agents tình báo tự chủ với hồ sơ nhà đầu tư. Kết nối Grid 48 như một công cụ với Claude, GPT hoặc LLM tùy chỉnh qua MCP.",
     "dataLayers": "Lớp dữ liệu mở rộng",
     "dataLayersDesc": "Hàng chục nghìn tài sản hạ tầng được ánh xạ toàn cầu. Tích hợp ảnh vệ tinh với phát hiện thay đổi và SAR.",
     "connectors": "Hơn 100+ đầu nối dữ liệu",
@@ -213,7 +213,7 @@
     "q3": "Sự khác biệt giữa API và Pro là gì?",
     "a3": "Pro gửi tóm tắt AI và cảnh báo qua Slack, Telegram, WhatsApp và email. API cung cấp quyền truy cập REST lập trình cho mã của bạn. Đây là các gói độc lập — dùng cả hai hoặc một trong hai.",
     "q4": "MCP là gì?",
-    "a4": "Model Context Protocol cho phép AI agents (Claude, GPT hoặc LLM tùy chỉnh) sử dụng World Monitor như một công cụ — truy vấn tất cả 22 dịch vụ, đọc trạng thái bản đồ và kích hoạt phân tích. Chỉ dành cho Enterprise.",
+    "a4": "Model Context Protocol cho phép AI agents (Claude, GPT hoặc LLM tùy chỉnh) sử dụng Grid 48 như một công cụ — truy vấn tất cả 22 dịch vụ, đọc trạng thái bản đồ và kích hoạt phân tích. Chỉ dành cho Enterprise.",
     "q5": "Chúng tôi có thể triển khai on-premises không?",
     "a5": "Enterprise bao gồm triển khai Docker, chế độ air-gapped với Ollama AI cục bộ, không có cuộc gọi mạng bên ngoài, ghi nhật ký kiểm toán đầy đủ và tùy chọn lưu trú dữ liệu (EU, US, MENA).",
     "q6": "Gần thời gian thực nhanh đến mức nào?",
@@ -239,8 +239,8 @@
     "linkedin": "LinkedIn",
     "whatsapp": "WhatsApp",
     "telegram": "Telegram",
-    "shareText": "Tôi vừa tham gia danh sách chờ World Monitor Pro — tình báo toàn cầu thời gian thực được hỗ trợ bởi AI. Tham gia cùng tôi:",
-    "joinWaitlistShare": "Tham gia danh sách chờ World Monitor Pro:",
+    "shareText": "Tôi vừa tham gia danh sách chờ Grid 48 Pro — tình báo toàn cầu thời gian thực được hỗ trợ bởi AI. Tham gia cùng tôi:",
+    "joinWaitlistShare": "Tham gia danh sách chờ Grid 48 Pro:",
     "youreIn": "Bạn đã đăng ký!",
     "invitedBanner": "Bạn được mời — tham gia danh sách chờ"
   }

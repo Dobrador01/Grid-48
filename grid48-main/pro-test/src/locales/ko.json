@@ -20,10 +20,10 @@
     "asFeaturedIn": "게재 매체"
   },
   "livePreview": {
-    "windowTitle": "worldmonitor.app — 라이브 대시보드",
+    "windowTitle": "grid48.app — 라이브 대시보드",
     "openFullScreen": "전체 화면으로 열기",
     "tryLiveDashboard": "라이브 대시보드 사용해 보기",
-    "iframeTitle": "World Monitor — 라이브 OSINT 대시보드",
+    "iframeTitle": "Grid 48 — 라이브 OSINT 대시보드",
     "description": "3D WebGL 지구본 · 45개 이상의 인터랙티브 맵 레이어 · 실시간 지정학, 시장, 에너지 및 인프라 데이터"
   },
   "socialProof": {
@@ -36,7 +36,7 @@
     "asToldTo": "인터뷰:"
   },
   "dataCoverage": {
-    "title": "World Monitor가 추적하는 것",
+    "title": "Grid 48가 추적하는 것",
     "subtitle": "22개 서비스 도메인을 동시에 수집합니다. 모든 데이터를 정규화, 지오코딩하여 수천 개의 마커와 함께 WebGL 지구본에 렌더링합니다.",
     "geopolitical": "지정학적 이벤트",
     "geopoliticalDesc": "ACLED 및 UCDP 이벤트, 에스컬레이션 스코어링 및 트렌드 분석 포함",
@@ -118,7 +118,7 @@
   "apiSection": {
     "apiTier": "API 티어",
     "title": "프로그래밍 가능한 인텔리전스",
-    "subtitle": "World Monitor 데이터를 기반으로 구축하는 개발자, 애널리스트, 팀을 위해. Pro와 독립적 — 함께 또는 별도로 사용 가능.",
+    "subtitle": "Grid 48 데이터를 기반으로 구축하는 개발자, 애널리스트, 팀을 위해. Pro와 독립적 — 함께 또는 별도로 사용 가능.",
     "restApi": "22개 서비스 도메인 전체에 REST API",
     "authenticated": "키별 인증, 티어별 속도 제한",
     "structured": "캐시 헤더 및 OpenAPI 3.1 문서가 포함된 구조화된 JSON",
@@ -137,7 +137,7 @@
     "security": "정부급 보안",
     "securityDesc": "에어갭 배포, 온프레미스 Docker, 전용 클라우드 테넌트, SOC 2 Type II 경로, SSO/MFA, 완전한 감사 추적.",
     "aiAgents": "AI 에이전트 및 MCP",
-    "aiAgentsDesc": "투자자 페르소나를 갖춘 자율 인텔리전스 에이전트. MCP를 통해 World Monitor를 Claude, GPT 또는 맞춤 LLM의 도구로 연결.",
+    "aiAgentsDesc": "투자자 페르소나를 갖춘 자율 인텔리전스 에이전트. MCP를 통해 Grid 48를 Claude, GPT 또는 맞춤 LLM의 도구로 연결.",
     "dataLayers": "확장 데이터 레이어",
     "dataLayersDesc": "수만 개의 인프라 자산이 글로벌하게 매핑됩니다. 변화 감지 및 SAR이 포함된 위성 이미지 통합.",
     "connectors": "100개 이상의 데이터 커넥터",
@@ -213,7 +213,7 @@
     "q3": "API와 Pro의 차이점은 무엇인가요?",
     "a3": "Pro는 AI 브리프와 알림을 Slack, Telegram, WhatsApp, 이메일로 전달합니다. API는 자체 코드를 위한 프로그래밍 가능한 REST 액세스를 제공합니다. 독립적인 티어이므로 — 함께 또는 별도로 사용 가능합니다.",
     "q4": "MCP란 무엇인가요?",
-    "a4": "Model Context Protocol을 통해 AI 에이전트(Claude, GPT 또는 맞춤 LLM)가 World Monitor를 도구로 사용할 수 있습니다 — 22개 서비스 전체 쿼리, 맵 상태 읽기, 분석 트리거. 엔터프라이즈 전용입니다.",
+    "a4": "Model Context Protocol을 통해 AI 에이전트(Claude, GPT 또는 맞춤 LLM)가 Grid 48를 도구로 사용할 수 있습니다 — 22개 서비스 전체 쿼리, 맵 상태 읽기, 분석 트리거. 엔터프라이즈 전용입니다.",
     "q5": "온프레미스 배포가 가능한가요?",
     "a5": "엔터프라이즈에는 Docker 배포, 로컬 Ollama AI를 사용한 에어갭 모드, 외부 네트워크 호출 제로, 완전한 감사 로깅, 데이터 레지던시 옵션(EU, US, MENA)이 포함됩니다.",
     "q6": "근실시간은 얼마나 빠른가요?",
@@ -239,8 +239,8 @@
     "linkedin": "LinkedIn",
     "whatsapp": "WhatsApp",
     "telegram": "Telegram",
-    "shareText": "World Monitor Pro 대기 목록에 등록했습니다 — AI 기반 실시간 글로벌 인텔리전스. 함께하세요:",
-    "joinWaitlistShare": "World Monitor Pro 대기 목록에 등록하세요:",
+    "shareText": "Grid 48 Pro 대기 목록에 등록했습니다 — AI 기반 실시간 글로벌 인텔리전스. 함께하세요:",
+    "joinWaitlistShare": "Grid 48 Pro 대기 목록에 등록하세요:",
     "youreIn": "등록되었습니다!",
     "invitedBanner": "초대받았습니다 — 대기 목록에 참여하세요"
   }

@@ -25,7 +25,7 @@ import { fetchCountryMarkets } from '@/services/prediction';
 import { collectStoryData } from '@/services/story-data';
 import { renderStoryToCanvas } from '@/services/story-renderer';
 import { openStoryModal } from '@/components/StoryModal';
-import { MarketServiceClient } from '@/generated/client/worldmonitor/market/v1/service_client';
+import { MarketServiceClient } from '@/generated/client/grid48/market/v1/service_client';
 import { BETA_MODE } from '@/config/beta';
 import { MILITARY_BASES } from '@/config';
 import { mlWorker } from '@/services/ml-worker';

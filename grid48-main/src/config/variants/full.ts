@@ -1,4 +1,4 @@
-﻿// Full geopolitical variant - worldmonitor.app
+﻿// Full geopolitical variant - grid48.app
 import type { PanelConfig } from '@/types';
 import type { VariantConfig } from './base';
 

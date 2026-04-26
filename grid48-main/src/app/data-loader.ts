@@ -30,9 +30,9 @@ import { t, getCurrentLanguage } from '@/services/i18n';
 import { canQueueAiClassification, AI_CLASSIFY_MAX_PER_FEED } from '@/services/ai-classify-queue';
 import { classifyWithAI } from '@/services/threat-classifier';
 import { ingestHeadlines } from '@/services/trending-keywords';
-import type { ListFeedDigestResponse } from '@/generated/client/worldmonitor/news/v1/service_client';
+import type { ListFeedDigestResponse } from '@/generated/client/grid48/news/v1/service_client';
 import type { ThreatLevel as ClientThreatLevel } from '@/services/threat-classifier';
-import type { NewsItem as ProtoNewsItem, ThreatLevel as ProtoThreatLevel } from '@/generated/client/worldmonitor/news/v1/service_client';
+import type { NewsItem as ProtoNewsItem, ThreatLevel as ProtoThreatLevel } from '@/generated/client/grid48/news/v1/service_client';
 
 const PROTO_TO_CLIENT_LEVEL: Record<ProtoThreatLevel, ClientThreatLevel> = {
   THREAT_LEVEL_UNSPECIFIED: 'info',

@@ -1,6 +1,6 @@
 # External APIs Catalog
 
-> Comprehensive reference for every external API consumed by World Monitor.
+> Comprehensive reference for every external API consumed by Grid 48.
 > Last updated: 2026-02-19
 
 ---
@@ -27,7 +27,7 @@
 
 ## 1. Overview
 
-World Monitor integrates **38 distinct external API sources** (plus ~150 RSS feed
+Grid 48 integrates **38 distinct external API sources** (plus ~150 RSS feed
 domains) to provide a unified real-time intelligence dashboard across geopolitical,
 financial, military, environmental, humanitarian, and technology domains.
 
@@ -909,7 +909,7 @@ graph TD
 
 ## 5. Degradation Matrix
 
-How World Monitor behaves when each external API is unavailable:
+How Grid 48 behaves when each external API is unavailable:
 
 | # | API | Cache TTL | Behavior When Down | User Impact | Severity |
 |---|---|---|---|---|---|

@@ -1,4 +1,4 @@
-# WorldMonitor Pro — Implementation Roadmap
+# Grid48 Pro — Implementation Roadmap
 
 ## Context
 
@@ -72,7 +72,7 @@ Phase 0 (Decisions)
 **Priority**: P0 | **Size**: S | **Dependencies**: None
 
 **Description**:
-Evaluate and select an authentication provider for WorldMonitor Pro.
+Evaluate and select an authentication provider for Grid48 Pro.
 
 **Options**:
 
@@ -220,7 +220,7 @@ Implement Clerk auth flow for the Tauri desktop app with proper session persiste
 
 **Implementation**:
 
-1. Register `worldmonitor://auth/callback` deep link URI scheme in Tauri config
+1. Register `grid48://auth/callback` deep link URI scheme in Tauri config
 2. Use PKCE OAuth flow (Clerk supports this)
 3. On successful callback, store Clerk session token in macOS Keychain via existing `setSecret()` pattern
 4. Token lifecycle: refresh on app foreground, auto-refresh if <5min remaining
@@ -502,10 +502,10 @@ Create Stripe products and price objects for all tiers.
 
 **Products**:
 
-1. **WorldMonitor Pro Monthly** — $X/mo
-2. **WorldMonitor Pro Annual** — $X/yr (discount)
-3. **WorldMonitor API Starter** — $Y/mo (1,000 req/day, 5 webhook rules)
-4. **WorldMonitor API Business** — $Z/mo (50,000 req/day, unlimited webhooks + SLA)
+1. **Grid48 Pro Monthly** — $X/mo
+2. **Grid48 Pro Annual** — $X/yr (discount)
+3. **Grid48 API Starter** — $Y/mo (1,000 req/day, 5 webhook rules)
+4. **Grid48 API Business** — $Z/mo (50,000 req/day, unlimited webhooks + SLA)
 
 **Environment variables**:
 
@@ -941,7 +941,7 @@ Build a new data pipeline for equity research features (pro-only).
 
 **Implementation**:
 
-- New sebuf proto service: `worldmonitor/equity/v1/`
+- New sebuf proto service: `grid48/equity/v1/`
 - RPCs: `get-company-financials`, `get-analyst-consensus`, `get-valuation-metrics`, `list-earnings-calendar`
 - Redis caching via `cachedFetchJson` pattern
 - New panel: Equity Research dashboard (pro-only, gated via entitlements)
@@ -1051,7 +1051,7 @@ Build multi-channel delivery infrastructure for AI briefs and alerts.
 
 1. **Email** — Resend (already integrated). Extend for formatted briefs/alerts.
 2. **Slack** — incoming webhook URL (user provides). Format messages with blocks.
-3. **Telegram** — Bot API. Create `@WorldMonitorBot`. User starts conversation, store `chat_id`.
+3. **Telegram** — Bot API. Create `@Grid48Bot`. User starts conversation, store `chat_id`.
 4. **Discord** — webhook URL (user provides). Format with embeds.
 5. **WhatsApp** — P3 (requires Twilio/Meta business verification, highest cost)
 
@@ -1137,11 +1137,11 @@ Enhance existing risk analytics with scenario analysis and convergence alerting.
 **Priority**: P1 | **Size**: M | **Dependencies**: #4.1
 
 **Description**:
-Pro users should NOT need to configure individual API keys for Finnhub, FRED, ACLED, etc. A single WorldMonitor Pro subscription gives access to all 22 services.
+Pro users should NOT need to configure individual API keys for Finnhub, FRED, ACLED, etc. A single Grid48 Pro subscription gives access to all 22 services.
 
 **Implementation**:
 
-- Server-side: pro requests use WorldMonitor's own upstream API keys (already configured as env vars)
+- Server-side: pro requests use Grid48's own upstream API keys (already configured as env vars)
 - Free tier: continues using BYOK via desktop settings panel
 - Gateway identifies pro user → skips BYOK requirement → uses server-side keys for upstream calls
 
@@ -1386,7 +1386,7 @@ Dedicated Android TV app for SOC walls and trading floors. Separate codebase.
 2. **Edge + Convex plan lookups**: Vercel Edge can't import Convex. Must cache in Upstash Redis with active invalidation on webhook events.
 3. **Sub-60s refresh at scale**: 10x more requests from pro users. SSE/WebSocket needed long-term.
 4. **API as separate product**: Multiple Stripe subscriptions per user adds billing complexity. `entitlements` projection table mitigates scattered logic.
-5. **Desktop auth + Tauri WKWebView**: Known limitations. PKCE flow with `worldmonitor://` deep link callback.
+5. **Desktop auth + Tauri WKWebView**: Known limitations. PKCE flow with `grid48://` deep link callback.
 6. **API key migration outage**: Dual-read rollout (old + new in parallel) with comparison metrics before cutover.
 
 ## Observability & Operations

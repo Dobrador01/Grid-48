@@ -5,7 +5,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        World Monitor aggregates 100+ feeds and data layers. Suggest a new one!
+        Grid 48 aggregates 100+ feeds and data layers. Suggest a new one!
 
   - type: dropdown
     id: type

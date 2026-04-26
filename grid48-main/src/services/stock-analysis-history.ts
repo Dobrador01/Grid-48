@@ -1,7 +1,7 @@
 import {
   MarketServiceClient,
   type AnalyzeStockResponse,
-} from '@/generated/client/worldmonitor/market/v1/service_client';
+} from '@/generated/client/grid48/market/v1/service_client';
 
 export type StockAnalysisSnapshot = AnalyzeStockResponse;
 export type StockAnalysisHistory = Record<string, StockAnalysisSnapshot[]>;

@@ -34,12 +34,12 @@ export const MONITOR_COLORS = [
 
 // Storage keys - shared
 export const STORAGE_KEYS = {
-  panels: 'worldmonitor-panels',
-  monitors: 'worldmonitor-monitors',
-  mapLayers: 'worldmonitor-layers',
-  disabledFeeds: 'worldmonitor-disabled-feeds',
-  liveChannels: 'worldmonitor-live-channels',
-  mapMode: 'worldmonitor-map-mode',          // 'flat' | 'globe'
+  panels: 'grid48-panels',
+  monitors: 'grid48-monitors',
+  mapLayers: 'grid48-layers',
+  disabledFeeds: 'grid48-disabled-feeds',
+  liveChannels: 'grid48-live-channels',
+  mapMode: 'grid48-map-mode',          // 'flat' | 'globe'
 } as const;
 
 // Type definitions for variant configs
