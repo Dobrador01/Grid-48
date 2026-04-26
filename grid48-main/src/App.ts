@@ -434,31 +434,27 @@ export class App {
       this.eventHandlers.syncUrlState();
     });
 
-    // Celesc Sensor Data Integration (JSONP Poller)
-    import('@/services/celesc').then(({ initCelescPoller }) => {
-      initCelescPoller((outages) => {
+    // Data Provider Adapter (Convex Cloud OR Local Engine)
+    import('@/adapters').then(({ getDataProvider }) => {
+      const dataProvider = getDataProvider();
+      
+      // Initialize Celesc
+      dataProvider.initCelesc((outages) => {
         if (this.state.map) {
           this.state.map.setCelescOutages(outages);
         }
-        
         const celescPanel = this.state.panels['celesc-status'] as import('@/components/CelescStatusWidget').CelescStatusWidget | undefined;
         if (celescPanel) {
           const lastUpdate = outages.length > 0 ? (outages[0]?.timestampLeitura ?? '') : '';
           celescPanel.setOutages(outages, lastUpdate);
         }
       });
-      console.log('[App] Celesc local JSONP poller active');
-    });
-
-    // Beacon OSINT Data Integration (ConvexClient Push Stream)
-    import('@/services/beacon-client').then(({ initBeaconClient }) => {
-      initBeaconClient((alertas) => {
-        // Enviar para o Mapa via API pública do MapContainer (com cache de rehydrate)
+      
+      // Initialize Beacon OSINT
+      dataProvider.initBeacon((alertas) => {
         if (this.state.map) {
            this.state.map.setBeaconAlerts(alertas);
         }
-        
-        // Enviar para o Painel Glassmorphism com Retry (Race-condition proof)
         const setPanel = () => {
           const beaconPanel = this.state.panels['beacon-status'] as any;
           if (beaconPanel && typeof beaconPanel.setAlertas === 'function') {
@@ -467,10 +463,27 @@ export class App {
           }
           return false;
         };
-        
         if (!setPanel()) {
            const retry = setInterval(() => { if (setPanel()) clearInterval(retry); }, 500);
         }
+      });
+      
+      // Initialize Grid 48 RF Telemetry
+      dataProvider.initTelemetry((data) => {
+        console.log('[App] Telemetry updated', data.length, 'records');
+        // Will be routed to a specific map layer in the future
+      });
+
+      // Mount the Health Widget
+      import('@/components/HealthWidget').then(({ HealthWidget }) => {
+        const widget = new HealthWidget(containerId);
+        widget.mount();
+      });
+
+      // Mount the SITREP Button
+      import('@/components/SitrepButton').then(({ SitrepButton }) => {
+        const btn = new SitrepButton(containerId);
+        btn.mount();
       });
     });
 

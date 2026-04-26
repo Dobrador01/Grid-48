@@ -1,0 +1,12 @@
+# Grid 48 - Regras de Auto-Discovery UDEV para o Rádio LoRa (RAK / Outros)
+# O Vendor ID e Product ID devem ser configurados quando o hardware chegar.
+# 
+# Exemplo CP210x (Silicon Labs):
+# SUBSYSTEM=="tty", ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="ea60", SYMLINK+="radio_grid48", MODE="0666"
+#
+# Exemplo Nordic nRF52 (RAK4631):
+# SUBSYSTEM=="tty", ATTRS{idVendor}=="1915", ATTRS{idProduct}=="521f", SYMLINK+="radio_grid48", MODE="0666"
+
+# Permissão genérica temporária para ttyUSB* (apenas para fallback)
+KERNEL=="ttyUSB*", MODE="0666"
+KERNEL=="ttyACM*", MODE="0666"

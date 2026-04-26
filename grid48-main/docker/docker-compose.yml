@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  web:
+    image: ghcr.io/dobrador01/grid-48/web:latest
+    container_name: grid48-web
+    restart: always
+    ports:
+      - "80:80"
+    environment:
+      - VITE_API_MODE=local
+
+  engine:
+    image: ghcr.io/dobrador01/grid-48/engine:latest
+    container_name: grid48-engine
+    restart: always
+    privileged: true # Required for USB Serial auto-discovery
+    ports:
+      - "3001:3001"
+    volumes:
+      - /mnt/usb/grid48:/app/data
+      - /dev/bus/usb:/dev/bus/usb # Allow raw USB access
+      - /dev:/dev # Allow ttyUSB* access
+    environment:
+      - NODE_ENV=production
+      - ENGINE_PORT=3001
+      - DB_PATH=/app/data/grid48.db
+      - CONVEX_GW_URL=${CONVEX_GW_URL}
+      - PSK_GATEWAY=${PSK_GATEWAY}
+
+  watchtower:
+    image: containrrr/watchtower
+    container_name: watchtower
+    restart: always
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: --interval 3600 grid48-web grid48-engine

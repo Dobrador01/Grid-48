@@ -368,6 +368,7 @@ function gpsjamDevPlugin(): Plugin {
 export default defineConfig({
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version),
+    __API_MODE__: JSON.stringify(process.env.VITE_API_MODE || 'cloud'),
   },
   plugins: [
     htmlVariantPlugin(),

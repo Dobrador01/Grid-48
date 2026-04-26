@@ -58,7 +58,12 @@ http.route({
         localidade: body.localidade,
       });
       
-      // The Gemini Action will be added in Phase 5.
+      // The Gemini Action will compile the SITREP in the background
+      ctx.runAction(internal.actions.processSitrep, {
+        request_id: body.request_id,
+        categoria: body.categoria,
+        localidade: body.localidade,
+      }).catch(e => console.error("[HTTP] Action execution failed", e));
       
       return new Response("ACK", { status: 200 });
     } catch (e) {
