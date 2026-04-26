@@ -1,6 +1,6 @@
 # Premium Finance
 
-Premium finance is the finance-variant layer that ports the reusable stock-analysis product surface from `../daily_stock_analysis` into Grid 48 without importing that repo's full standalone app architecture.
+Premium finance is the finance-variant layer that ports the reusable stock-analysis product surface from `../daily_stock_analysis` into World Monitor without importing that repo's full standalone app architecture.
 
 This layer is intentionally split into:
 
@@ -48,19 +48,19 @@ It does **not** attempt full parity with the source repo's:
 
 Primary handlers:
 
-- [analyze-stock.ts](../server/grid48/market/v1/analyze-stock.ts)
-- [get-stock-analysis-history.ts](../server/grid48/market/v1/get-stock-analysis-history.ts)
-- [backtest-stock.ts](../server/grid48/market/v1/backtest-stock.ts)
-- [list-stored-stock-backtests.ts](../server/grid48/market/v1/list-stored-stock-backtests.ts)
-- [premium-stock-store.ts](../server/grid48/market/v1/premium-stock-store.ts)
+- [analyze-stock.ts](../server/worldmonitor/market/v1/analyze-stock.ts)
+- [get-stock-analysis-history.ts](../server/worldmonitor/market/v1/get-stock-analysis-history.ts)
+- [backtest-stock.ts](../server/worldmonitor/market/v1/backtest-stock.ts)
+- [list-stored-stock-backtests.ts](../server/worldmonitor/market/v1/list-stored-stock-backtests.ts)
+- [premium-stock-store.ts](../server/worldmonitor/market/v1/premium-stock-store.ts)
 
 Primary contracts:
 
-- [analyze_stock.proto](../proto/grid48/market/v1/analyze_stock.proto)
-- [get_stock_analysis_history.proto](../proto/grid48/market/v1/get_stock_analysis_history.proto)
-- [backtest_stock.proto](../proto/grid48/market/v1/backtest_stock.proto)
-- [list_stored_stock_backtests.proto](../proto/grid48/market/v1/list_stored_stock_backtests.proto)
-- [service.proto](../proto/grid48/market/v1/service.proto)
+- [analyze_stock.proto](../proto/worldmonitor/market/v1/analyze_stock.proto)
+- [get_stock_analysis_history.proto](../proto/worldmonitor/market/v1/get_stock_analysis_history.proto)
+- [backtest_stock.proto](../proto/worldmonitor/market/v1/backtest_stock.proto)
+- [list_stored_stock_backtests.proto](../proto/worldmonitor/market/v1/list_stored_stock_backtests.proto)
+- [service.proto](../proto/worldmonitor/market/v1/service.proto)
 
 ### Frontend Surfaces
 
@@ -82,7 +82,7 @@ Services and loading:
 
 ## Stock Analysis
 
-The premium stock-analysis engine is a TypeScript port of the reusable core logic from the source repo, adapted to Grid 48 conventions.
+The premium stock-analysis engine is a TypeScript port of the reusable core logic from the source repo, adapted to World Monitor conventions.
 
 It computes:
 
@@ -111,7 +111,7 @@ Those fields matter because backtesting now validates stored analysis records ra
 
 ## Shared Store
 
-Grid 48 still lacks a general-purpose relational backend, so premium finance currently uses Redis as the backend-owned source of truth.
+World Monitor still lacks a general-purpose relational backend, so premium finance currently uses Redis as the backend-owned source of truth.
 
 ### What Redis Stores
 
@@ -142,7 +142,7 @@ It is **not** a relational finance ledger yet. Long-lived querying, rich paginat
 
 ## Backtesting
 
-Backtesting in Grid 48 is intentionally tied to stored analysis records, not just a raw signal replay.
+Backtesting in World Monitor is intentionally tied to stored analysis records, not just a raw signal replay.
 
 Current flow:
 
@@ -166,7 +166,7 @@ It:
 - caches the brief
 - avoids unnecessary regeneration before the next local morning schedule
 
-This is a Grid 48 adaptation, not a port of the source repo's full scheduler/automation system.
+This is a World Monitor adaptation, not a port of the source repo's full scheduler/automation system.
 
 ---
 
@@ -188,7 +188,7 @@ This matters because a UI-only lock would still allow direct API usage from trus
 Core premium finance currently depends on:
 
 - Yahoo Finance chart/history endpoints
-- Finnhub for broader market data already used elsewhere in Grid 48
+- Finnhub for broader market data already used elsewhere in World Monitor
 - Google News RSS as the baseline stock-news fallback
 - the shared LLM provider chain in [llm.ts](../server/_shared/llm.ts)
 
@@ -231,7 +231,7 @@ See [PREMIUM_FINANCE_SEARCH.md](./PREMIUM_FINANCE_SEARCH.md).
 
 ## Current Boundaries
 
-This feature is valid and production-usable within Grid 48's current architecture, but some boundaries remain explicit:
+This feature is valid and production-usable within World Monitor's current architecture, but some boundaries remain explicit:
 
 - Redis is the canonical store for now
 - there is no standalone finance database
@@ -239,4 +239,4 @@ This feature is valid and production-usable within Grid 48's current architectur
 - the source repo's broader provider stack was not fully ported
 - China-focused market data/search layers were intentionally excluded
 
-That tradeoff keeps the feature aligned with Grid 48 rather than contaminating the repo with a second backend architecture.
+That tradeoff keeps the feature aligned with World Monitor rather than contaminating the repo with a second backend architecture.

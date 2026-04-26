@@ -20,7 +20,7 @@
     "asFeaturedIn": "As featured in"
   },
   "twoPath": {
-    "proTitle": "Grid 48 Pro",
+    "proTitle": "World Monitor Pro",
     "proDesc": "For investors, analysts, and professionals who need stock monitoring, geopolitical analysis, and daily AI briefings.",
     "proF1": "Equity research — global stock analysis, financials, analyst targets, valuation metrics",
     "proF2": "Geopolitical analysis — Grand Chessboard framework, Prisoners of Geography models",
@@ -32,7 +32,7 @@
     "proF8": "Saved watchlists, custom views & configurable alert rules",
     "proF9": "Premium map layers, longer history & desktop app workflows",
     "proCta": "Reserve Your Early Access",
-    "entTitle": "Grid 48 Enterprise",
+    "entTitle": "World Monitor Enterprise",
     "entDesc": "For teams that need shared monitoring, API access, deployment options, TV apps, and direct support.",
     "entF1": "Everything in Pro, plus:",
     "entF2": "Live-edge + satellite imagery & SAR",
@@ -59,10 +59,10 @@
     "deeperDesc": "Grand Chessboard frameworks, Prisoners of Geography models, central bank tracking, and scenario analysis."
   },
   "livePreview": {
-    "windowTitle": "grid48.app — Live Dashboard",
+    "windowTitle": "worldmonitor.app — Live Dashboard",
     "openFullScreen": "Open full screen",
     "tryLiveDashboard": "Try the Live Dashboard",
-    "iframeTitle": "Grid 48 — Live Intelligence Dashboard",
+    "iframeTitle": "World Monitor — Live Intelligence Dashboard",
     "description": "3D WebGL globe · 45+ interactive map layers · Real-time market, macro, geopolitical, energy, and infrastructure data"
   },
   "socialProof": {
@@ -90,7 +90,7 @@
     "teamsDesc": "Move from individual use to shared workflows, API access, TV apps, and managed deployments."
   },
   "dataCoverage": {
-    "title": "What Grid 48 Tracks",
+    "title": "What World Monitor Tracks",
     "subtitle": "22 service domains ingested simultaneously. Markets, macro, geopolitics, energy, infrastructure — everything normalized and rendered on a WebGL globe.",
     "markets": "Financial Markets & Equities",
     "marketsDesc": "Global stock analysis, commodities, crypto, ETF flows, analyst targets, and FRED macro data",
@@ -174,7 +174,7 @@
   "apiSection": {
     "apiTier": "API TIER",
     "title": "Programmatic Intelligence",
-    "subtitle": "For developers, analysts, and teams building on Grid 48 data. Separate from Pro — use both or either.",
+    "subtitle": "For developers, analysts, and teams building on World Monitor data. Separate from Pro — use both or either.",
     "restApi": "REST API across all 22 service domains",
     "authenticated": "Authenticated per-key, rate-limited per tier",
     "structured": "Structured JSON with cache headers and OpenAPI 3.1 docs",
@@ -193,7 +193,7 @@
     "security": "Government-Grade Security",
     "securityDesc": "Air-gapped deployment, on-premises Docker, dedicated cloud tenant, SOC 2 Type II path, SSO/MFA, and full audit trail.",
     "aiAgents": "AI Agents & MCP",
-    "aiAgentsDesc": "Autonomous intelligence agents with investor personas. Connect Grid 48 as a tool to Claude, GPT, or custom LLMs via MCP.",
+    "aiAgentsDesc": "Autonomous intelligence agents with investor personas. Connect World Monitor as a tool to Claude, GPT, or custom LLMs via MCP.",
     "dataLayers": "Expanded Data Layers",
     "dataLayersDesc": "Tens of thousands of infrastructure assets mapped globally. Satellite imagery integration with change detection and SAR.",
     "connectors": "100+ Data Connectors",
@@ -222,7 +222,7 @@
     "submitContact": "Send Message",
     "contactSending": "Sending...",
     "contactSent": "Message sent. We'll be in touch.",
-    "contactFailed": "Failed to send. Please email enterprise@grid48.app"
+    "contactFailed": "Failed to send. Please email enterprise@worldmonitor.app"
   },
   "pricingTable": {
     "title": "Compare Tiers",
@@ -273,7 +273,7 @@
   },
   "faq": {
     "title": "Frequently Asked Questions",
-    "q1": "Is Grid 48 still free?",
+    "q1": "Is World Monitor still free?",
     "a1": "Yes. The core platform remains free. Pro adds equity research, macro analytics, and AI briefings. Enterprise adds team deployments and TV apps.",
     "q2": "Why pay for Pro?",
     "a2": "Pro is for investors, analysts, and professionals who want stock monitoring, geopolitical analysis, economy analytics, and AI-powered daily briefings — all under one key.",
@@ -282,17 +282,17 @@
     "q4": "Can I start with Pro and upgrade later?",
     "a4": "Yes. Pro works for serious individuals. Enterprise is there when team and deployment needs grow.",
     "q5": "Is this only for conflict monitoring?",
-    "a5": "No. Grid 48 is primarily a global intelligence platform covering stock markets, macroeconomics, geopolitical analysis, energy, infrastructure, and more. Conflict tracking is one of many capabilities — not the focus.",
+    "a5": "No. World Monitor is primarily a global intelligence platform covering stock markets, macroeconomics, geopolitical analysis, energy, infrastructure, and more. Conflict tracking is one of many capabilities — not the focus.",
     "q6": "Why keep the core platform free?",
     "a6": "Because public access matters. Paid plans fund deeper workflows for serious users and organizations.",
     "q7": "Can I still use my own API keys?",
     "a7": "Yes. Bring-your-own-keys always works. Pro simply means you don't have to register for 20+ separate services.",
     "q8": "What's MCP?",
-    "a8": "Model Context Protocol lets AI agents (Claude, GPT, or custom LLMs) use Grid 48 as a tool — querying all 22 services, reading map state, and triggering analysis. Enterprise only."
+    "a8": "Model Context Protocol lets AI agents (Claude, GPT, or custom LLMs) use World Monitor as a tool — querying all 22 services, reading map state, and triggering analysis. Enterprise only."
   },
   "finalCta": {
     "title": "Start with Pro. Scale to Enterprise.",
-    "subtitle": "Keep using Grid 48 for free, or upgrade for equity research, macro analytics, and AI briefings. If your organization needs team access, TV apps, or API support, talk to us.",
+    "subtitle": "Keep using World Monitor for free, or upgrade for equity research, macro analytics, and AI briefings. If your organization needs team access, TV apps, or API support, talk to us.",
     "getPro": "Reserve Your Early Access",
     "talkToSales": "Talk to Sales"
   },
@@ -316,8 +316,8 @@
     "linkedin": "LinkedIn",
     "whatsapp": "WhatsApp",
     "telegram": "Telegram",
-    "shareText": "I just joined the Grid 48 Pro waitlist — stock monitoring, geopolitical analysis, and AI daily briefings in one platform. Join me:",
-    "joinWaitlistShare": "Join the Grid 48 Pro waitlist:",
+    "shareText": "I just joined the World Monitor Pro waitlist — stock monitoring, geopolitical analysis, and AI daily briefings in one platform. Join me:",
+    "joinWaitlistShare": "Join the World Monitor Pro waitlist:",
     "youreIn": "You're in!",
     "invitedBanner": "You've been invited — join the waitlist"
   }

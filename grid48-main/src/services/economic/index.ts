@@ -23,7 +23,7 @@ import {
   type BisPolicyRate,
   type BisExchangeRate,
   type BisCreditToGdp,
-} from '@/generated/client/grid48/economic/v1/service_client';
+} from '@/generated/client/worldmonitor/economic/v1/service_client';
 import { createCircuitBreaker } from '@/utils';
 import { getCSSColor } from '@/utils';
 import { isFeatureAvailable } from '../runtime-config';

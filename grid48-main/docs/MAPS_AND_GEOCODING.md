@@ -2,13 +2,13 @@
 
 Static map assets, country geometry, geocoding services, and boundary overrides.
 
-## R2 CDN — `maps.grid48.app`
+## R2 CDN — `maps.worldmonitor.app`
 
-All large static map files are served from Cloudflare R2, **not** from Vercel. The R2 bucket `grid48-maps` is fronted by a CF-proxied custom domain:
+All large static map files are served from Cloudflare R2, **not** from Vercel. The R2 bucket `worldmonitor-maps` is fronted by a CF-proxied custom domain:
 
 | URL | Use |
 |-----|-----|
-| `https://maps.grid48.app/<file>` | Production URL (CF-proxied, cached, CORS headers) |
+| `https://maps.worldmonitor.app/<file>` | Production URL (CF-proxied, cached, CORS headers) |
 | `https://pub-8ace9f6a86d74cb2bd5eb1de5590dd9e.r2.dev/<file>` | Raw R2 — **never use in code** (no CF caching, no CORS) |
 
 ### Why R2 instead of Vercel?
@@ -29,7 +29,7 @@ All large static map files are served from Cloudflare R2, **not** from Vercel. T
 
 ```bash
 # Single file
-rclone copyto <local-path> r2:grid48-maps/<filename>
+rclone copyto <local-path> r2:worldmonitor-maps/<filename>
 
 # rclone config note: set no_check_bucket = true (token lacks CreateBucket permission)
 ```
@@ -54,7 +54,7 @@ country-boundary-overrides.geojson      │
 ```
 
 1. `countries.geojson` — base polygons with ISO codes and names, served from `/data/` (Vercel)
-2. `country-boundary-overrides.geojson` — optional higher-resolution polygons from [Natural Earth](https://www.naturalearthdata.com/), served from R2 CDN (`maps.grid48.app`). Features matched by `ISO3166-1-Alpha-2` (or `ISO_A2`) code; matching features replace the base geometry
+2. `country-boundary-overrides.geojson` — optional higher-resolution polygons from [Natural Earth](https://www.naturalearthdata.com/), served from R2 CDN (`maps.worldmonitor.app`). Features matched by `ISO3166-1-Alpha-2` (or `ISO_A2`) code; matching features replace the base geometry
 3. Base file loads first and the country index is built immediately (service becomes usable). Override file is fetched afterward with a **3-second timeout** — failures are silently ignored. Override lookup uses a `Map<code, Feature>` for O(1) matching
 
 ### Indexed Data Structures
@@ -96,7 +96,7 @@ Common alternate names are mapped in `NAME_ALIASES`:
 
 ## Country Boundary Overrides
 
-The override mechanism lets us improve individual country boundaries without replacing the entire `countries.geojson`. This is the foundation for addressing disputed borders (see [#1044](https://github.com/koala73/grid48/issues/1044)).
+The override mechanism lets us improve individual country boundaries without replacing the entire `countries.geojson`. This is the foundation for addressing disputed borders (see [#1044](https://github.com/koala73/worldmonitor/issues/1044)).
 
 ### How It Works
 
@@ -112,7 +112,7 @@ The override mechanism lets us improve individual country boundaries without rep
 3. Merge into or replace `country-boundary-overrides.geojson`
 4. Upload to R2:
    ```bash
-   rclone copyto public/data/country-boundary-overrides.geojson r2:grid48-maps/country-boundary-overrides.geojson
+   rclone copyto public/data/country-boundary-overrides.geojson r2:worldmonitor-maps/country-boundary-overrides.geojson
    ```
 5. No code changes needed — the app picks up the new geometry automatically
 
@@ -133,13 +133,13 @@ For regions where full polygon geometry may not be loaded, `ME_STRIKE_BOUNDS` in
 
 Basemap tile configuration lives in `src/config/basemap.ts`. See [MAP_ENGINE.md](MAP_ENGINE.md) for full details on tile providers (PMTiles, OpenFreeMap, CARTO), themes, and fallback behavior.
 
-PMTiles are also served from R2 via `maps.grid48.app`, configured through `VITE_PMTILES_URL`.
+PMTiles are also served from R2 via `maps.worldmonitor.app`, configured through `VITE_PMTILES_URL`.
 
 ## Common Mistakes
 
 | Mistake | Fix |
 |---------|-----|
-| Using `pub-*.r2.dev` URLs in code | Always use `maps.grid48.app` (CF-proxied) |
+| Using `pub-*.r2.dev` URLs in code | Always use `maps.worldmonitor.app` (CF-proxied) |
 | Serving large GeoJSON from Vercel | Upload to R2 — Vercel bandwidth is expensive at scale |
 | Fetching overrides without a timeout | Always use `AbortSignal.timeout` — override CDN may be slow or down |
 | Forgetting `POLITICAL_OVERRIDES` | Check if the country code needs mapping (e.g., `CN-TW → TW`) |

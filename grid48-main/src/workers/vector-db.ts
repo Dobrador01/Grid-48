@@ -1,6 +1,6 @@
 import { hashString } from '@/utils/hash';
 
-const DB_NAME = 'grid48_vector_store';
+const DB_NAME = 'worldmonitor_vector_store';
 const DB_VERSION = 1;
 const STORE_NAME = 'embeddings';
 const MAX_VECTORS = 5000;

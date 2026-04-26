@@ -20,10 +20,10 @@
     "asFeaturedIn": "Jak bylo uvedeno v"
   },
   "livePreview": {
-    "windowTitle": "grid48.app — Živý dashboard",
+    "windowTitle": "worldmonitor.app — Živý dashboard",
     "openFullScreen": "Otevřít na celou obrazovku",
     "tryLiveDashboard": "Vyzkoušejte živý dashboard",
-    "iframeTitle": "Grid 48 — Živý OSINT dashboard",
+    "iframeTitle": "World Monitor — Živý OSINT dashboard",
     "description": "3D WebGL glóbus · 45+ interaktivních mapových vrstev · Geopolitická, tržní, energetická a infrastrukturní data v reálném čase"
   },
   "socialProof": {
@@ -36,7 +36,7 @@
     "asToldTo": "jak sdělil pro"
   },
   "dataCoverage": {
-    "title": "Co Grid 48 sleduje",
+    "title": "Co World Monitor sleduje",
     "subtitle": "22 datových domén zpracovávaných současně. Vše normalizováno, geolokováno a vykresleno na WebGL glóbu s tisíci značkami.",
     "geopolitical": "Geopolitické události",
     "geopoliticalDesc": "Události ACLED a UCDP s hodnocením eskalace a analýzou trendů",
@@ -118,7 +118,7 @@
   "apiSection": {
     "apiTier": "ÚROVEŇ API",
     "title": "Programový přístup ke zpravodajství",
-    "subtitle": "Pro vývojáře, analytiky a týmy stavějící na datech Grid 48. Nezávislé na Pro — použijte obojí nebo jedno z toho.",
+    "subtitle": "Pro vývojáře, analytiky a týmy stavějící na datech World Monitor. Nezávislé na Pro — použijte obojí nebo jedno z toho.",
     "restApi": "REST API přes všech 22 doménových služeb",
     "authenticated": "Autentizace per klíč, rate limiting dle úrovně",
     "structured": "Strukturovaný JSON s cache hlavičkami a OpenAPI 3.1 dokumentací",
@@ -137,7 +137,7 @@
     "security": "Bezpečnost na vládní úrovni",
     "securityDesc": "Air-gapped nasazení, Docker on-premises, dedikovaný cloudový tenant, cesta k SOC 2 Type II, SSO/MFA a kompletní auditní stopa.",
     "aiAgents": "AI agenti a MCP",
-    "aiAgentsDesc": "Autonomní zpravodajští agenti s investorskými personami. Připojte Grid 48 jako nástroj ke Claude, GPT nebo vlastním LLM přes MCP.",
+    "aiAgentsDesc": "Autonomní zpravodajští agenti s investorskými personami. Připojte World Monitor jako nástroj ke Claude, GPT nebo vlastním LLM přes MCP.",
     "dataLayers": "Rozšířené datové vrstvy",
     "dataLayersDesc": "Desítky tisíc infrastrukturních objektů zmapovaných globálně. Integrace satelitních snímků s detekcí změn a SAR.",
     "connectors": "100+ datových konektorů",
@@ -213,7 +213,7 @@
     "q3": "Jaký je rozdíl mezi API a Pro?",
     "a3": "Pro doručuje AI přehledy a upozornění do Slack, Telegram, WhatsApp a e-mailu. API vám dává programový REST přístup pro váš vlastní kód. Jsou to nezávislé úrovně — můžete používat obě nebo jen jednu.",
     "q4": "Co je MCP?",
-    "a4": "Model Context Protocol umožňuje AI agentům (Claude, GPT nebo vlastní LLM) používat Grid 48 jako nástroj — dotazování všech 22 služeb, čtení stavu mapy a spouštění analýz. Pouze pro Enterprise.",
+    "a4": "Model Context Protocol umožňuje AI agentům (Claude, GPT nebo vlastní LLM) používat World Monitor jako nástroj — dotazování všech 22 služeb, čtení stavu mapy a spouštění analýz. Pouze pro Enterprise.",
     "q5": "Lze nasadit on-premises?",
     "a5": "Enterprise zahrnuje Docker nasazení, air-gapped režim s lokálním Ollama AI, nulové externí síťové volání, kompletní auditní protokolování a možnosti datové rezidence (EU, US, MENA).",
     "q6": "Jak rychlé je „téměř v reálném čase“?",
@@ -239,8 +239,8 @@
     "linkedin": "LinkedIn",
     "whatsapp": "WhatsApp",
     "telegram": "Telegram",
-    "shareText": "Právě jsem se zapsal do pořadníku Grid 48 Pro — globální zpravodajství v reálném čase poháněné AI. Přidejte se:",
-    "joinWaitlistShare": "Zapište se do pořadníku Grid 48 Pro:",
+    "shareText": "Právě jsem se zapsal do pořadníku World Monitor Pro — globální zpravodajství v reálném čase poháněné AI. Přidejte se:",
+    "joinWaitlistShare": "Zapište se do pořadníku World Monitor Pro:",
     "youreIn": "Jste přihlášeni!",
     "invitedBanner": "Byli jste pozváni — přidejte se na seznam"
   }

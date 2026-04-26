@@ -20,10 +20,10 @@
     "asFeaturedIn": "Vu dans"
   },
   "livePreview": {
-    "windowTitle": "grid48.app — Tableau de bord en direct",
+    "windowTitle": "worldmonitor.app — Tableau de bord en direct",
     "openFullScreen": "Ouvrir en plein écran",
     "tryLiveDashboard": "Essayer le tableau de bord en direct",
-    "iframeTitle": "Grid 48 — Tableau de bord OSINT en direct",
+    "iframeTitle": "World Monitor — Tableau de bord OSINT en direct",
     "description": "Globe WebGL 3D · 45+ couches cartographiques interactives · Données géopolitiques, marchés, énergie et infrastructures en temps réel"
   },
   "socialProof": {
@@ -36,7 +36,7 @@
     "asToldTo": "confié à"
   },
   "dataCoverage": {
-    "title": "Ce que Grid 48 suit",
+    "title": "Ce que World Monitor suit",
     "subtitle": "22 domaines de services ingérés simultanément. Tout est normalisé, géolocalisé et rendu sur un globe WebGL avec des milliers de marqueurs.",
     "geopolitical": "Événements géopolitiques",
     "geopoliticalDesc": "Événements ACLED & UCDP avec scoring d'escalade et analyse de tendances",
@@ -118,7 +118,7 @@
   "apiSection": {
     "apiTier": "OFFRE API",
     "title": "Renseignement programmatique",
-    "subtitle": "Pour les développeurs, analystes et équipes qui construisent sur les données Grid 48. Indépendant de Pro — utilisez les deux ou l'un des deux.",
+    "subtitle": "Pour les développeurs, analystes et équipes qui construisent sur les données World Monitor. Indépendant de Pro — utilisez les deux ou l'un des deux.",
     "restApi": "API REST sur les 22 domaines de services",
     "authenticated": "Authentification par clé, limitation de débit par offre",
     "structured": "JSON structuré avec en-têtes de cache et documentation OpenAPI 3.1",
@@ -137,7 +137,7 @@
     "security": "Sécurité de niveau gouvernemental",
     "securityDesc": "Déploiement air-gapped, Docker on-premises, tenant cloud dédié, parcours SOC 2 Type II, SSO/MFA et piste d'audit complète.",
     "aiAgents": "Agents IA & MCP",
-    "aiAgentsDesc": "Agents de renseignement autonomes avec personas investisseur. Connectez Grid 48 comme outil à Claude, GPT ou vos LLM personnalisés via MCP.",
+    "aiAgentsDesc": "Agents de renseignement autonomes avec personas investisseur. Connectez World Monitor comme outil à Claude, GPT ou vos LLM personnalisés via MCP.",
     "dataLayers": "Couches de données étendues",
     "dataLayersDesc": "Des dizaines de milliers d'actifs d'infrastructure cartographiés mondialement. Intégration d'imagerie satellite avec détection de changements et SAR.",
     "connectors": "100+ connecteurs de données",
@@ -213,7 +213,7 @@
     "q3": "Quelle est la différence entre API et Pro ?",
     "a3": "Pro livre des briefings IA et des alertes sur Slack, Telegram, WhatsApp et email. API vous donne un accès REST programmatique pour votre propre code. Ce sont des offres indépendantes — utilisez les deux ou l'une des deux.",
     "q4": "Qu'est-ce que MCP ?",
-    "a4": "Le Model Context Protocol permet aux agents IA (Claude, GPT ou LLM personnalisés) d'utiliser Grid 48 comme outil — interrogeant les 22 services, lisant l'état de la carte et déclenchant des analyses. Réservé à l'offre Entreprise.",
+    "a4": "Le Model Context Protocol permet aux agents IA (Claude, GPT ou LLM personnalisés) d'utiliser World Monitor comme outil — interrogeant les 22 services, lisant l'état de la carte et déclenchant des analyses. Réservé à l'offre Entreprise.",
     "q5": "Peut-on déployer on-premises ?",
     "a5": "L'offre Entreprise inclut le déploiement Docker, le mode air-gapped avec IA locale Ollama, zéro appel réseau externe, journalisation d'audit complète et options de résidence des données (UE, US, MENA).",
     "q6": "Quelle est la vitesse du quasi temps réel ?",
@@ -239,8 +239,8 @@
     "linkedin": "LinkedIn",
     "whatsapp": "WhatsApp",
     "telegram": "Telegram",
-    "shareText": "Je viens de rejoindre la liste d'attente Grid 48 Pro — renseignement mondial en temps réel propulsé par l'IA. Rejoignez-moi :",
-    "joinWaitlistShare": "Rejoignez la liste d'attente Grid 48 Pro :",
+    "shareText": "Je viens de rejoindre la liste d'attente World Monitor Pro — renseignement mondial en temps réel propulsé par l'IA. Rejoignez-moi :",
+    "joinWaitlistShare": "Rejoignez la liste d'attente World Monitor Pro :",
     "youreIn": "Vous êtes inscrit !",
     "invitedBanner": "Vous avez été invité — rejoignez la liste d'attente"
   }

@@ -28,7 +28,7 @@ jobs:
       - uses: docker/metadata-action@v5
         id: meta
         with:
-          images: ghcr.io/koala73/grid48
+          images: ghcr.io/koala73/worldmonitor
           tags: |
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}

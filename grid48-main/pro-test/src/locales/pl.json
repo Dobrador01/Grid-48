@@ -20,10 +20,10 @@
     "asFeaturedIn": "Jak opisano w"
   },
   "livePreview": {
-    "windowTitle": "grid48.app — Panel na żywo",
+    "windowTitle": "worldmonitor.app — Panel na żywo",
     "openFullScreen": "Otwórz na pełnym ekranie",
     "tryLiveDashboard": "Wypróbuj Panel na żywo",
-    "iframeTitle": "Grid 48 — Panel OSINT na żywo",
+    "iframeTitle": "World Monitor — Panel OSINT na żywo",
     "description": "Glob 3D WebGL · 45+ interaktywnych warstw mapy · Dane geopolityczne, rynkowe, energetyczne i infrastrukturalne w czasie rzeczywistym"
   },
   "socialProof": {
@@ -36,7 +36,7 @@
     "asToldTo": "w rozmowie z"
   },
   "dataCoverage": {
-    "title": "Co śledzi Grid 48",
+    "title": "Co śledzi World Monitor",
     "subtitle": "22 domeny usługowe przetwarzane jednocześnie. Wszystko znormalizowane, geolokalizowane i renderowane na globie WebGL z tysiącami znaczników.",
     "geopolitical": "Zdarzenia geopolityczne",
     "geopoliticalDesc": "Zdarzenia ACLED i UCDP z oceną eskalacji i analizą trendów",
@@ -118,7 +118,7 @@
   "apiSection": {
     "apiTier": "API TIER",
     "title": "Wywiad programistyczny",
-    "subtitle": "Dla deweloperów, analityków i zespołów budujących na danych Grid 48. Oddzielnie od Pro — używaj obu lub jednego.",
+    "subtitle": "Dla deweloperów, analityków i zespołów budujących na danych World Monitor. Oddzielnie od Pro — używaj obu lub jednego.",
     "restApi": "REST API we wszystkich 22 domenach usługowych",
     "authenticated": "Uwierzytelnianie per klucz, limit zapytań per tier",
     "structured": "Ustrukturyzowany JSON z nagłówkami cache i dokumentacją OpenAPI 3.1",
@@ -137,7 +137,7 @@
     "security": "Bezpieczeństwo klasy rządowej",
     "securityDesc": "Wdrożenie air-gapped, Docker on-premises, dedykowany tenant chmurowy, ścieżka SOC 2 Type II, SSO/MFA i pełny dziennik audytowy.",
     "aiAgents": "Agenty AI i MCP",
-    "aiAgentsDesc": "Autonomiczne agenty wywiadowcze z profilami inwestorów. Podłącz Grid 48 jako narzędzie do Claude, GPT lub własnych LLMs przez MCP.",
+    "aiAgentsDesc": "Autonomiczne agenty wywiadowcze z profilami inwestorów. Podłącz World Monitor jako narzędzie do Claude, GPT lub własnych LLMs przez MCP.",
     "dataLayers": "Rozszerzone warstwy danych",
     "dataLayersDesc": "Dziesiątki tysięcy zasobów infrastrukturalnych zmapowanych globalnie. Integracja obrazów satelitarnych z wykrywaniem zmian i SAR.",
     "connectors": "100+ konektorów danych",
@@ -213,7 +213,7 @@
     "q3": "Jaka jest różnica między API a Pro?",
     "a3": "Pro dostarcza briefy AI i alerty na Slack, Telegram, WhatsApp i email. API daje ci programistyczny dostęp REST do własnego kodu. To niezależne plany — używaj obu lub jednego.",
     "q4": "Czym jest MCP?",
-    "a4": "Model Context Protocol pozwala agentom AI (Claude, GPT lub własnym LLMs) używać Grid 48 jako narzędzia — odpytywać wszystkie 22 usługi, czytać stan mapy i uruchamiać analizy. Tylko Enterprise.",
+    "a4": "Model Context Protocol pozwala agentom AI (Claude, GPT lub własnym LLMs) używać World Monitor jako narzędzia — odpytywać wszystkie 22 usługi, czytać stan mapy i uruchamiać analizy. Tylko Enterprise.",
     "q5": "Czy możemy wdrożyć on-premises?",
     "a5": "Enterprise obejmuje wdrożenie Docker, tryb air-gapped z lokalnym Ollama AI, zero zewnętrznych połączeń sieciowych, pełne logowanie audytowe i opcje rezydencji danych (UE, US, MENA).",
     "q6": "Jak szybki jest czas zbliżony do rzeczywistego?",
@@ -239,8 +239,8 @@
     "linkedin": "LinkedIn",
     "whatsapp": "WhatsApp",
     "telegram": "Telegram",
-    "shareText": "Właśnie dołączyłem do listy oczekujących Grid 48 Pro — globalny wywiad w czasie rzeczywistym napędzany przez AI. Dołącz:",
-    "joinWaitlistShare": "Dołącz do listy oczekujących Grid 48 Pro:",
+    "shareText": "Właśnie dołączyłem do listy oczekujących World Monitor Pro — globalny wywiad w czasie rzeczywistym napędzany przez AI. Dołącz:",
+    "joinWaitlistShare": "Dołącz do listy oczekujących World Monitor Pro:",
     "youreIn": "Jesteś na liście!",
     "invitedBanner": "Zostałeś zaproszony — dołącz do listy"
   }

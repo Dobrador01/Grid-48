@@ -5,7 +5,7 @@ import {
   type CategoryBreakdown as ProtoCategory,
   type CryptoGivingSummary as ProtoCrypto,
   type InstitutionalGiving as ProtoInstitutional,
-} from '@/generated/client/grid48/giving/v1/service_client';
+} from '@/generated/client/worldmonitor/giving/v1/service_client';
 import { createCircuitBreaker } from '@/utils';
 import { getHydratedData } from '@/services/bootstrap';
 

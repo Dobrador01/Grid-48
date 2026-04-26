@@ -3,7 +3,7 @@ import { NATURAL_EVENT_CATEGORIES } from '@/types';
 import {
   NaturalServiceClient,
   type ListNaturalEventsResponse,
-} from '@/generated/client/grid48/natural/v1/service_client';
+} from '@/generated/client/worldmonitor/natural/v1/service_client';
 import { createCircuitBreaker } from '@/utils';
 import { getHydratedData } from '@/services/bootstrap';
 

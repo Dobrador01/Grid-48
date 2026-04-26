@@ -207,7 +207,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VITE_VARIANT: full
           VITE_DESKTOP_RUNTIME: '1'
-          VITE_WS_API_URL: https://grid48.app
+          VITE_WS_API_URL: https://worldmonitor.app
           CONVEX_URL: ${{ secrets.CONVEX_URL }}
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
@@ -217,7 +217,7 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         with:
           tagName: v__VERSION__
-          releaseName: 'Grid 48 v__VERSION__'
+          releaseName: 'World Monitor v__VERSION__'
           releaseBody: 'See changelog below.'
           releaseDraft: ${{ github.event_name == 'workflow_dispatch' && fromJSON(github.event.inputs.draft) }}
           prerelease: false
@@ -232,11 +232,11 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VITE_VARIANT: full
           VITE_DESKTOP_RUNTIME: '1'
-          VITE_WS_API_URL: https://grid48.app
+          VITE_WS_API_URL: https://worldmonitor.app
           CONVEX_URL: ${{ secrets.CONVEX_URL }}
         with:
           tagName: v__VERSION__
-          releaseName: 'Grid 48 v__VERSION__'
+          releaseName: 'World Monitor v__VERSION__'
           releaseBody: 'See changelog below.'
           releaseDraft: ${{ github.event_name == 'workflow_dispatch' && fromJSON(github.event.inputs.draft) }}
           prerelease: false
@@ -251,7 +251,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VITE_VARIANT: tech
           VITE_DESKTOP_RUNTIME: '1'
-          VITE_WS_API_URL: https://grid48.app
+          VITE_WS_API_URL: https://worldmonitor.app
           CONVEX_URL: ${{ secrets.CONVEX_URL }}
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
@@ -277,7 +277,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VITE_VARIANT: tech
           VITE_DESKTOP_RUNTIME: '1'
-          VITE_WS_API_URL: https://grid48.app
+          VITE_WS_API_URL: https://worldmonitor.app
           CONVEX_URL: ${{ secrets.CONVEX_URL }}
         with:
           tagName: v__VERSION__-tech

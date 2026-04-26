@@ -1,6 +1,6 @@
 # Panel System Documentation
 
-> **Grid 48** — Config-driven panel architecture powering three site variants.
+> **World Monitor** — Config-driven panel architecture powering three site variants.
 >
 > Source of truth: [`src/config/panels.ts`](../src/config/panels.ts) · Panel base class: [`src/components/Panel.ts`](../src/components/Panel.ts) · App wiring: [`src/App.ts`](../src/App.ts)
 
@@ -11,9 +11,9 @@
 1. [Overview](#1-overview)
 2. [Panel Configuration](#2-panel-configuration)
 3. [Panel Base Class](#3-panel-base-class)
-4. [Full Variant Panels](#4-full-variant-panels-grid48io)
-5. [Tech Variant Panels](#5-tech-variant-panels-techgrid48io)
-6. [Finance Variant Panels](#6-finance-variant-panels-financegrid48io)
+4. [Full Variant Panels](#4-full-variant-panels-worldmonitorio)
+5. [Tech Variant Panels](#5-tech-variant-panels-techworldmonitorio)
+6. [Finance Variant Panels](#6-finance-variant-panels-financeworldmonitorio)
 7. [Variant Comparison Matrix](#7-variant-comparison-matrix)
 8. [Map Layers](#8-map-layers)
 9. [Panel Persistence](#9-panel-persistence)
@@ -25,7 +25,7 @@
 
 ## 1. Overview
 
-Grid 48 uses a **config-driven panel system** where every dashboard tile — from live news feeds to AI insights to market data — is declared as a `PanelConfig` entry inside a variant-specific configuration object. The system is designed around three principles:
+World Monitor uses a **config-driven panel system** where every dashboard tile — from live news feeds to AI insights to market data — is declared as a `PanelConfig` entry inside a variant-specific configuration object. The system is designed around three principles:
 
 1. **Variant isolation** — Each site variant (`full`, `tech`, `finance`) declares its own panel set with variant-appropriate display names and priorities. The build-time environment variable `VITE_VARIANT` selects which set is exported.
 2. **User customization** — Users can toggle panel visibility, reorder panels via drag-and-drop, and resize panels via a drag handle. All preferences persist to `localStorage`.
@@ -35,9 +35,9 @@ Grid 48 uses a **config-driven panel system** where every dashboard tile — fro
 
 | Variant | Domain | Focus | Panel Count |
 |---------|--------|-------|-------------|
-| `full` | grid48.io | Geopolitical intelligence, OSINT, defense | 37 |
-| `tech` | tech.grid48.io | Technology, AI/ML, startups, VC | 34 |
-| `finance` | finance.grid48.io | Markets, trading, macro, commodities | 29 |
+| `full` | worldmonitor.io | Geopolitical intelligence, OSINT, defense | 37 |
+| `tech` | tech.worldmonitor.io | Technology, AI/ML, startups, VC | 34 |
+| `finance` | finance.worldmonitor.io | Markets, trading, macro, commodities | 29 |
 
 ### Key Files
 
@@ -121,10 +121,10 @@ All persistence keys are centralized in `STORAGE_KEYS`:
 ```typescript
 // src/config/variants/base.ts (also re-exported from src/config/panels.ts)
 export const STORAGE_KEYS = {
-  panels:        'grid48-panels',          // Panel visibility toggles
-  monitors:      'grid48-monitors',         // Monitor keyword configs
-  mapLayers:     'grid48-layers',           // Map layer toggles
-  disabledFeeds: 'grid48-disabled-feeds',   // Per-source feed disabling
+  panels:        'worldmonitor-panels',          // Panel visibility toggles
+  monitors:      'worldmonitor-monitors',         // Monitor keyword configs
+  mapLayers:     'worldmonitor-layers',           // Map layer toggles
+  disabledFeeds: 'worldmonitor-disabled-feeds',   // Per-source feed disabling
 } as const;
 ```
 
@@ -132,10 +132,10 @@ Additional keys used outside `STORAGE_KEYS`:
 
 | Key | Purpose | Managed By |
 |-----|---------|------------|
-| `grid48-panel-spans` | Panel height/span sizes (1–4) | `Panel.ts` |
+| `worldmonitor-panel-spans` | Panel height/span sizes (1–4) | `Panel.ts` |
 | `panel-order` | Drag-and-drop panel ordering | `App.ts` |
-| `grid48-variant` | Last-active variant (triggers reset on change) | `App.ts` |
-| `grid48-panel-order-v1.9` | Migration flag for v1.9 panel layout | `App.ts` |
+| `worldmonitor-variant` | Last-active variant (triggers reset on change) | `App.ts` |
+| `worldmonitor-panel-order-v1.9` | Migration flag for v1.9 panel layout | `App.ts` |
 
 ### 2.5 Monitor Colors
 
@@ -212,7 +212,7 @@ Panel height is quantized into 4 span levels:
 | 3 | 350px | `span-3` | Large — 150px drag triggers |
 | 4 | 500px | `span-4` | Extra-large — 300px drag triggers |
 
-Span values are persisted per-panel in the `grid48-panel-spans` localStorage key as a JSON object `{ [panelId]: spanNumber }`.
+Span values are persisted per-panel in the `worldmonitor-panel-spans` localStorage key as a JSON object `{ [panelId]: spanNumber }`.
 
 ### 3.5 Public Methods
 
@@ -239,7 +239,7 @@ Span values are persisted per-panel in the `grid48-panel-spans` localStorage key
 
 ---
 
-## 4. Full Variant Panels (grid48.io)
+## 4. Full Variant Panels (worldmonitor.io)
 
 The full (geopolitical) variant ships **37 panels** focused on OSINT, defense intelligence, geopolitical risk, and global situational awareness.
 
@@ -287,7 +287,7 @@ The full (geopolitical) variant ships **37 panels** focused on OSINT, defense in
 
 ---
 
-## 5. Tech Variant Panels (tech.grid48.io)
+## 5. Tech Variant Panels (tech.worldmonitor.io)
 
 The tech variant ships **34 panels** focused on technology news, AI/ML, startup ecosystems, and developer tooling.
 
@@ -332,7 +332,7 @@ The tech variant ships **34 panels** focused on technology news, AI/ML, startup 
 
 ---
 
-## 6. Finance Variant Panels (finance.grid48.io)
+## 6. Finance Variant Panels (finance.worldmonitor.io)
 
 The finance variant ships **29 panels** focused on markets, trading, macro indicators, and financial data.
 
@@ -583,22 +583,22 @@ All user preferences survive page reload via `localStorage`. The following table
 
 | Setting | localStorage Key | Format | Default Source | Survives Reload |
 |---------|-----------------|--------|----------------|:--------------:|
-| Panel visibility | `grid48-panels` | `Record<string, PanelConfig>` JSON | `DEFAULT_PANELS` | ✅ |
+| Panel visibility | `worldmonitor-panels` | `Record<string, PanelConfig>` JSON | `DEFAULT_PANELS` | ✅ |
 | Panel ordering | `panel-order` | `string[]` JSON | Config declaration order | ✅ |
-| Panel sizes/spans | `grid48-panel-spans` | `Record<string, number>` JSON | All span-1 | ✅ |
-| Map layer toggles | `grid48-layers` | `MapLayers` JSON | `DEFAULT_MAP_LAYERS` | ✅ |
-| Monitor keywords | `grid48-monitors` | `Monitor[]` JSON | `[]` | ✅ |
-| Disabled sources | `grid48-disabled-feeds` | `string[]` JSON | `[]` | ✅ |
-| Active variant | `grid48-variant` | Plain string | `SITE_VARIANT` | ✅ |
+| Panel sizes/spans | `worldmonitor-panel-spans` | `Record<string, number>` JSON | All span-1 | ✅ |
+| Map layer toggles | `worldmonitor-layers` | `MapLayers` JSON | `DEFAULT_MAP_LAYERS` | ✅ |
+| Monitor keywords | `worldmonitor-monitors` | `Monitor[]` JSON | `[]` | ✅ |
+| Disabled sources | `worldmonitor-disabled-feeds` | `string[]` JSON | `[]` | ✅ |
+| Active variant | `worldmonitor-variant` | Plain string | `SITE_VARIANT` | ✅ |
 | Banner dismissal | `banner-dismissed` (sessionStorage) | Timestamp string | — | Session only |
 
 ### 9.2 Variant Change Reset
 
-When the stored variant (`grid48-variant`) differs from the current `SITE_VARIANT`, the App constructor performs a full reset:
+When the stored variant (`worldmonitor-variant`) differs from the current `SITE_VARIANT`, the App constructor performs a full reset:
 
 ```typescript
 if (storedVariant !== currentVariant) {
-  localStorage.setItem('grid48-variant', currentVariant);
+  localStorage.setItem('worldmonitor-variant', currentVariant);
   localStorage.removeItem(STORAGE_KEYS.mapLayers);
   localStorage.removeItem(STORAGE_KEYS.panels);
   localStorage.removeItem(this.PANEL_ORDER_KEY);
@@ -608,7 +608,7 @@ if (storedVariant !== currentVariant) {
 }
 ```
 
-This ensures users switching between variant domains (e.g. from grid48.io to tech.grid48.io) get a clean default experience for the new variant.
+This ensures users switching between variant domains (e.g. from worldmonitor.io to tech.worldmonitor.io) get a clean default experience for the new variant.
 
 ### 9.3 Full Reset
 
@@ -721,7 +721,7 @@ Panels are destroyed when the App instance is torn down. The `Panel.destroy()` m
 
 ## 11. Adding a New Panel
 
-Step-by-step guide to adding a new panel to Grid 48.
+Step-by-step guide to adding a new panel to World Monitor.
 
 ### Step 1: Define the Panel Config
 
@@ -877,7 +877,7 @@ sequenceDiagram
     User->>SettingsModal: Click panel toggle
     SettingsModal->>App: panelKey identified
     App->>App: config.enabled = !config.enabled
-    App->>localStorage: saveToStorage('grid48-panels', panelSettings)
+    App->>localStorage: saveToStorage('worldmonitor-panels', panelSettings)
     App->>SettingsModal: renderPanelToggles() — update checkmarks
     App->>App: applyPanelSettings()
     loop For each panel
@@ -886,7 +886,7 @@ sequenceDiagram
     end
     Note over localStorage: Survives page reload
     User->>User: Refreshes page
-    App->>localStorage: loadFromStorage('grid48-panels')
+    App->>localStorage: loadFromStorage('worldmonitor-panels')
     App->>App: applyPanelSettings() with restored state
 ```
 

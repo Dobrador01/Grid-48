@@ -1,4 +1,4 @@
-﻿// Happy variant - happy.grid48.app
+﻿// Happy variant - happy.worldmonitor.app
 import type { PanelConfig } from '@/types';
 import type { VariantConfig } from './base';
 

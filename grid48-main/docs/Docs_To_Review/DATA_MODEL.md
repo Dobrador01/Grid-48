@@ -1,6 +1,6 @@
 # Data Model Reference
 
-Comprehensive data model documentation for **Grid 48** — an AI-powered real-time global intelligence dashboard. This reference covers all TypeScript interfaces, data structures, and their relationships across the system.
+Comprehensive data model documentation for **World Monitor** — an AI-powered real-time global intelligence dashboard. This reference covers all TypeScript interfaces, data structures, and their relationships across the system.
 
 > **Source of truth:** [`src/types/index.ts`](../src/types/index.ts) (1,297 lines, 60+ interfaces)
 
@@ -1606,7 +1606,7 @@ Panels persist their size and ordering in `localStorage`:
 
 | Key | Constant | Value Schema |
 |-----|----------|--------------|
-| `grid48-panel-spans` | `PANEL_SPANS_KEY` | `Record<string, number>` — panel ID → grid span (1–4) |
+| `worldmonitor-panel-spans` | `PANEL_SPANS_KEY` | `Record<string, number>` — panel ID → grid span (1–4) |
 | `panel-order` | `PANEL_ORDER_KEY` | `string[]` — ordered panel IDs |
 
 ### Span/Resize Logic
@@ -1668,10 +1668,10 @@ const REFRESH_INTERVALS = {
 };
 
 const STORAGE_KEYS = {
-  panels:        'grid48-panels',
-  monitors:      'grid48-monitors',
-  mapLayers:     'grid48-layers',
-  disabledFeeds: 'grid48-disabled-feeds',
+  panels:        'worldmonitor-panels',
+  monitors:      'worldmonitor-monitors',
+  mapLayers:     'worldmonitor-layers',
+  disabledFeeds: 'worldmonitor-disabled-feeds',
 } as const;
 ```
 
@@ -1793,7 +1793,7 @@ Combines a static baseline with four dynamic components to produce a real-time e
 
 **Source:** [`src/services/storage.ts`](../src/services/storage.ts) (230 lines)
 
-Database: `grid48_db`, version 1.
+Database: `worldmonitor_db`, version 1.
 
 #### Store: `baselines`
 
@@ -1859,7 +1859,7 @@ type CacheEnvelope<T> = {
 };
 ```
 
-- Key prefix: `grid48-persistent-cache:`
+- Key prefix: `worldmonitor-persistent-cache:`
 - Desktop runtime: Tauri `read_cache_entry` / `write_cache_entry` commands
 - Web runtime: `localStorage` fallback
 - Helper: `describeFreshness(updatedAt)` → `"just now" | "5m ago" | "2h ago" | "1d ago"`

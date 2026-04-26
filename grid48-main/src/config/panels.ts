@@ -896,8 +896,8 @@ export const MONITOR_COLORS = [
 ];
 
 export const STORAGE_KEYS = {
-  panels: 'grid48-panels',
-  monitors: 'grid48-monitors',
-  mapLayers: 'grid48-layers',
-  disabledFeeds: 'grid48-disabled-feeds',
+  panels: 'worldmonitor-panels',
+  monitors: 'worldmonitor-monitors',
+  mapLayers: 'worldmonitor-layers',
+  disabledFeeds: 'worldmonitor-disabled-feeds',
 } as const;

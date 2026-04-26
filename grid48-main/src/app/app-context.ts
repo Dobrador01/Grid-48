@@ -1,6 +1,6 @@
 import type { NewsItem, Monitor, PanelConfig, MapLayers, InternetOutage, SocialUnrestEvent, MilitaryFlight, MilitaryFlightCluster, MilitaryVessel, MilitaryVesselCluster, CyberThreat, USNIFleetReport } from '@/types';
 import type { AirportDelayAlert, PositionSample } from '@/services/aviation';
-import type { IranEvent } from '@/generated/client/grid48/conflict/v1/service_client';
+import type { IranEvent } from '@/generated/client/worldmonitor/conflict/v1/service_client';
 import type { SecurityAdvisory } from '@/services/security-advisories';
 import type { MapContainer, Panel, NewsPanel, SignalModal, StatusPanel, SearchModal } from '@/components';
 import type { MarketData, ClusteredEvent } from '@/types';

@@ -20,10 +20,10 @@
     "asFeaturedIn": "Zoals verschenen in"
   },
   "livePreview": {
-    "windowTitle": "grid48.app — Live Dashboard",
+    "windowTitle": "worldmonitor.app — Live Dashboard",
     "openFullScreen": "Volledig scherm openen",
     "tryLiveDashboard": "Probeer het Live Dashboard",
-    "iframeTitle": "Grid 48 — Live OSINT Dashboard",
+    "iframeTitle": "World Monitor — Live OSINT Dashboard",
     "description": "3D WebGL-globe · 45+ interactieve kaartlagen · Real-time geopolitieke, markt-, energie- en infrastructuurdata"
   },
   "socialProof": {
@@ -36,7 +36,7 @@
     "asToldTo": "verteld aan"
   },
   "dataCoverage": {
-    "title": "Wat Grid 48 volgt",
+    "title": "Wat World Monitor volgt",
     "subtitle": "22 servicedomeinen gelijktijdig verwerkt. Alles genormaliseerd, gelokaliseerd en weergegeven op een WebGL-globe met duizenden markers.",
     "geopolitical": "Geopolitieke gebeurtenissen",
     "geopoliticalDesc": "ACLED- & UCDP-gebeurtenissen met escalatiescoring en trendanalyse",
@@ -118,7 +118,7 @@
   "apiSection": {
     "apiTier": "API TIER",
     "title": "Programmatische inlichtingen",
-    "subtitle": "Voor ontwikkelaars, analisten en teams die bouwen op Grid 48-data. Los van Pro — gebruik beide of een van beide.",
+    "subtitle": "Voor ontwikkelaars, analisten en teams die bouwen op World Monitor-data. Los van Pro — gebruik beide of een van beide.",
     "restApi": "REST API voor alle 22 servicedomeinen",
     "authenticated": "Per sleutel geauthenticeerd, rate-limited per tier",
     "structured": "Gestructureerde JSON met cache-headers en OpenAPI 3.1-documentatie",
@@ -137,7 +137,7 @@
     "security": "Overheidswaardige beveiliging",
     "securityDesc": "Air-gapped deployment, on-premises Docker, dedicated cloud-tenant, SOC 2 Type II-traject, SSO/MFA en volledig audittrail.",
     "aiAgents": "AI-agents & MCP",
-    "aiAgentsDesc": "Autonome inlichtingenagents met beleggersprofielen. Verbind Grid 48 als tool met Claude, GPT of custom LLMs via MCP.",
+    "aiAgentsDesc": "Autonome inlichtingenagents met beleggersprofielen. Verbind World Monitor als tool met Claude, GPT of custom LLMs via MCP.",
     "dataLayers": "Uitgebreide datalagen",
     "dataLayersDesc": "Tienduizenden infrastructuurobjecten wereldwijd in kaart gebracht. Satellietbeeldintegratie met wijzigingsdetectie en SAR.",
     "connectors": "100+ dataconnectoren",
@@ -213,7 +213,7 @@
     "q3": "Wat is het verschil tussen API en Pro?",
     "a3": "Pro levert AI-briefings en alerts naar Slack, Telegram, WhatsApp en email. API geeft je programmatische REST-toegang voor je eigen code. Het zijn onafhankelijke tiers — gebruik beide of een van beide.",
     "q4": "Wat is MCP?",
-    "a4": "Model Context Protocol laat AI-agents (Claude, GPT of custom LLMs) Grid 48 als tool gebruiken — alle 22 services bevragen, kaartstatus uitlezen en analyses triggeren. Alleen Enterprise.",
+    "a4": "Model Context Protocol laat AI-agents (Claude, GPT of custom LLMs) World Monitor als tool gebruiken — alle 22 services bevragen, kaartstatus uitlezen en analyses triggeren. Alleen Enterprise.",
     "q5": "Kunnen we on-premises deployen?",
     "a5": "Enterprise omvat Docker-deployment, air-gapped modus met lokale Ollama AI, nul externe netwerkverbindingen, volledige auditlogging en dataresidentie-opties (EU, VS, MENA).",
     "q6": "Hoe snel is near-real-time?",
@@ -239,8 +239,8 @@
     "linkedin": "LinkedIn",
     "whatsapp": "WhatsApp",
     "telegram": "Telegram",
-    "shareText": "Ik heb me net ingeschreven voor de Grid 48 Pro-wachtlijst — real-time wereldwijde inlichtingen aangedreven door AI. Doe mee:",
-    "joinWaitlistShare": "Schrijf je in voor de Grid 48 Pro-wachtlijst:",
+    "shareText": "Ik heb me net ingeschreven voor de World Monitor Pro-wachtlijst — real-time wereldwijde inlichtingen aangedreven door AI. Doe mee:",
+    "joinWaitlistShare": "Schrijf je in voor de World Monitor Pro-wachtlijst:",
     "youreIn": "Je bent erbij!",
     "invitedBanner": "Je bent uitgenodigd — schrijf je in op de wachtlijst"
   }

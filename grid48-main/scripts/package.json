@@ -1,5 +1,5 @@
 {
-  "name": "grid48-railway-relay",
+  "name": "worldmonitor-railway-relay",
   "version": "1.1.0",
   "description": "Railway relay: AIS/OpenSky + RSS proxy + Telegram OSINT poller",
   "main": "ais-relay.cjs",

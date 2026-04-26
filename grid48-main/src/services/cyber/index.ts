@@ -2,7 +2,7 @@ import {
   CyberServiceClient,
   type CyberThreat as ProtoCyberThreat,
   type ListCyberThreatsResponse,
-} from '@/generated/client/grid48/cyber/v1/service_client';
+} from '@/generated/client/worldmonitor/cyber/v1/service_client';
 import type {
   CyberThreat,
   CyberThreatType,

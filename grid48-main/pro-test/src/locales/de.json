@@ -20,10 +20,10 @@
     "asFeaturedIn": "Bekannt aus"
   },
   "livePreview": {
-    "windowTitle": "grid48.app — Live-Dashboard",
+    "windowTitle": "worldmonitor.app — Live-Dashboard",
     "openFullScreen": "Vollbild öffnen",
     "tryLiveDashboard": "Live-Dashboard testen",
-    "iframeTitle": "Grid 48 — Live-OSINT-Dashboard",
+    "iframeTitle": "World Monitor — Live-OSINT-Dashboard",
     "description": "3D-WebGL-Globus · 45+ interaktive Kartenebenen · Geopolitische, Markt-, Energie- und Infrastrukturdaten in Echtzeit"
   },
   "socialProof": {
@@ -36,7 +36,7 @@
     "asToldTo": "im Gespräch mit"
   },
   "dataCoverage": {
-    "title": "Was Grid 48 erfasst",
+    "title": "Was World Monitor erfasst",
     "subtitle": "22 Servicebereiche werden gleichzeitig erfasst. Alles normalisiert, georeferenziert und auf einem WebGL-Globus mit Tausenden von Markern dargestellt.",
     "geopolitical": "Geopolitische Ereignisse",
     "geopoliticalDesc": "ACLED- & UCDP-Ereignisse mit Eskalationsbewertung und Trendanalyse",
@@ -137,7 +137,7 @@
     "security": "Sicherheit auf Regierungsniveau",
     "securityDesc": "Air-Gapped-Deployment, On-Premises-Docker, dedizierter Cloud-Mandant, SOC 2 Type II-Pfad, SSO/MFA und vollständiger Audit-Trail.",
     "aiAgents": "KI-Agenten & MCP",
-    "aiAgentsDesc": "Autonome Intelligence-Agenten mit Investoren-Personas. Verbinden Sie Grid 48 als Tool mit Claude, GPT oder eigenen LLMs über MCP.",
+    "aiAgentsDesc": "Autonome Intelligence-Agenten mit Investoren-Personas. Verbinden Sie World Monitor als Tool mit Claude, GPT oder eigenen LLMs über MCP.",
     "dataLayers": "Erweiterte Datenebenen",
     "dataLayersDesc": "Zehntausende Infrastruktur-Assets weltweit kartiert. Satellitenbildintegration mit Veränderungserkennung und SAR.",
     "connectors": "100+ Datenkonnektoren",
@@ -213,7 +213,7 @@
     "q3": "Was ist der Unterschied zwischen API und Pro?",
     "a3": "Pro liefert KI-Briefings und Alerts an Slack, Telegram, WhatsApp und Email. API bietet Ihnen programmatischen REST-Zugang für Ihren eigenen Code. Es sind unabhängige Tarife — nutzen Sie beide oder einen davon.",
     "q4": "Was ist MCP?",
-    "a4": "Das Model Context Protocol ermöglicht KI-Agenten (Claude, GPT oder eigene LLMs), Grid 48 als Tool zu nutzen — alle 22 Services abzufragen, den Kartenstatus zu lesen und Analysen auszulösen. Nur im Enterprise-Tarif.",
+    "a4": "Das Model Context Protocol ermöglicht KI-Agenten (Claude, GPT oder eigene LLMs), World Monitor als Tool zu nutzen — alle 22 Services abzufragen, den Kartenstatus zu lesen und Analysen auszulösen. Nur im Enterprise-Tarif.",
     "q5": "Können wir On-Premises deployen?",
     "a5": "Enterprise umfasst Docker-Deployment, Air-Gapped-Modus mit lokalem Ollama-KI, null externe Netzwerkaufrufe, vollständiges Audit-Logging und Datenresidenz-Optionen (EU, US, MENA).",
     "q6": "Wie schnell ist Nah-Echtzeit?",
@@ -239,8 +239,8 @@
     "linkedin": "LinkedIn",
     "whatsapp": "WhatsApp",
     "telegram": "Telegram",
-    "shareText": "Ich bin gerade der Grid 48 Pro-Warteliste beigetreten — globale Echtzeit-Intelligence mit KI. Mach mit:",
-    "joinWaitlistShare": "Tritt der Grid 48 Pro-Warteliste bei:",
+    "shareText": "Ich bin gerade der World Monitor Pro-Warteliste beigetreten — globale Echtzeit-Intelligence mit KI. Mach mit:",
+    "joinWaitlistShare": "Tritt der World Monitor Pro-Warteliste bei:",
     "youreIn": "Sie sind dabei!",
     "invitedBanner": "Sie wurden eingeladen — treten Sie der Warteliste bei"
   }

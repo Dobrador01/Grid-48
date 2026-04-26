@@ -1,7 +1,7 @@
 import {
   MarketServiceClient,
   type BacktestStockResponse,
-} from '@/generated/client/grid48/market/v1/service_client';
+} from '@/generated/client/worldmonitor/market/v1/service_client';
 
 const client = new MarketServiceClient('', {
   fetch: (...args: Parameters<typeof fetch>) => globalThis.fetch(...args),

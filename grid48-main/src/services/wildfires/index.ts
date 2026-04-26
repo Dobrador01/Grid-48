@@ -3,7 +3,7 @@ import {
   type FireDetection,
   type FireConfidence,
   type ListFireDetectionsResponse,
-} from '@/generated/client/grid48/wildfire/v1/service_client';
+} from '@/generated/client/worldmonitor/wildfire/v1/service_client';
 import { createCircuitBreaker } from '@/utils';
 import { getHydratedData } from '@/services/bootstrap';
 

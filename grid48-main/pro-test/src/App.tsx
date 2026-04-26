@@ -12,12 +12,12 @@ import {
   Landmark, Fuel
 } from 'lucide-react';
 import { t } from './i18n';
-import dashboardFallback from './assets/grid48-7-mar-2026.jpg';
+import dashboardFallback from './assets/worldmonitor-7-mar-2026.jpg';
 import wiredLogo from './assets/wired-logo.svg';
 
-const API_BASE = location.hostname === 'localhost' ? 'https://api.grid48.app' : '/api';
+const API_BASE = location.hostname === 'localhost' ? 'https://api.worldmonitor.app' : '/api';
 const TURNSTILE_SITE_KEY = '0x4AAAAAACnaYgHIyxclu8Tj';
-const PRO_URL = 'https://grid48.app/pro';
+const PRO_URL = 'https://worldmonitor.app/pro';
 
 declare global {
   interface Window {
@@ -154,7 +154,7 @@ const SlackIcon = () => (
 );
 
 const Logo = () => (
-  <a href="https://grid48.app" className="flex items-center gap-2 hover:opacity-80 transition-opacity" aria-label="Grid 48 — Home">
+  <a href="https://worldmonitor.app" className="flex items-center gap-2 hover:opacity-80 transition-opacity" aria-label="World Monitor — Home">
     <div className="relative w-8 h-8 rounded-full bg-wm-card border border-wm-border flex items-center justify-center overflow-hidden">
       <Globe className="w-5 h-5 text-wm-blue opacity-50 absolute" aria-hidden="true" />
       <Activity className="w-6 h-6 text-wm-green absolute z-10" aria-hidden="true" />
@@ -296,7 +296,7 @@ const Hero = () => (
         <div className="flex items-center justify-center gap-4 mt-4">
           <p className="text-xs text-wm-muted font-mono">{t('hero.launchingDate')}</p>
           <span className="text-wm-border">|</span>
-          <a href="https://grid48.app" className="text-xs text-wm-green font-mono hover:text-green-300 transition-colors flex items-center gap-1">
+          <a href="https://worldmonitor.app" className="text-xs text-wm-green font-mono hover:text-green-300 transition-colors flex items-center gap-1">
             {t('hero.tryFreeDashboard')} <ArrowRight className="w-3 h-3" aria-hidden="true" />
           </a>
         </div>
@@ -420,7 +420,7 @@ const LivePreview = () => (
           </div>
           <span className="font-mono text-xs text-wm-muted ml-2">{t('livePreview.windowTitle')}</span>
           <a
-            href="https://grid48.app"
+            href="https://worldmonitor.app"
             target="_blank"
             rel="noreferrer"
             className="ml-auto text-xs text-wm-green font-mono hover:text-green-300 transition-colors flex items-center gap-1"
@@ -431,11 +431,11 @@ const LivePreview = () => (
         <div className="relative aspect-[16/9] bg-black">
           <img
             src={dashboardFallback}
-            alt="Grid 48 Dashboard"
+            alt="World Monitor Dashboard"
             className="absolute inset-0 w-full h-full object-cover"
           />
           <iframe
-            src="https://grid48.app?alert=false"
+            src="https://worldmonitor.app?alert=false"
             title={t('livePreview.iframeTitle')}
             className="relative w-full h-full border-0"
             loading="lazy"
@@ -444,7 +444,7 @@ const LivePreview = () => (
           <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-wm-bg/80 via-transparent to-transparent" />
           <div className="absolute bottom-4 left-0 right-0 text-center pointer-events-auto">
             <a
-              href="https://grid48.app"
+              href="https://worldmonitor.app"
               target="_blank"
               rel="noreferrer"
               className="inline-flex items-center gap-2 bg-wm-green text-wm-bg px-6 py-3 rounded-sm font-mono text-sm uppercase tracking-wider font-bold hover:bg-green-400 transition-colors"
@@ -573,7 +573,7 @@ const ProShowcase = () => (
           <div className="w-3 h-3 rounded-full bg-red-500" />
           <div className="w-3 h-3 rounded-full bg-yellow-500" />
           <div className="w-3 h-3 rounded-full bg-green-500" />
-          <span className="ml-2 font-mono text-xs text-gray-400">#grid-48-alerts</span>
+          <span className="ml-2 font-mono text-xs text-gray-400">#world-monitor-alerts</span>
         </div>
         <div className="p-6 space-y-6 font-sans text-sm">
           <div className="flex gap-4">
@@ -582,7 +582,7 @@ const ProShowcase = () => (
             </div>
             <div>
               <div className="flex items-baseline gap-2 mb-1">
-                <span className="font-bold text-gray-200">Grid 48</span>
+                <span className="font-bold text-gray-200">World Monitor</span>
                 <span className="text-xs text-gray-500 bg-gray-800 px-1 rounded">APP</span>
                 <span className="text-xs text-gray-500">8:00 AM</span>
               </div>
@@ -649,12 +649,12 @@ const ApiSection = () => (
         <div className="bg-black border border-wm-border rounded-lg overflow-hidden font-mono text-sm">
           <div className="bg-wm-card px-4 py-2 border-b border-wm-border flex items-center gap-2">
             <Terminal className="w-4 h-4 text-wm-muted" aria-hidden="true" />
-            <span className="text-wm-muted text-xs">api.grid48.app</span>
+            <span className="text-wm-muted text-xs">api.worldmonitor.app</span>
           </div>
           <div className="p-6 text-gray-300 overflow-x-auto">
             <pre><code>
 <span className="text-wm-blue">curl</span> \<br/>
-  <span className="text-wm-green">"https://api.grid48.app/v1/intelligence/convergence?region=MENA&time_window=6h"</span> \<br/>
+  <span className="text-wm-green">"https://api.worldmonitor.app/v1/intelligence/convergence?region=MENA&time_window=6h"</span> \<br/>
   -H <span className="text-wm-green">"Authorization: Bearer wm_live_xxx"</span><br/><br/>
 <span className="text-wm-muted">{"{"}</span><br/>
   <span className="text-wm-blue">"status"</span>: <span className="text-wm-green">"success"</span>,<br/>
@@ -927,9 +927,9 @@ const Footer = () => (
         <Logo />
       </div>
       <div className="flex gap-6">
-        <a href="https://x.com/grid48ai" target="_blank" rel="noreferrer" aria-label="Follow Grid 48 on X" className="hover:text-wm-text transition-colors">X</a>
-        <a href="https://github.com/koala73/grid48" target="_blank" rel="noreferrer" aria-label="Grid 48 on GitHub" className="hover:text-wm-text transition-colors">GitHub</a>
-        <a href="https://www.wired.me/story/the-music-streaming-ceo-who-built-a-global-war-map" target="_blank" rel="noreferrer" aria-label="Read the WIRED article about Grid 48" className="hover:text-wm-text transition-colors">{t('footer.wiredArticle')}</a>
+        <a href="https://x.com/worldmonitorai" target="_blank" rel="noreferrer" aria-label="Follow World Monitor on X" className="hover:text-wm-text transition-colors">X</a>
+        <a href="https://github.com/koala73/worldmonitor" target="_blank" rel="noreferrer" aria-label="World Monitor on GitHub" className="hover:text-wm-text transition-colors">GitHub</a>
+        <a href="https://www.wired.me/story/the-music-streaming-ceo-who-built-a-global-war-map" target="_blank" rel="noreferrer" aria-label="Read the WIRED article about World Monitor" className="hover:text-wm-text transition-colors">{t('footer.wiredArticle')}</a>
       </div>
     </div>
   </footer>
@@ -1119,8 +1119,8 @@ const EnterprisePage = () => (
         </div>
         <div className="flex gap-6">
           <a href="#" onClick={(e) => { e.preventDefault(); window.location.hash = ''; }} className="hover:text-wm-text transition-colors">{t('nav.pro')}</a>
-          <a href="https://x.com/grid48ai" target="_blank" rel="noreferrer" aria-label="Follow Grid 48 on X" className="hover:text-wm-text transition-colors">X</a>
-          <a href="https://github.com/koala73/grid48" target="_blank" rel="noreferrer" className="hover:text-wm-text transition-colors">GitHub</a>
+          <a href="https://x.com/worldmonitorai" target="_blank" rel="noreferrer" aria-label="Follow World Monitor on X" className="hover:text-wm-text transition-colors">X</a>
+          <a href="https://github.com/koala73/worldmonitor" target="_blank" rel="noreferrer" className="hover:text-wm-text transition-colors">GitHub</a>
         </div>
       </div>
     </footer>

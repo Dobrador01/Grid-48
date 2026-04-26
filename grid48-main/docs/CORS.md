@@ -19,8 +19,8 @@ Both files use the same regex patterns:
 
 | Pattern | Matches |
 | --- | --- |
-| `(*.)?grid48.app` | Production + subdomains (`tech.`, `finance.`, etc.) |
-| `grid48-*-elie-*.vercel.app` | Vercel preview deploys |
+| `(*.)?worldmonitor.app` | Production + subdomains (`tech.`, `finance.`, etc.) |
+| `worldmonitor-*-elie-*.vercel.app` | Vercel preview deploys |
 | `localhost:*` / `127.0.0.1:*` | Local development |
 | `tauri.localhost:*` / `*.tauri.localhost:*` | Desktop app (Tauri v2) |
 | `tauri://localhost` / `asset://localhost` | Desktop app (Tauri v1 / asset protocol) |
@@ -81,7 +81,7 @@ Both implementations allow these request headers:
 
 - `Content-Type`
 - `Authorization`
-- `X-Grid48-Key` (API key for desktop/third-party access)
+- `X-WorldMonitor-Key` (API key for desktop/third-party access)
 
 To allow additional headers, update `Access-Control-Allow-Headers` in both files.
 

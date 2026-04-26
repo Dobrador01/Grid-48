@@ -1,6 +1,6 @@
 # Data Sources
 
-Comprehensive documentation of all data sources, feed tiers, and collection methods used by Grid 48.
+Comprehensive documentation of all data sources, feed tiers, and collection methods used by World Monitor.
 
 ---
 

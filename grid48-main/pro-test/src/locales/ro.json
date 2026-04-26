@@ -20,10 +20,10 @@
     "asFeaturedIn": "Așa cum a apărut în"
   },
   "livePreview": {
-    "windowTitle": "grid48.app — Panou live",
+    "windowTitle": "worldmonitor.app — Panou live",
     "openFullScreen": "Deschide pe ecran complet",
     "tryLiveDashboard": "Încearcă panoul live",
-    "iframeTitle": "Grid 48 — Panou OSINT live",
+    "iframeTitle": "World Monitor — Panou OSINT live",
     "description": "Glob 3D WebGL · 45+ straturi interactive de hartă · Date geopolitice, de piață, energetice și de infrastructură în timp real"
   },
   "socialProof": {
@@ -36,7 +36,7 @@
     "asToldTo": "declarat pentru"
   },
   "dataCoverage": {
-    "title": "Ce urmărește Grid 48",
+    "title": "Ce urmărește World Monitor",
     "subtitle": "22 domenii de servicii ingerate simultan. Totul normalizat, geolocalizat și redat pe un glob WebGL cu mii de marcatori.",
     "geopolitical": "Evenimente geopolitice",
     "geopoliticalDesc": "Evenimente ACLED și UCDP cu scor de escaladare și analiză de tendințe",
@@ -118,7 +118,7 @@
   "apiSection": {
     "apiTier": "API TIER",
     "title": "Informații programatice",
-    "subtitle": "Pentru dezvoltatori, analiști și echipe care construiesc pe datele Grid 48. Separat de Pro — folosește ambele sau oricare.",
+    "subtitle": "Pentru dezvoltatori, analiști și echipe care construiesc pe datele World Monitor. Separat de Pro — folosește ambele sau oricare.",
     "restApi": "REST API pentru toate cele 22 domenii de servicii",
     "authenticated": "Autentificat per cheie, limitat per tier",
     "structured": "JSON structurat cu headere de cache și documentație OpenAPI 3.1",
@@ -137,7 +137,7 @@
     "security": "Securitate de nivel guvernamental",
     "securityDesc": "Implementare air-gapped, Docker on-premises, tenant cloud dedicat, traiect SOC 2 Type II, SSO/MFA și jurnal de audit complet.",
     "aiAgents": "Agenți AI și MCP",
-    "aiAgentsDesc": "Agenți de informații autonomi cu profiluri de investitori. Conectează Grid 48 ca instrument la Claude, GPT sau LLM-uri personalizate prin MCP.",
+    "aiAgentsDesc": "Agenți de informații autonomi cu profiluri de investitori. Conectează World Monitor ca instrument la Claude, GPT sau LLM-uri personalizate prin MCP.",
     "dataLayers": "Straturi de date extinse",
     "dataLayersDesc": "Zeci de mii de active de infrastructură cartografiate global. Integrare imagini satelitare cu detectare de schimbări și SAR.",
     "connectors": "100+ conectori de date",
@@ -213,7 +213,7 @@
     "q3": "Care e diferența dintre API și Pro?",
     "a3": "Pro livrează briefinguri AI și alerte pe Slack, Telegram, WhatsApp și email. API îți oferă acces REST programatic pentru propriul tău cod. Sunt planuri independente — folosește ambele sau oricare.",
     "q4": "Ce este MCP?",
-    "a4": "Model Context Protocol permite agenților AI (Claude, GPT sau LLM-uri personalizate) să folosească Grid 48 ca instrument — interogând toate cele 22 servicii, citind starea hărții și declanșând analize. Doar Enterprise.",
+    "a4": "Model Context Protocol permite agenților AI (Claude, GPT sau LLM-uri personalizate) să folosească World Monitor ca instrument — interogând toate cele 22 servicii, citind starea hărții și declanșând analize. Doar Enterprise.",
     "q5": "Putem implementa on-premises?",
     "a5": "Enterprise include implementare Docker, mod air-gapped cu AI local Ollama, zero apeluri de rețea externe, jurnal de audit complet și opțiuni de rezidență a datelor (UE, SUA, MENA).",
     "q6": "Cât de rapid este aproape timp real?",
@@ -239,8 +239,8 @@
     "linkedin": "LinkedIn",
     "whatsapp": "WhatsApp",
     "telegram": "Telegram",
-    "shareText": "Tocmai m-am înscris pe lista de așteptare Grid 48 Pro — informații globale în timp real alimentate de AI. Alătură-te:",
-    "joinWaitlistShare": "Înscrie-te pe lista de așteptare Grid 48 Pro:",
+    "shareText": "Tocmai m-am înscris pe lista de așteptare World Monitor Pro — informații globale în timp real alimentate de AI. Alătură-te:",
+    "joinWaitlistShare": "Înscrie-te pe lista de așteptare World Monitor Pro:",
     "youreIn": "Ești înscris!",
     "invitedBanner": "Ai fost invitat — alătură-te listei de așteptare"
   }

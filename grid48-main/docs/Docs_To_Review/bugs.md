@@ -1,4 +1,4 @@
-# Grid 48 — Bug Registry
+# World Monitor — Bug Registry
 
 Bugs are prefixed with `BUG-` and a three-digit number.
 Each entry includes severity, description, affected files, and dependencies on other items.
@@ -87,7 +87,7 @@ Implement the pending live-stream detection using the `youtubei.js` library alre
 | **Depends on** | — |
 
 **Description**
-`PANEL_ORDER_MIGRATION_KEY` is `grid48-panel-order-v1.9` but the `console.log` says `"Migrated panel order to v1.8 layout"`.
+`PANEL_ORDER_MIGRATION_KEY` is `worldmonitor-panel-order-v1.9` but the `console.log` says `"Migrated panel order to v1.8 layout"`.
 This is confusing for anyone debugging migrations.
 
 **AI instructions**
@@ -121,7 +121,7 @@ Extract `layerToSource` to a shared constant (e.g., in `src/config/panels.ts`), 
 | **Depends on** | — |
 
 **Description**
-The Polymarket dev proxy targets `https://grid48.app` (the live production site).
+The Polymarket dev proxy targets `https://worldmonitor.app` (the live production site).
 This creates a circular dependency in dev → prod, means dev can break when prod is deploying, and masks local proxy bugs until they hit production.
 
 **AI instructions**

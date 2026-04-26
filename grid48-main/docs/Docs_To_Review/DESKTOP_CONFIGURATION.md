@@ -1,6 +1,6 @@
 # Desktop Runtime Configuration Schema
 
-Grid 48 desktop now uses a runtime configuration schema with per-feature toggles and secret-backed credentials.
+World Monitor desktop now uses a runtime configuration schema with per-feature toggles and secret-backed credentials.
 
 ## Secret keys
 
@@ -36,7 +36,7 @@ Each feature includes:
 
 ## Desktop secret storage
 
-Desktop builds persist secrets in OS credential storage through Tauri command bindings backed by Rust `keyring` entries (`grid-48` service namespace).
+Desktop builds persist secrets in OS credential storage through Tauri command bindings backed by Rust `keyring` entries (`world-monitor` service namespace).
 
 Secrets are **not stored in plaintext files** by the frontend.
 

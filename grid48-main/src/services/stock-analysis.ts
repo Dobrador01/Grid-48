@@ -2,7 +2,7 @@ import { MARKET_SYMBOLS } from '@/config';
 import {
   MarketServiceClient,
   type AnalyzeStockResponse,
-} from '@/generated/client/grid48/market/v1/service_client';
+} from '@/generated/client/worldmonitor/market/v1/service_client';
 import { getMarketWatchlistEntries } from '@/services/market-watchlist';
 
 const client = new MarketServiceClient('', {

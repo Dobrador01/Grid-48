@@ -1,7 +1,7 @@
 ﻿/**
  * GlobeMap - 3D interactive globe using globe.gl
  *
- * Matches Grid48's MapContainer API so it can be used as a drop-in
+ * Matches WorldMonitor's MapContainer API so it can be used as a drop-in
  * replacement within MapContainer when the user enables globe mode.
  *
  * Architecture mirrors Sentinel (sentinel.axonia.us):
@@ -42,7 +42,7 @@ type DisplacementFlow = any;
 import type { ClimateAnomaly } from '@/services/climate';
 import type { GpsJamHex } from '@/services/gps-interference';
 import type { SatellitePosition } from '@/services/satellites';
-import type { ImageryScene } from '@/generated/server/grid48/imagery/v1/service_server';
+import type { ImageryScene } from '@/generated/server/worldmonitor/imagery/v1/service_server';
 import { isAllowedPreviewUrl } from '@/utils/imagery-preview';
 
 const SAT_COUNTRY_COLORS: Record<string, string> = { CN: '#ff2020', RU: '#ff8800', US: '#4488ff', EU: '#44cc44', KR: '#aa66ff', IN: '#ff66aa', TR: '#ff4466', OTHER: '#ccccff' };

@@ -5,7 +5,7 @@
  */
 
 import type { HappyContentCategory } from './positive-classifier';
-import { PositiveEventsServiceClient } from '@/generated/client/grid48/positive_events/v1/service_client';
+import { PositiveEventsServiceClient } from '@/generated/client/worldmonitor/positive_events/v1/service_client';
 import { inferGeoHubsFromTitle } from './geo-hub-index';
 import { createCircuitBreaker } from '@/utils';
 

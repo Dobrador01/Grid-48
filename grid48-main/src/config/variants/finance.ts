@@ -1,4 +1,4 @@
-﻿// Finance/Trading variant - finance.grid48.app
+﻿// Finance/Trading variant - finance.worldmonitor.app
 import type { PanelConfig } from '@/types';
 import type { VariantConfig } from './base';
 

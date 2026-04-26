@@ -20,10 +20,10 @@
     "asFeaturedIn": "Yayınlandığı yer"
   },
   "livePreview": {
-    "windowTitle": "grid48.app — Canlı Panel",
+    "windowTitle": "worldmonitor.app — Canlı Panel",
     "openFullScreen": "Tam ekranda aç",
     "tryLiveDashboard": "Canlı paneli deneyin",
-    "iframeTitle": "Grid 48 — Canlı OSINT Paneli",
+    "iframeTitle": "World Monitor — Canlı OSINT Paneli",
     "description": "3D WebGL küre · 45+ etkileşimli harita katmanı · Gerçek zamanlı jeopolitik, piyasa, enerji ve altyapı verileri"
   },
   "socialProof": {
@@ -36,7 +36,7 @@
     "asToldTo": "röportaj:"
   },
   "dataCoverage": {
-    "title": "Grid 48 ne takip eder",
+    "title": "World Monitor ne takip eder",
     "subtitle": "22 hizmet alanı eşzamanlı olarak işlenir. Her şey normalleştirilir, coğrafi konumlandırılır ve binlerce işaretçi ile WebGL küre üzerinde görselleştirilir.",
     "geopolitical": "Jeopolitik Olaylar",
     "geopoliticalDesc": "Tırmanma puanlaması ve trend analizi ile ACLED & UCDP olayları",
@@ -118,7 +118,7 @@
   "apiSection": {
     "apiTier": "API SEVİYESİ",
     "title": "Programatik istihbarat",
-    "subtitle": "Grid 48 verileri üzerine inşa eden geliştiriciler, analistler ve ekipler için. Pro'dan bağımsız — ikisini birlikte veya ayrı kullanın.",
+    "subtitle": "World Monitor verileri üzerine inşa eden geliştiriciler, analistler ve ekipler için. Pro'dan bağımsız — ikisini birlikte veya ayrı kullanın.",
     "restApi": "22 hizmet alanının tamamında REST API",
     "authenticated": "Anahtar bazında kimlik doğrulama, seviye bazında hız sınırı",
     "structured": "Cache header'ları ve OpenAPI 3.1 dokümantasyonu ile yapılandırılmış JSON",
@@ -137,7 +137,7 @@
     "security": "Devlet düzeyinde güvenlik",
     "securityDesc": "Air-gapped dağıtım, Docker on-premises, özel bulut kiracısı, SOC 2 Type II yolu, SSO/MFA ve tam denetim izi.",
     "aiAgents": "AI Ajanlar & MCP",
-    "aiAgentsDesc": "Yatırımcı profilleri ile otonom istihbarat ajanları. Grid 48'ü Claude, GPT veya özel LLM'lere MCP aracılığıyla bir araç olarak bağlayın.",
+    "aiAgentsDesc": "Yatırımcı profilleri ile otonom istihbarat ajanları. World Monitor'ü Claude, GPT veya özel LLM'lere MCP aracılığıyla bir araç olarak bağlayın.",
     "dataLayers": "Genişletilmiş veri katmanları",
     "dataLayersDesc": "Küresel ölçekte haritalanmış on binlerce altyapı varlığı. Değişiklik tespiti ve SAR ile uydu görüntü entegrasyonu.",
     "connectors": "100+ veri bağlayıcısı",
@@ -213,7 +213,7 @@
     "q3": "API ile Pro arasındaki fark nedir?",
     "a3": "Pro, AI brifingleri ve uyarıları Slack, Telegram, WhatsApp ve e-posta ile iletir. API, kendi kodunuz için programatik REST erişimi sağlar. Bağımsız seviyelerdir — ikisini birlikte veya ayrı kullanın.",
     "q4": "MCP nedir?",
-    "a4": "Model Context Protocol, AI ajanların (Claude, GPT veya özel LLM'ler) Grid 48'ü bir araç olarak kullanmasını sağlar — 22 hizmetin tamamını sorgulama, harita durumunu okuma ve analiz tetikleme. Yalnızca Enterprise.",
+    "a4": "Model Context Protocol, AI ajanların (Claude, GPT veya özel LLM'ler) World Monitor'ü bir araç olarak kullanmasını sağlar — 22 hizmetin tamamını sorgulama, harita durumunu okuma ve analiz tetikleme. Yalnızca Enterprise.",
     "q5": "On-premises kurulum yapabilir miyiz?",
     "a5": "Enterprise; Docker dağıtımı, yerel Ollama AI ile air-gapped mod, sıfır harici ağ çağrısı, tam denetim günlüğü ve veri ikamet seçenekleri (AB, ABD, MENA) içerir.",
     "q6": "Neredeyse gerçek zamanlı ne kadar hızlı?",
@@ -239,8 +239,8 @@
     "linkedin": "LinkedIn",
     "whatsapp": "WhatsApp",
     "telegram": "Telegram",
-    "shareText": "Grid 48 Pro bekleme listesine katıldım — AI destekli gerçek zamanlı küresel istihbarat. Siz de katılın:",
-    "joinWaitlistShare": "Grid 48 Pro bekleme listesine katılın:",
+    "shareText": "World Monitor Pro bekleme listesine katıldım — AI destekli gerçek zamanlı küresel istihbarat. Siz de katılın:",
+    "joinWaitlistShare": "World Monitor Pro bekleme listesine katılın:",
     "youreIn": "Kayıt oldunuz!",
     "invitedBanner": "Davet edildiniz — bekleme listesine katılın"
   }

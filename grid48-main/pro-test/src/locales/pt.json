@@ -20,10 +20,10 @@
     "asFeaturedIn": "Como destaque em"
   },
   "livePreview": {
-    "windowTitle": "grid48.app — Painel ao vivo",
+    "windowTitle": "worldmonitor.app — Painel ao vivo",
     "openFullScreen": "Abrir em tela cheia",
     "tryLiveDashboard": "Experimentar o painel ao vivo",
-    "iframeTitle": "Grid 48 — Painel OSINT ao vivo",
+    "iframeTitle": "World Monitor — Painel OSINT ao vivo",
     "description": "Globo WebGL 3D · 45+ camadas de mapa interativas · Dados geopoliticos, de mercado, energia e infraestrutura em tempo real"
   },
   "socialProof": {
@@ -36,7 +36,7 @@
     "asToldTo": "conforme contado a"
   },
   "dataCoverage": {
-    "title": "O que o Grid 48 rastreia",
+    "title": "O que o World Monitor rastreia",
     "subtitle": "22 dominios de servico ingeridos simultaneamente. Tudo normalizado, geolocalizado e renderizado em um globo WebGL com milhares de marcadores.",
     "geopolitical": "Eventos geopoliticos",
     "geopoliticalDesc": "Eventos ACLED & UCDP com pontuacao de escalada e analise de tendencias",
@@ -118,7 +118,7 @@
   "apiSection": {
     "apiTier": "PLANO API",
     "title": "Inteligencia programatica",
-    "subtitle": "Para desenvolvedores, analistas e equipes que constroem sobre dados do Grid 48. Independente do Pro — use ambos ou qualquer um.",
+    "subtitle": "Para desenvolvedores, analistas e equipes que constroem sobre dados do World Monitor. Independente do Pro — use ambos ou qualquer um.",
     "restApi": "API REST em todos os 22 dominios de servico",
     "authenticated": "Autenticacao por chave, limitacao de taxa por plano",
     "structured": "JSON estruturado com headers de cache e documentacao OpenAPI 3.1",
@@ -137,7 +137,7 @@
     "security": "Seguranca de nivel governamental",
     "securityDesc": "Deploy air-gapped, Docker on-premises, tenant cloud dedicado, caminho SOC 2 Type II, SSO/MFA e trilha de auditoria completa.",
     "aiAgents": "Agentes IA & MCP",
-    "aiAgentsDesc": "Agentes de inteligencia autonomos com personas de investidor. Conecte o Grid 48 como ferramenta ao Claude, GPT ou LLMs personalizados via MCP.",
+    "aiAgentsDesc": "Agentes de inteligencia autonomos com personas de investidor. Conecte o World Monitor como ferramenta ao Claude, GPT ou LLMs personalizados via MCP.",
     "dataLayers": "Camadas de dados expandidas",
     "dataLayersDesc": "Dezenas de milhares de ativos de infraestrutura mapeados globalmente. Integracao de imagens de satelite com deteccao de mudancas e SAR.",
     "connectors": "100+ conectores de dados",
@@ -213,7 +213,7 @@
     "q3": "Qual a diferenca entre API e Pro?",
     "a3": "O Pro entrega briefings IA e alertas no Slack, Telegram, WhatsApp e email. A API oferece acesso REST programatico para seu proprio codigo. Sao planos independentes — use ambos ou qualquer um.",
     "q4": "O que e MCP?",
-    "a4": "O Model Context Protocol permite que agentes IA (Claude, GPT ou LLMs personalizados) usem o Grid 48 como ferramenta — consultando todos os 22 servicos, lendo o estado do mapa e acionando analises. Apenas Enterprise.",
+    "a4": "O Model Context Protocol permite que agentes IA (Claude, GPT ou LLMs personalizados) usem o World Monitor como ferramenta — consultando todos os 22 servicos, lendo o estado do mapa e acionando analises. Apenas Enterprise.",
     "q5": "Podemos fazer deploy on-premises?",
     "a5": "O Enterprise inclui deploy Docker, modo air-gapped com IA local Ollama, zero chamadas de rede externas, logging de auditoria completo e opcoes de residencia de dados (UE, US, MENA).",
     "q6": "Quao rapido e o quase tempo real?",
@@ -239,8 +239,8 @@
     "linkedin": "LinkedIn",
     "whatsapp": "WhatsApp",
     "telegram": "Telegram",
-    "shareText": "Acabei de entrar na lista de espera do Grid 48 Pro — inteligencia global em tempo real com IA. Junte-se a mim:",
-    "joinWaitlistShare": "Entre na lista de espera do Grid 48 Pro:",
+    "shareText": "Acabei de entrar na lista de espera do World Monitor Pro — inteligencia global em tempo real com IA. Junte-se a mim:",
+    "joinWaitlistShare": "Entre na lista de espera do World Monitor Pro:",
     "youreIn": "Voce esta na lista!",
     "invitedBanner": "Voce foi convidado — entre na lista de espera"
   }

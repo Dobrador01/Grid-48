@@ -1,4 +1,4 @@
-# Component Documentation — Grid 48
+# Component Documentation — World Monitor
 
 > Auto-generated reference for all UI components in `src/components/`.
 > Last updated: 2026-02-19
@@ -35,7 +35,7 @@
 
 ## Overview
 
-Grid 48's UI is built entirely with **vanilla TypeScript** — no React, Vue, or
+World Monitor's UI is built entirely with **vanilla TypeScript** — no React, Vue, or
 Angular. Every component is a plain ES class that owns its own DOM subtree and
 communicates through method calls, callbacks, and a handful of
 `document`/`window`-level custom events.
@@ -159,7 +159,7 @@ div.panel#${id}                       ← root
 ### Persistence
 
 Panel **span sizes** (user-resized heights) are stored in
-`localStorage['grid48-panel-spans']` as a JSON map of `{ [id]: height }`.
+`localStorage['worldmonitor-panel-spans']` as a JSON map of `{ [id]: height }`.
 
 ### Services
 
@@ -175,7 +175,7 @@ None — `Panel` is a pure base class and renders identically in all variants.
 
 ## Map System
 
-Grid 48 ships two independent map renderers and an adapter that picks the
+World Monitor ships two independent map renderers and an adapter that picks the
 right one at runtime.
 
 ### DeckGLMap
@@ -548,7 +548,7 @@ conflict > hotspot > country > infrastructure > tech
 
 #### Persistence
 
-Recent selections stored in `localStorage['grid48_recent_searches']`
+Recent selections stored in `localStorage['worldmonitor_recent_searches']`
 (most recent 10).
 
 #### DOM Structure

@@ -100,15 +100,15 @@ Indexed by `normalizedEmail` for duplicate detection.
 
 ### Server-side (Vercel edge)
 
-- `api/_api-key.js` validates `X-Grid48-Key` header on sebuf routes
+- `api/_api-key.js` validates `X-WorldMonitor-Key` header on sebuf routes
 - **Origin-aware**: desktop origins (`tauri.localhost`, `tauri://`, `asset://`) require a key
-- Web origins (`grid48.app`) pass through without a key
+- Web origins (`worldmonitor.app`) pass through without a key
 - Non-desktop origin with key header: key is still validated
 - Invalid key returns `401 { error: "Invalid API key" }`
 
 ### CORS
 
-`X-Grid48-Key` is allowed in both `server/cors.ts` and `api/_cors.js`.
+`X-WorldMonitor-Key` is allowed in both `server/cors.ts` and `api/_cors.js`.
 
 ## Verification Checklist
 
@@ -134,7 +134,7 @@ After deployment:
 | `api/_api-key.js` | Server-side key validation (origin-aware) |
 | `api/[domain]/v1/[rpc].ts` | Sebuf gateway — calls `validateApiKey` |
 | `api/register-interest.js` | Registration endpoint → Convex |
-| `server/cors.ts` / `api/_cors.js` | CORS headers with `X-Grid48-Key` |
-| `src/components/Grid48Tab.ts` | Settings UI for key + registration |
+| `server/cors.ts` / `api/_cors.js` | CORS headers with `X-WorldMonitor-Key` |
+| `src/components/WorldMonitorTab.ts` | Settings UI for key + registration |
 | `convex/schema.ts` | Convex DB schema |
 | `convex/registerInterest.ts` | Convex mutation |

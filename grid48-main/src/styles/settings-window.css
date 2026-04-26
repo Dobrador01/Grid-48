@@ -875,7 +875,7 @@ tr.diag-ok td { color: var(--settings-text-secondary); }
 tr.diag-warn td { color: var(--settings-yellow); }
 tr.diag-err td { color: var(--settings-red); }
 
-/* ── Grid 48 / Overview styles ── */
+/* ── World Monitor / Overview styles ── */
 .wm-tab {
   max-width: 600px;
   margin: 0 auto;

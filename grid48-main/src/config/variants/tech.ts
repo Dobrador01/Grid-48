@@ -1,4 +1,4 @@
-﻿// Tech/AI variant - tech.grid48.app
+﻿// Tech/AI variant - tech.worldmonitor.app
 import type { PanelConfig } from '@/types';
 import type { VariantConfig } from './base';
 

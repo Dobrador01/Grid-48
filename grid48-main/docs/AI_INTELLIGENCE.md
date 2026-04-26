@@ -1,6 +1,6 @@
 # AI Intelligence
 
-LLM chains, RAG pipelines, threat classification, deduction engines, and browser-side ML used in Grid 48.
+LLM chains, RAG pipelines, threat classification, deduction engines, and browser-side ML used in World Monitor.
 
 ## AI Summarization
 

@@ -11,7 +11,7 @@ import {
   type ListCryptoQuotesResponse,
   type MarketQuote as ProtoMarketQuote,
   type CryptoQuote as ProtoCryptoQuote,
-} from '@/generated/client/grid48/market/v1/service_client';
+} from '@/generated/client/worldmonitor/market/v1/service_client';
 import type { MarketData, CryptoData } from '@/types';
 import { createCircuitBreaker } from '@/utils';
 import { getHydratedData } from '@/services/bootstrap';

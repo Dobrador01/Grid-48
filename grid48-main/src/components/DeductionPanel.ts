@@ -1,5 +1,5 @@
 import { Panel } from './Panel';
-import { IntelligenceServiceClient } from '@/generated/client/grid48/intelligence/v1/service_client';
+import { IntelligenceServiceClient } from '@/generated/client/worldmonitor/intelligence/v1/service_client';
 import { h, replaceChildren } from '@/utils/dom-utils';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';

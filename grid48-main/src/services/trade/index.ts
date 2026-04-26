@@ -13,7 +13,7 @@ import {
   type TariffDataPoint,
   type TradeFlowRecord,
   type TradeBarrier,
-} from '@/generated/client/grid48/trade/v1/service_client';
+} from '@/generated/client/worldmonitor/trade/v1/service_client';
 import { createCircuitBreaker } from '@/utils';
 import { isFeatureAvailable } from '../runtime-config';
 

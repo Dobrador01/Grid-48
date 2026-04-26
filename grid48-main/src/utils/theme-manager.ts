@@ -3,7 +3,7 @@ import { invalidateColorCache } from './theme-colors';
 export type Theme = 'dark' | 'light';
 export type ThemePreference = 'auto' | 'dark' | 'light';
 
-const STORAGE_KEY = 'grid48-theme';
+const STORAGE_KEY = 'worldmonitor-theme';
 const DEFAULT_THEME: Theme = 'dark';
 
 /**

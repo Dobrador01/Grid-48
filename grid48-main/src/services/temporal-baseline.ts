@@ -1,4 +1,4 @@
-import { InfrastructureServiceClient, type TemporalAnomalyProto } from '@/generated/client/grid48/infrastructure/v1/service_client';
+import { InfrastructureServiceClient, type TemporalAnomalyProto } from '@/generated/client/worldmonitor/infrastructure/v1/service_client';
 import { getHydratedData } from '@/services/bootstrap';
 
 export type TemporalEventType =
