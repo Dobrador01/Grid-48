@@ -422,6 +422,14 @@ export class PanelLayoutManager implements AppModule {
       this.ctx.panels['celesc-status'] = widget;
     }
 
+    if (this.shouldCreatePanel('tactical-status')) {
+      import('@/components/TacticalStatusPanel').then(m => {
+        const widget = new m.TacticalStatusPanel();
+        widget.mount(); // Starts polling
+        this.ctx.panels['tactical-status'] = widget;
+      });
+    }
+
     // Injeção Prioritária O(1) do Beacon Widget (Light Mode Transparente) no topo.
     import('@/components/BeaconStatusWidget').then(m => {
       const beaconWidget = new m.BeaconStatusWidget();

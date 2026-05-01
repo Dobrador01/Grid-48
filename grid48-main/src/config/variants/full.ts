@@ -1,4 +1,4 @@
-﻿// Full geopolitical variant - worldmonitor.app
+// Full geopolitical variant - worldmonitor.app
 import type { PanelConfig } from '@/types';
 import type { VariantConfig } from './base';
 
@@ -24,6 +24,7 @@ export const DEFAULT_PANELS: Record<string, PanelConfig> = {
   cii: { name: 'Country Instability', enabled: true, priority: 1 },
   cascade: { name: 'Infrastructure Cascade', enabled: true, priority: 1 },
   'strategic-risk': { name: 'Strategic Risk Overview', enabled: true, priority: 1 },
+  'tactical-status': { name: 'Comando & Controle', enabled: true, priority: 1 },
   politics: { name: 'World News', enabled: true, priority: 1 },
   us: { name: 'United States', enabled: true, priority: 1 },
   europe: { name: 'Europe', enabled: true, priority: 1 },
