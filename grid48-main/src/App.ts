@@ -39,6 +39,7 @@ export type { CountryBriefSignals } from '@/app/app-context';
 
 export class App {
   private state: AppContext;
+  private containerId: string;
   private pendingDeepLinkCountry: string | null = null;
   private pendingDeepLinkExpanded = false;
   private pendingDeepLinkStoryCode: string | null = null;
@@ -55,6 +56,7 @@ export class App {
   private unsubAiFlow: (() => void) | null = null;
 
   constructor(containerId: string) {
+    this.containerId = containerId;
     const el = document.getElementById(containerId);
     if (!el) throw new Error(`Container ${containerId} not found`);
 
@@ -479,12 +481,12 @@ export class App {
 
     // Mount HUD widgets independently (must not depend on adapter success)
     import('@/components/HealthWidget').then(({ HealthWidget }) => {
-      const widget = new HealthWidget(containerId);
+      const widget = new HealthWidget(this.containerId);
       widget.mount();
     }).catch((err) => console.error('[App] HealthWidget failed to mount:', err));
 
     import('@/components/SitrepButton').then(({ SitrepButton }) => {
-      const btn = new SitrepButton(containerId);
+      const btn = new SitrepButton(this.containerId);
       btn.mount();
     }).catch((err) => console.error('[App] SitrepButton failed to mount:', err));
 
