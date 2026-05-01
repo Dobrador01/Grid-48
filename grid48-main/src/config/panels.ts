@@ -1,4 +1,4 @@
-﻿import type { PanelConfig } from '@/types';
+import type { PanelConfig } from '@/types';
 import type { DataSourceId } from '@/services/data-freshness';
 import { SITE_VARIANT } from './variant';
 import { isDesktopRuntime } from '@/services/runtime';
@@ -13,6 +13,7 @@ const _desktop = isDesktopRuntime();
 const FULL_PANELS: Record<string, PanelConfig> = {
   map: { name: 'Mapa â€” Grande FlorianÃ³polis', enabled: true, priority: 1 },
   'celesc-status': { name: 'Celesc Status', enabled: true, priority: 1 },
+  'tactical-status': { name: 'Comando & Controle', enabled: true, priority: 1 },
   insights: { name: 'AI Insights', enabled: true, priority: 1 },
   'strategic-posture': { name: 'AI Strategic Posture', enabled: true, priority: 1 },
   'strategic-risk': { name: 'Strategic Risk Overview', enabled: true, priority: 1, ...(_desktop && { premium: 'enhanced' as const }) },
@@ -791,7 +792,7 @@ export const PANEL_CATEGORY_MAP: Record<string, { labelKey: string; panelKeys: s
   // All variants â€” essential panels
   core: {
     labelKey: 'header.panelCatCore',
-    panelKeys: ['map', 'insights', 'strategic-posture'],
+    panelKeys: ['map', 'celesc-status', 'tactical-status', 'insights', 'strategic-posture'],
   },
 
   // Full (geopolitical) variant
