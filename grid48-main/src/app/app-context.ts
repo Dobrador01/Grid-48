@@ -2,7 +2,7 @@ import type { NewsItem, Monitor, PanelConfig, MapLayers, InternetOutage, SocialU
 import type { AirportDelayAlert, PositionSample } from '@/services/aviation';
 import type { IranEvent } from '@/generated/client/worldmonitor/conflict/v1/service_client';
 import type { SecurityAdvisory } from '@/services/security-advisories';
-import type { MapContainer, Panel, NewsPanel, SignalModal, StatusPanel, SearchModal } from '@/components';
+import type { MapContainer, Panel, SignalModal, StatusPanel, SearchModal } from '@/components';
 import type { MarketData, ClusteredEvent } from '@/types';
 import type { PredictionMarket } from '@/services/prediction';
 import type { TimeRange } from '@/components';
@@ -74,14 +74,12 @@ export interface AppContext {
   readonly container: HTMLElement;
 
   panels: Record<string, Panel>;
-  newsPanels: Record<string, NewsPanel>;
-  panelSettings: Record<string, PanelConfig>;
+    panelSettings: Record<string, PanelConfig>;
 
   mapLayers: MapLayers;
 
   allNews: NewsItem[];
-  newsByCategory: Record<string, NewsItem[]>;
-  latestMarkets: MarketData[];
+    latestMarkets: MarketData[];
   latestPredictions: PredictionMarket[];
   latestClusters: ClusteredEvent[];
   intelligenceCache: IntelligenceCache;

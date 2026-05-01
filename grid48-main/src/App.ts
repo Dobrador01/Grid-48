@@ -22,7 +22,6 @@ import { trackEvent, trackDeeplinkOpened } from '@/services/analytics';
 import { preloadCountryGeometry, getCountryNameByCode } from '@/services/country-geometry';
 import { initI18n } from '@/services/i18n';
 
-import { computeDefaultDisabledSources, getLocaleBoostedSources, getTotalFeedCount } from '@/config/feeds';
 import { fetchBootstrapData } from '@/services/bootstrap';
 import { DesktopUpdater } from '@/app/desktop-updater';
 import { CountryIntelManager } from '@/app/country-intel';
@@ -211,17 +210,17 @@ export class App {
     if (currentVariant === 'full') {
       const baseKey = 'grid48-sources-reduction-v3';
       if (!localStorage.getItem(baseKey)) {
-        const defaultDisabled = computeDefaultDisabledSources();
+        const defaultDisabled = new Set();
         saveToStorage(STORAGE_KEYS.disabledFeeds, defaultDisabled);
         localStorage.setItem(baseKey, 'done');
-        const total = getTotalFeedCount();
+        const total = 0;
         console.log(`[App] Sources reduction: ${defaultDisabled.length} disabled, ${total - defaultDisabled.length} enabled`);
       }
       // Locale boost: additively enable locale-matched sources (runs once per locale)
       const userLang = ((navigator.language ?? 'en').split('-')[0] ?? 'en').toLowerCase();
       const localeKey = `grid48-locale-boost-${userLang}`;
       if (userLang !== 'en' && !localStorage.getItem(localeKey)) {
-        const boosted = getLocaleBoostedSources(userLang);
+        const boosted = [];
         if (boosted.size > 0) {
           const current = loadFromStorage<string[]>(STORAGE_KEYS.disabledFeeds, []);
           const updated = current.filter(name => !boosted.has(name));

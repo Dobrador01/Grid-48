@@ -5,7 +5,6 @@
  */
 
 import type { NewsItem, ClusteredEvent } from '@/types';
-import { getSourceTier } from '@/config';
 import { clusterNewsCore } from './analysis-core';
 import { mlWorker } from './ml-worker';
 import { ML_THRESHOLDS } from '@/config/ml-config';
@@ -83,8 +82,8 @@ function mergeSemanticallySimilarClusters(
     // Merge multiple clusters into one
     // Use the cluster with the highest-tier primary source as the base
     const sortedByTier = [...groupClusters].sort((a, b) => {
-      const tierA = getSourceTier(a.primarySource);
-      const tierB = getSourceTier(b.primarySource);
+      const tierA = 3;
+      const tierB = 3;
       if (tierA !== tierB) return tierA - tierB;
       return b.lastUpdated.getTime() - a.lastUpdated.getTime();
     });

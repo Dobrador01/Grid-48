@@ -1,4 +1,3 @@
-import { FEEDS, INTEL_SOURCES, SOURCE_REGION_MAP } from '@/config/feeds';
 import { PANEL_CATEGORY_MAP } from '@/config/panels';
 import { SITE_VARIANT } from '@/config/variant';
 import { t } from '@/services/i18n';
@@ -12,24 +11,18 @@ const GEAR_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14"
 export interface UnifiedSettingsConfig {
   getPanelSettings: () => Record<string, PanelConfig>;
   savePanelSettings: (panels: Record<string, PanelConfig>) => void;
-  getDisabledSources: () => Set<string>;
-  toggleSource: (name: string) => void;
-  setSourcesEnabled: (names: string[], enabled: boolean) => void;
-  getAllSourceNames: () => string[];
   getLocalizedPanelName: (key: string, fallback: string) => string;
   resetLayout: () => void;
   isDesktopApp: boolean;
   onMapProviderChange?: (provider: MapProvider) => void;
 }
 
-type TabId = 'settings' | 'panels' | 'sources';
+type TabId = 'settings' | 'panels';
 
 export class UnifiedSettings {
   private overlay: HTMLElement;
   private config: UnifiedSettingsConfig;
   private activeTab: TabId = 'settings';
-  private activeSourceRegion = 'all';
-  private sourceFilter = '';
   private activePanelCategory = 'all';
   private panelFilter = '';
   private escapeHandler: (e: KeyboardEvent) => void;
@@ -98,42 +91,6 @@ export class UnifiedSettings {
         this.toggleDraftPanel(panelItem.dataset.panel);
         return;
       }
-
-      const sourceItem = target.closest<HTMLElement>('.source-toggle-item');
-      if (sourceItem?.dataset.source) {
-        this.config.toggleSource(sourceItem.dataset.source);
-        this.renderSourcesGrid();
-        this.updateSourcesCounter();
-        return;
-      }
-
-      const pill = target.closest<HTMLElement>('.unified-settings-region-pill');
-      if (pill?.dataset.region) {
-        this.activeSourceRegion = pill.dataset.region;
-        this.sourceFilter = '';
-        const searchInput = this.overlay.querySelector<HTMLInputElement>('.sources-search input');
-        if (searchInput) searchInput.value = '';
-        this.renderRegionPills();
-        this.renderSourcesGrid();
-        this.updateSourcesCounter();
-        return;
-      }
-
-      if (target.closest('.sources-select-all')) {
-        const visible = this.getVisibleSourceNames();
-        this.config.setSourcesEnabled(visible, true);
-        this.renderSourcesGrid();
-        this.updateSourcesCounter();
-        return;
-      }
-
-      if (target.closest('.sources-select-none')) {
-        const visible = this.getVisibleSourceNames();
-        this.config.setSourcesEnabled(visible, false);
-        this.renderSourcesGrid();
-        this.updateSourcesCounter();
-        return;
-      }
     });
 
     this.overlay.addEventListener('input', (e) => {
@@ -141,10 +98,6 @@ export class UnifiedSettings {
       if (target.closest('.panels-search')) {
         this.panelFilter = target.value;
         this.renderPanelsTab();
-      } else if (target.closest('.sources-search')) {
-        this.sourceFilter = target.value;
-        this.renderSourcesGrid();
-        this.updateSourcesCounter();
       }
     });
 
@@ -211,7 +164,6 @@ export class UnifiedSettings {
         <div class="unified-settings-tabs" role="tablist" aria-label="Settings">
           <button class="${tabClass('settings')}" data-tab="settings" role="tab" aria-selected="${this.activeTab === 'settings'}" id="us-tab-settings" aria-controls="us-tab-panel-settings">${t('header.tabSettings')}</button>
           <button class="${tabClass('panels')}" data-tab="panels" role="tab" aria-selected="${this.activeTab === 'panels'}" id="us-tab-panels" aria-controls="us-tab-panel-panels">${t('header.tabPanels')}</button>
-          <button class="${tabClass('sources')}" data-tab="sources" role="tab" aria-selected="${this.activeTab === 'sources'}" id="us-tab-sources" aria-controls="us-tab-panel-sources">${t('header.tabSources')}</button>
         </div>
         <div class="unified-settings-tab-panel${this.activeTab === 'settings' ? ' active' : ''}" data-panel-id="settings" id="us-tab-panel-settings" role="tabpanel" aria-labelledby="us-tab-settings">
           ${prefs.html}
@@ -228,20 +180,6 @@ export class UnifiedSettings {
             <span class="panels-status" id="usPanelsStatus" aria-live="polite"></span>
             <button class="panels-save-layout">${t('modals.story.save')}</button>
             <button class="panels-reset-layout" title="${t('header.resetLayoutTooltip')}" aria-label="${t('header.resetLayoutTooltip')}">${t('header.resetLayout')}</button>
-          </div>
-        </div>
-        <div class="unified-settings-tab-panel${this.activeTab === 'sources' ? ' active' : ''}" data-panel-id="sources" id="us-tab-panel-sources" role="tabpanel" aria-labelledby="us-tab-sources">
-          <div class="unified-settings-region-wrapper">
-            <div class="unified-settings-region-bar" id="usRegionBar"></div>
-          </div>
-          <div class="sources-search">
-            <input type="text" placeholder="${t('header.filterSources')}" value="${escapeHtml(this.sourceFilter)}" />
-          </div>
-          <div class="sources-toggle-grid" id="usSourceToggles"></div>
-          <div class="sources-footer">
-            <span class="sources-counter" id="usSourcesCounter"></span>
-            <button class="sources-select-all">${t('common.selectAll')}</button>
-            <button class="sources-select-none">${t('common.selectNone')}</button>
           </div>
         </div>
       </div>
@@ -262,9 +200,6 @@ export class UnifiedSettings {
 
     this.renderPanelCategoryPills();
     this.renderPanelsTab();
-    this.renderRegionPills();
-    this.renderSourcesGrid();
-    this.updateSourcesCounter();
   }
 
   private switchTab(tab: TabId): void {
@@ -405,107 +340,5 @@ export class UnifiedSettings {
       status.textContent = this.panelsJustSaved ? t('modals.settingsWindow.saved') : '';
       status.classList.toggle('visible', this.panelsJustSaved);
     }
-  }
-
-  private getAvailableRegions(): Array<{ key: string; label: string }> {
-    const feedKeys = new Set(Object.keys(FEEDS));
-    const regions: Array<{ key: string; label: string }> = [
-      { key: 'all', label: t('header.sourceRegionAll') }
-    ];
-
-    for (const [regionKey, regionDef] of Object.entries(SOURCE_REGION_MAP)) {
-      if (regionKey === 'intel') {
-        if (INTEL_SOURCES.length > 0) {
-          regions.push({ key: regionKey, label: t(regionDef.labelKey) });
-        }
-        continue;
-      }
-      const hasFeeds = regionDef.feedKeys.some(fk => feedKeys.has(fk));
-      if (hasFeeds) {
-        regions.push({ key: regionKey, label: t(regionDef.labelKey) });
-      }
-    }
-
-    return regions;
-  }
-
-  private getSourcesByRegion(): Map<string, string[]> {
-    const map = new Map<string, string[]>();
-    const feedKeys = new Set(Object.keys(FEEDS));
-
-    for (const [regionKey, regionDef] of Object.entries(SOURCE_REGION_MAP)) {
-      const sources: string[] = [];
-      if (regionKey === 'intel') {
-        INTEL_SOURCES.forEach(f => sources.push(f.name));
-      } else {
-        for (const fk of regionDef.feedKeys) {
-          if (feedKeys.has(fk)) {
-            FEEDS[fk]!.forEach(f => sources.push(f.name));
-          }
-        }
-      }
-      if (sources.length > 0) {
-        map.set(regionKey, sources.sort((a, b) => a.localeCompare(b)));
-      }
-    }
-
-    return map;
-  }
-
-  private getVisibleSourceNames(): string[] {
-    let sources: string[];
-    if (this.activeSourceRegion === 'all') {
-      sources = this.config.getAllSourceNames();
-    } else {
-      const byRegion = this.getSourcesByRegion();
-      sources = byRegion.get(this.activeSourceRegion) || [];
-    }
-
-    if (this.sourceFilter) {
-      const lower = this.sourceFilter.toLowerCase();
-      sources = sources.filter(s => s.toLowerCase().includes(lower));
-    }
-
-    return sources;
-  }
-
-  private renderRegionPills(): void {
-    const bar = this.overlay.querySelector('#usRegionBar');
-    if (!bar) return;
-
-    const regions = this.getAvailableRegions();
-    bar.innerHTML = regions.map(r =>
-      `<button class="unified-settings-region-pill${this.activeSourceRegion === r.key ? ' active' : ''}" data-region="${r.key}">${escapeHtml(r.label)}</button>`
-    ).join('');
-  }
-
-  private renderSourcesGrid(): void {
-    const container = this.overlay.querySelector('#usSourceToggles');
-    if (!container) return;
-
-    const sources = this.getVisibleSourceNames();
-    const disabled = this.config.getDisabledSources();
-
-    container.innerHTML = sources.map(source => {
-      const isEnabled = !disabled.has(source);
-      const escaped = escapeHtml(source);
-      return `
-        <div class="source-toggle-item ${isEnabled ? 'active' : ''}" data-source="${escaped}">
-          <div class="source-toggle-checkbox">${isEnabled ? '\u2713' : ''}</div>
-          <span class="source-toggle-label">${escaped}</span>
-        </div>
-      `;
-    }).join('');
-  }
-
-  private updateSourcesCounter(): void {
-    const counter = this.overlay.querySelector('#usSourcesCounter');
-    if (!counter) return;
-
-    const disabled = this.config.getDisabledSources();
-    const allSources = this.config.getAllSourceNames();
-    const enabledTotal = allSources.length - disabled.size;
-
-    counter.textContent = t('header.sourcesEnabled', { enabled: String(enabledTotal), total: String(allSources.length) });
   }
 }

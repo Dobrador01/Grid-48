@@ -2,12 +2,7 @@
 import type { NewsItem, MapLayers } from '@/types';
 
 import type { TimeRange } from '@/components';
-import {
-  FEEDS,
-  INTEL_SOURCES,
-  LAYER_TO_SOURCE,
-  SITE_VARIANT,
-} from '@/config';
+import { LAYER_TO_SOURCE, SITE_VARIANT } from '@/config';
 import { INTEL_HOTSPOTS } from '@/config/geo';
 import { tokenizeForMatch, matchKeyword } from '@/utils/keyword-match';
 import {
@@ -29,7 +24,6 @@ import { getAiFlowSettings } from '@/services/ai-flow-settings';
 import { t, getCurrentLanguage } from '@/services/i18n';
 import { canQueueAiClassification, AI_CLASSIFY_MAX_PER_FEED } from '@/services/ai-classify-queue';
 import { classifyWithAI } from '@/services/threat-classifier';
-import { ingestHeadlines } from '@/services/trending-keywords';
 import type { ListFeedDigestResponse } from '@/generated/client/worldmonitor/news/v1/service_client';
 import type { ThreatLevel as ClientThreatLevel } from '@/services/threat-classifier';
 import type { NewsItem as ProtoNewsItem, ThreatLevel as ProtoThreatLevel } from '@/generated/client/worldmonitor/news/v1/service_client';
@@ -71,10 +65,7 @@ export class DataLoaderManager implements AppModule {
 
   private mapFlashCache: Map<string, number> = new Map();
   private readonly MAP_FLASH_COOLDOWN_MS = 10 * 60 * 1000;
-  private readonly applyTimeRangeFilterToNewsPanelsDebounced = debounce(() => {
-    this.applyTimeRangeFilterToNewsPanels();
-  }, 120);
-
+  
   public updateSearchIndex: () => void = () => {};
 
   private boundMarketWatchlistHandler: (() => void) | null = null;
@@ -99,8 +90,7 @@ export class DataLoaderManager implements AppModule {
   destroy(): void {
     this.stopSatellitePropagation();
     if (this.imageryRetryTimer) { clearTimeout(this.imageryRetryTimer); this.imageryRetryTimer = null; }
-    this.applyTimeRangeFilterToNewsPanelsDebounced.cancel();
-    stopOrefPolling();
+        stopOrefPolling();
     if (this.boundMarketWatchlistHandler) {
       window.removeEventListener('wm-market-watchlist-changed', this.boundMarketWatchlistHandler as EventListener);
       this.boundMarketWatchlistHandler = null;
@@ -342,271 +332,13 @@ export class DataLoaderManager implements AppModule {
     panel.renderNews(filteredItems);
   }
 
-  applyTimeRangeFilterToNewsPanels(): void {
-    Object.entries(this.ctx.newsByCategory).forEach(([category, items]) => {
-      this.renderNewsForCategory(category, items);
-    });
-  }
-
-  applyTimeRangeFilterDebounced(): void {
-    this.applyTimeRangeFilterToNewsPanelsDebounced();
-  }
-
-  private async loadNewsCategory(category: string, feeds: typeof FEEDS.politics, digest?: ListFeedDigestResponse | null): Promise<NewsItem[]> {
-    try {
-      const panel = this.ctx.newsPanels[category];
-
-      const enabledFeeds = (feeds ?? []).filter(f => !this.ctx.disabledSources.has(f.name));
-      if (enabledFeeds.length === 0) {
-        delete this.ctx.newsByCategory[category];
-        if (panel) panel.showError(t('common.allSourcesDisabled'));
-        this.ctx.statusPanel?.updateFeed(category.charAt(0).toUpperCase() + category.slice(1), {
-          status: 'ok',
-          itemCount: 0,
-        });
-        return [];
-      }
-      const enabledNames = new Set(enabledFeeds.map(f => f.name));
-
-      // Digest branch: server already aggregated feeds Ã¢â‚¬â€ map proto items to client types
-      if (digest?.categories && category in digest.categories) {
-        let items = (digest.categories[category]?.items ?? [])
-          .map(protoItemToNewsItem)
-          .filter(i => enabledNames.has(i.source));
-
-        ingestHeadlines(items.map(i => ({ title: i.title, pubDate: i.pubDate, source: i.source, link: i.link })));
-
-        const aiCandidates = items
-          .filter(i => i.threat?.source === 'keyword')
-          .sort((a, b) => b.pubDate.getTime() - a.pubDate.getTime())
-          .slice(0, AI_CLASSIFY_MAX_PER_FEED);
-        for (const item of aiCandidates) {
-          if (!canQueueAiClassification(item.title)) continue;
-          classifyWithAI(item.title, SITE_VARIANT).then(ai => {
-            if (ai && item.threat && ai.confidence > item.threat.confidence) {
-              item.threat = ai;
-              item.isAlert = ai.level === 'critical' || ai.level === 'high';
-            }
-          }).catch(() => {});
-        }
-
-        this.flashMapForNews(items);
-        this.renderNewsForCategory(category, items);
-
-        this.ctx.statusPanel?.updateFeed(category.charAt(0).toUpperCase() + category.slice(1), {
-          status: 'ok',
-          itemCount: items.length,
-        });
-
-        if (panel) {
-          try {
-            const baseline = await updateBaseline(`news:${category}`, items.length);
-            const deviation = calculateDeviation(items.length, baseline);
-            panel.setDeviation(deviation.zScore, deviation.percentChange, deviation.level);
-          } catch (e) { console.warn(`[Baseline] news:${category} write failed:`, e); }
-        }
-
-        return items;
-      }
-
-
-      const staleItems = this.getStaleNewsItems(category).filter(i => enabledNames.has(i.source));
-      if (staleItems.length > 0) {
-        console.warn(`[News] Digest missing for "${category}", serving stale headlines (${staleItems.length})`);
-        this.renderNewsForCategory(category, staleItems);
-        this.ctx.statusPanel?.updateFeed(category.charAt(0).toUpperCase() + category.slice(1), {
-          status: 'ok',
-          itemCount: staleItems.length,
-        });
-        return staleItems;
-      }
-
-      if (!this.isPerFeedFallbackEnabled()) {
-        console.warn(`[News] Digest missing for "${category}", limited per-feed fallback disabled`);
-        this.renderNewsForCategory(category, []);
-        this.ctx.statusPanel?.updateFeed(category.charAt(0).toUpperCase() + category.slice(1), {
-          status: 'error',
-          errorMessage: 'Digest unavailable',
-        });
-        return [];
-      }
-
-      const fallbackFeeds = this.selectLimitedFeeds(enabledFeeds, this.perFeedFallbackCategoryFeedLimit);
-      if (fallbackFeeds.length < enabledFeeds.length) {
-        console.warn(`[News] Digest missing for "${category}", using limited per-feed fallback (${fallbackFeeds.length}/${enabledFeeds.length} feeds)`);
-      } else {
-        console.warn(`[News] Digest missing for "${category}", using per-feed fallback (${fallbackFeeds.length} feeds)`);
-      }
-
-      // Per-feed fallback disabled in fat-client (fetchCategoryFeeds removed).
-      const items: NewsItem[] = [];
-
-      this.renderNewsForCategory(category, items);
-      if (panel) {
-
-        if (items.length === 0) {
-          panel.showError(t('common.noNewsAvailable'));
-        }
-
-        try {
-          const baseline = await updateBaseline(`news:${category}`, items.length);
-          const deviation = calculateDeviation(items.length, baseline);
-          panel.setDeviation(deviation.zScore, deviation.percentChange, deviation.level);
-        } catch (e) { console.warn(`[Baseline] news:${category} write failed:`, e); }
-      }
-
-      this.ctx.statusPanel?.updateFeed(category.charAt(0).toUpperCase() + category.slice(1), {
-        status: 'ok',
-        itemCount: items.length,
-      });
-      this.ctx.statusPanel?.updateApi('RSS2JSON', { status: 'ok' });
-
-      return items;
-    } catch (error) {
-      this.ctx.statusPanel?.updateFeed(category.charAt(0).toUpperCase() + category.slice(1), {
-        status: 'error',
-        errorMessage: String(error),
-      });
-      this.ctx.statusPanel?.updateApi('RSS2JSON', { status: 'error' });
-      delete this.ctx.newsByCategory[category];
-      return [];
-    }
-  }
-
+  
+  
   async loadNews(): Promise<void> {
-    // Reset happy variant accumulator for fresh pipeline run
-    if (SITE_VARIANT === 'happy') {
-      this.ctx.happyAllItems = [];
-    }
-
-    // Fire digest fetch early (non-blocking) Ã¢â‚¬â€ await before category loop
-    const digestPromise = this.tryFetchDigest();
-
-    const categories = Object.entries(FEEDS)
-      .filter((entry): entry is [string, typeof FEEDS[keyof typeof FEEDS]] => Array.isArray(entry[1]) && entry[1].length > 0)
-      .map(([key, feeds]) => ({ key, feeds }));
-
-    const digest = await digestPromise;
-
-    const maxCategoryConcurrency = SITE_VARIANT === 'tech' ? 4 : 5;
-    const categoryConcurrency = Math.max(1, Math.min(maxCategoryConcurrency, categories.length));
-    const categoryResults: PromiseSettledResult<NewsItem[]>[] = [];
-    for (let i = 0; i < categories.length; i += categoryConcurrency) {
-      const chunk = categories.slice(i, i + categoryConcurrency);
-      const chunkResults = await Promise.allSettled(
-        chunk.map(({ key, feeds }) => this.loadNewsCategory(key, feeds, digest))
-      );
-      categoryResults.push(...chunkResults);
-    }
-
-    const collectedNews: NewsItem[] = [];
-    categoryResults.forEach((result, idx) => {
-      if (result.status === 'fulfilled') {
-        const items = result.value;
-        // Tag items with content categories for happy variant
-        if (SITE_VARIANT === 'happy') {
-          this.ctx.happyAllItems = this.ctx.happyAllItems.concat(items);
-        }
-        collectedNews.push(...items);
-      } else {
-        console.error(`[App] News category ${categories[idx]?.key} failed:`, result.reason);
-      }
-    });
-
-    if (SITE_VARIANT === 'full') {
-      const enabledIntelSources = INTEL_SOURCES.filter(f => !this.ctx.disabledSources.has(f.name));
-      const enabledIntelNames = new Set(enabledIntelSources.map(f => f.name));
-      const intelPanel = this.ctx.newsPanels['intel'];
-      if (enabledIntelSources.length === 0) {
-        delete this.ctx.newsByCategory['intel'];
-        if (intelPanel) intelPanel.showError(t('common.allIntelSourcesDisabled'));
-        this.ctx.statusPanel?.updateFeed('Intel', { status: 'ok', itemCount: 0 });
-      } else if (digest?.categories && 'intel' in digest.categories) {
-        // Digest branch for intel
-        const intel = (digest.categories['intel']?.items ?? [])
-          .map(protoItemToNewsItem)
-          .filter(i => enabledIntelNames.has(i.source));
-        this.renderNewsForCategory('intel', intel);
-        if (intelPanel) {
-          try {
-            const baseline = await updateBaseline('news:intel', intel.length);
-            const deviation = calculateDeviation(intel.length, baseline);
-            intelPanel.setDeviation(deviation.zScore, deviation.percentChange, deviation.level);
-          } catch (e) { console.warn('[Baseline] news:intel write failed:', e); }
-        }
-        this.ctx.statusPanel?.updateFeed('Intel', { status: 'ok', itemCount: intel.length });
-        collectedNews.push(...intel);
-        this.flashMapForNews(intel);
-      } else {
-        const staleIntel = this.getStaleNewsItems('intel').filter(i => enabledIntelNames.has(i.source));
-        if (staleIntel.length > 0) {
-          console.warn(`[News] Intel digest missing, serving stale headlines (${staleIntel.length})`);
-          this.renderNewsForCategory('intel', staleIntel);
-          if (intelPanel) {
-            try {
-              const baseline = await updateBaseline('news:intel', staleIntel.length);
-              const deviation = calculateDeviation(staleIntel.length, baseline);
-              intelPanel.setDeviation(deviation.zScore, deviation.percentChange, deviation.level);
-            } catch (e) { console.warn('[Baseline] news:intel write failed:', e); }
-          }
-          this.ctx.statusPanel?.updateFeed('Intel', { status: 'ok', itemCount: staleIntel.length });
-          collectedNews.push(...staleIntel);
-        } else if (!this.isPerFeedFallbackEnabled()) {
-          console.warn('[News] Intel digest missing, limited per-feed fallback disabled');
-          delete this.ctx.newsByCategory['intel'];
-          this.ctx.statusPanel?.updateFeed('Intel', { status: 'error', errorMessage: 'Digest unavailable' });
-        } else {
-          const fallbackIntelFeeds = this.selectLimitedFeeds(enabledIntelSources, this.perFeedFallbackIntelFeedLimit);
-          if (fallbackIntelFeeds.length < enabledIntelSources.length) {
-            console.warn(`[News] Intel digest missing, using limited per-feed fallback (${fallbackIntelFeeds.length}/${enabledIntelSources.length} feeds)`);
-          }
-
-          // fetchCategoryFeeds removed in fat-client DCE; intel per-feed fallback is a no-op.
-          delete this.ctx.newsByCategory['intel'];
-          console.warn('[News] Intel per-feed fallback disabled (fat-client mode)');
-        }
-      }
-    }
-
-    this.ctx.allNews = collectedNews;
+    this.ctx.allNews = [];
     this.ctx.initialLoadComplete = true;
-
-    this.ctx.map?.updateHotspotActivity(this.ctx.allNews);
-
-    // updateMonitorResults removed in fat-client DCE
-
-    try {
-      this.ctx.latestClusters = mlWorker.isAvailable
-        ? await clusterNewsHybrid(this.ctx.allNews)
-        : await analysisWorker.clusterNews(this.ctx.allNews);
-
-
-      const geoLocated = this.ctx.latestClusters
-        .filter((c): c is typeof c & { lat: number; lon: number } => c.lat != null && c.lon != null)
-        .map(c => ({
-          lat: c.lat,
-          lon: c.lon,
-          title: c.primaryTitle,
-          threatLevel: c.threat?.level ?? 'info',
-          timestamp: c.lastUpdated,
-        }));
-      if (geoLocated.length > 0) {
-        this.ctx.map?.setNewsLocations(geoLocated);
-      }
-    } catch (error) {
-      console.error('[App] Clustering failed, clusters unchanged:', error);
-    }
+    if (this.ctx.map) this.ctx.map.updateHotspotActivity(this.ctx.allNews);
   }
-
-
-
-
-
-
-
-
-
-
 
   async loadIntelligenceSignals(): Promise<void> {
     // Removed: military/conflict/displacement/GPS jamming. Keeping: climate anomalies only.

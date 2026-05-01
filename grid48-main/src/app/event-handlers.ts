@@ -21,9 +21,7 @@ import {
   STORAGE_KEYS,
   SITE_VARIANT,
   LAYER_TO_SOURCE,
-  FEEDS,
-  INTEL_SOURCES,
-  DEFAULT_PANELS,
+    DEFAULT_PANELS,
 } from '@/config';
 import { VARIANT_META } from '@/config/variant-meta';
 import {

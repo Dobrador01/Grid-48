@@ -1,5 +1,4 @@
 import type { CountryBriefSignals } from '@/app/app-context';
-import { getSourcePropagandaRisk, getSourceTier } from '@/config/feeds';
 import { getCountryCentroid, ME_STRIKE_BOUNDS } from '@/services/country-geometry';
 import type { CountryScore } from '@/services/country-instability';
 import { t } from '@/services/i18n';
@@ -283,7 +282,7 @@ export class CountryDeepDivePanel implements CountryBriefPanel {
       }
 
       const top = this.el('div', 'cdp-news-top');
-      const tier = item.tier ?? getSourceTier(item.source);
+      const tier = item.tier ?? 3;
       top.append(this.badge(`Tier ${tier}`, `cdp-tier-badge tier-${Math.max(1, Math.min(4, tier))}`));
 
       const severity = this.toThreatLevel(item.threat?.level);
@@ -291,7 +290,7 @@ export class CountryDeepDivePanel implements CountryBriefPanel {
       const severityLabel = t(`countryBrief.levels.${levelKey}`);
       top.append(this.badge(severityLabel.toUpperCase(), `cdp-severity-badge sev-${severity}`));
 
-      const risk = getSourcePropagandaRisk(item.source);
+      const risk = 'medium';
       if (risk.stateAffiliated) {
         top.append(this.badge(`State-affiliated: ${risk.stateAffiliated}`, 'cdp-state-badge'));
       }

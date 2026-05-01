@@ -3,7 +3,6 @@ import { replayPendingCalls, clearAllPendingCalls } from '@/app/pending-panel-da
 import type { RelatedAsset } from '@/types';
 import {
   MapContainer,
-  NewsPanel,
   RuntimeConfigPanel,
   InvestmentsPanel,
   GulfEconomiesPanel,
@@ -16,8 +15,7 @@ import { TacticalStatusPanel } from '@/components/TacticalStatusPanel';
 import { debounce, saveToStorage, loadFromStorage } from '@/utils';
 import {
   FEEDS,
-  INTEL_SOURCES,
-  DEFAULT_PANELS,
+    DEFAULT_PANELS,
   STORAGE_KEYS,
   SITE_VARIANT,
 } from '@/config';
@@ -47,8 +45,7 @@ export class PanelLayoutManager implements AppModule {
     this.ctx = ctx;
     this.callbacks = callbacks;
     this.applyTimeRangeFilterDebounced = debounce(() => {
-      this.applyTimeRangeFilterToNewsPanels();
-    }, 120);
+          }, 120);
   }
 
   init(): void {
@@ -347,15 +344,7 @@ export class PanelLayoutManager implements AppModule {
     return Object.prototype.hasOwnProperty.call(DEFAULT_PANELS, key);
   }
 
-  private createNewsPanel(key: string, labelKey: string): NewsPanel | null {
-    if (!this.shouldCreatePanel(key)) return null;
-    const panel = new NewsPanel(key, t(labelKey));
-    this.attachRelatedAssetHandlers(panel);
-    this.ctx.newsPanels[key] = panel;
-    this.ctx.panels[key] = panel;
-    return panel;
-  }
-
+  
   private createPanels(): void {
     const panelsGrid = document.getElementById('panelsGrid')!;
 
@@ -372,51 +361,12 @@ export class PanelLayoutManager implements AppModule {
     this.ctx.map.initEscalationGetters();
     this.ctx.currentTimeRange = this.ctx.map.getTimeRange();
 
-    this.createNewsPanel('politics', 'panels.politics');
-    this.createNewsPanel('tech', 'panels.tech');
-    this.createNewsPanel('finance', 'panels.finance');
+            
 
 
-
-    this.createNewsPanel('intel', 'panels.intel');
-    this.createNewsPanel('middleeast', 'panels.middleeast');
-    this.createNewsPanel('layoffs', 'panels.layoffs');
-    this.createNewsPanel('ai', 'panels.ai');
-    this.createNewsPanel('startups', 'panels.startups');
-    this.createNewsPanel('vcblogs', 'panels.vcblogs');
-    this.createNewsPanel('regionalStartups', 'panels.regionalStartups');
-    this.createNewsPanel('unicorns', 'panels.unicorns');
-    this.createNewsPanel('accelerators', 'panels.accelerators');
-    this.createNewsPanel('funding', 'panels.funding');
-    this.createNewsPanel('producthunt', 'panels.producthunt');
-    this.createNewsPanel('security', 'panels.security');
-    this.createNewsPanel('policy', 'panels.policy');
-    this.createNewsPanel('hardware', 'panels.hardware');
-    this.createNewsPanel('cloud', 'panels.cloud');
-    this.createNewsPanel('dev', 'panels.dev');
-    this.createNewsPanel('github', 'panels.github');
-    this.createNewsPanel('ipo', 'panels.ipo');
-    this.createNewsPanel('thinktanks', 'panels.thinktanks');
-    this.createNewsPanel('thinktanks', 'panels.thinktanks');
-
-    this.createNewsPanel('africa', 'panels.africa');
-    this.createNewsPanel('latam', 'panels.latam');
-    this.createNewsPanel('asia', 'panels.asia');
-    this.createNewsPanel('energy', 'panels.energy');
-
-    for (const key of Object.keys(FEEDS)) {
-      if (this.ctx.newsPanels[key]) continue;
-      if (!Array.isArray((FEEDS as Record<string, unknown>)[key])) continue;
-      const panelKey = this.ctx.panels[key] && !this.ctx.newsPanels[key] ? `${key}-news` : key;
-      if (this.ctx.panels[panelKey]) continue;
-      if (!DEFAULT_PANELS[panelKey] && !DEFAULT_PANELS[key]) continue;
-      const panelConfig = DEFAULT_PANELS[panelKey] ?? DEFAULT_PANELS[key];
-      const label = panelConfig?.name ?? key.charAt(0).toUpperCase() + key.slice(1);
-      const panel = new NewsPanel(panelKey, label);
-      this.attachRelatedAssetHandlers(panel);
-      this.ctx.newsPanels[key] = panel;
-      this.ctx.panels[panelKey] = panel;
-    }
+                                                                                
+                
+    
 
     if (this.shouldCreatePanel('celesc-status')) {
       const widget = new CelescStatusWidget();
@@ -720,41 +670,7 @@ export class PanelLayoutManager implements AppModule {
     }
   }
 
-  private applyTimeRangeFilterToNewsPanels(): void {
-    Object.entries(this.ctx.newsByCategory).forEach(([category, items]) => {
-      const panel = this.ctx.newsPanels[category];
-      if (!panel) return;
-      const filtered = this.filterItemsByTimeRange(items);
-      if (filtered.length === 0 && items.length > 0) {
-        panel.renderFilteredEmpty(`No items in ${this.getTimeRangeLabel()}`);
-        return;
-      }
-      panel.renderNews(filtered);
-    });
-  }
 
-  private filterItemsByTimeRange(items: import('@/types').NewsItem[], range: import('@/components').TimeRange = this.ctx.currentTimeRange): import('@/types').NewsItem[] {
-    if (range === 'all') return items;
-    const ranges: Record<string, number> = {
-      '1h': 60 * 60 * 1000, '6h': 6 * 60 * 60 * 1000,
-      '24h': 24 * 60 * 60 * 1000, '48h': 48 * 60 * 60 * 1000,
-      '7d': 7 * 24 * 60 * 60 * 1000, 'all': Infinity,
-    };
-    const cutoff = Date.now() - (ranges[range] ?? Infinity);
-    return items.filter((item) => {
-      const ts = item.pubDate instanceof Date ? item.pubDate.getTime() : new Date(item.pubDate).getTime();
-      return Number.isFinite(ts) ? ts >= cutoff : true;
-    });
-  }
-
-  private getTimeRangeLabel(): string {
-    const labels: Record<string, string> = {
-      '1h': 'the last hour', '6h': 'the last 6 hours',
-      '24h': 'the last 24 hours', '48h': 'the last 48 hours',
-      '7d': 'the last 7 days', 'all': 'all time',
-    };
-    return labels[this.ctx.currentTimeRange] ?? 'the last 7 days';
-  }
 
   private applyInitialUrlState(): void {
     if (!this.ctx.initialUrlState || !this.ctx.map) return;
@@ -972,14 +888,7 @@ export class PanelLayoutManager implements AppModule {
     }
   }
 
-  private attachRelatedAssetHandlers(panel: NewsPanel): void {
-    panel.setRelatedAssetHandlers({
-      onRelatedAssetClick: (asset) => this.handleRelatedAssetClick(asset),
-      onRelatedAssetsFocus: (assets) => this.ctx.map?.highlightAssets(assets),
-      onRelatedAssetsClear: () => this.ctx.map?.highlightAssets(null),
-    });
-  }
-
+  
   private handleRelatedAssetClick(_asset: RelatedAsset): void {
     // RelatedAsset layers (pipelines, cables, datacenters, bases, nuclear) removed from MapLayers.
   }
@@ -1166,12 +1075,5 @@ export class PanelLayoutManager implements AppModule {
     return localized === lookup ? fallback : localized;
   }
 
-  getAllSourceNames(): string[] {
-    const sources = new Set<string>();
-    Object.values(FEEDS).forEach(feeds => {
-      if (feeds) feeds.forEach(f => sources.add(f.name));
-    });
-    INTEL_SOURCES.forEach(f => sources.add(f.name));
-    return Array.from(sources).sort((a, b) => a.localeCompare(b));
-  }
+  getAllSourceNames(): string[] { return []; }
 }

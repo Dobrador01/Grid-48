@@ -6,7 +6,6 @@
 import type { NewsItem, ClusteredEvent, MarketData } from '@/types';
 import type { PredictionMarket } from '@/services/prediction';
 import type { CorrelationSignal } from './correlation';
-import { SOURCE_TIERS, SOURCE_TYPES, type SourceType } from '@/config/feeds';
 
 // Import worker using Vite's worker syntax
 import AnalysisWorker from '@/workers/analysis.worker?worker';
