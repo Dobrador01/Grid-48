@@ -424,9 +424,13 @@ export class PanelLayoutManager implements AppModule {
     }
 
     if (this.shouldCreatePanel('tactical-status')) {
+      console.log('[Grid 48 Debug] Instantiating TacticalStatusPanel...');
       const widget = new TacticalStatusPanel();
       widget.mount(); // Starts polling
       this.ctx.panels['tactical-status'] = widget;
+      console.log('[Grid 48 Debug] TacticalStatusPanel instantiated and added to ctx.panels.');
+    } else {
+      console.error('[Grid 48 Debug] shouldCreatePanel("tactical-status") returned false! It is missing from DEFAULT_PANELS.');
     }
 
     // Injeção Prioritária O(1) do Beacon Widget (Light Mode Transparente) no topo.
@@ -605,17 +609,30 @@ export class PanelLayoutManager implements AppModule {
     if (hasSavedOrder) {
       const valid = savedOrder.filter(k => activePanelKeys.includes(k));
       const missing = activePanelKeys.filter(k => !valid.includes(k));
+      console.log('[Grid 48 Debug] Missing panels from saved order:', missing);
 
       missing.forEach(k => {
         if (k === 'monitors') return;
         const defaultIdx = defaultOrder.indexOf(k);
-        if (defaultIdx === -1) { valid.push(k); return; }
+        if (defaultIdx === -1) { 
+          valid.push(k); 
+          console.log(`[Grid 48 Debug] Panel ${k} pushed to end of valid.`);
+          return; 
+        }
         let inserted = false;
         for (let i = defaultIdx + 1; i < defaultOrder.length; i++) {
           const afterIdx = valid.indexOf(defaultOrder[i]!);
-          if (afterIdx !== -1) { valid.splice(afterIdx, 0, k); inserted = true; break; }
+          if (afterIdx !== -1) { 
+            valid.splice(afterIdx, 0, k); 
+            inserted = true; 
+            console.log(`[Grid 48 Debug] Panel ${k} spliced before ${defaultOrder[i]}`);
+            break; 
+          }
         }
-        if (!inserted) valid.push(k);
+        if (!inserted) {
+          valid.push(k);
+          console.log(`[Grid 48 Debug] Panel ${k} pushed to end (not inserted before anything).`);
+        }
       });
 
       const monitorsIdx = valid.indexOf('monitors');
