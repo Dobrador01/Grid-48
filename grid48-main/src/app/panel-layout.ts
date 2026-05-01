@@ -12,6 +12,7 @@ import {
   AviationCommandBar,
 } from '@/components';
 import { CelescStatusWidget } from '@/components/CelescStatusWidget';
+import { TacticalStatusPanel } from '@/components/TacticalStatusPanel';
 import { debounce, saveToStorage, loadFromStorage } from '@/utils';
 import {
   FEEDS,
@@ -423,11 +424,9 @@ export class PanelLayoutManager implements AppModule {
     }
 
     if (this.shouldCreatePanel('tactical-status')) {
-      import('@/components/TacticalStatusPanel').then(m => {
-        const widget = new m.TacticalStatusPanel();
-        widget.mount(); // Starts polling
-        this.ctx.panels['tactical-status'] = widget;
-      });
+      const widget = new TacticalStatusPanel();
+      widget.mount(); // Starts polling
+      this.ctx.panels['tactical-status'] = widget;
     }
 
     // Injeção Prioritária O(1) do Beacon Widget (Light Mode Transparente) no topo.
