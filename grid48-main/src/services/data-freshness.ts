@@ -28,7 +28,6 @@ export type DataSourceId =
   | 'acled_conflict' // ACLED battles/explosions/violence
   | 'ucdp'           // UCDP conflict classification
   | 'hapi'           // HDX HAPI aggregated conflict data
-  | 'ucdp_events'    // UCDP georeferenced conflict events
   | 'unhcr'          // UNHCR displacement data
   | 'climate'        // Climate anomaly data (Open-Meteo)
   | 'worldpop'       // WorldPop population exposure
@@ -36,7 +35,6 @@ export type DataSourceId =
   | 'bis'            // BIS central bank data
   | 'wto_trade'      // WTO trade policy data
   | 'supply_chain'   // Supply chain disruption intelligence
-  | 'security_advisories'  // Government travel/security advisories
   | 'gpsjam';              // GPS/GNSS interference
 
 export type FreshnessStatus = 'fresh' | 'stale' | 'very_stale' | 'no_data' | 'disabled' | 'error';
@@ -95,7 +93,6 @@ const SOURCE_METADATA: Record<DataSourceId, { name: string; requiredForRisk: boo
   acled_conflict: { name: 'Armed Conflicts (ACLED)', requiredForRisk: false, panelId: 'protests' },
   ucdp: { name: 'Conflict Classification (UCDP)', requiredForRisk: false, panelId: 'protests' },
   hapi: { name: 'Conflict Aggregates (HDX)', requiredForRisk: false, panelId: 'protests' },
-  ucdp_events: { name: 'UCDP Conflict Events', requiredForRisk: false, panelId: 'ucdp-events' },
   unhcr: { name: 'UNHCR Displacement', requiredForRisk: false, panelId: 'displacement' },
   climate: { name: 'Climate Anomalies', requiredForRisk: false, panelId: 'climate' },
   worldpop: { name: 'Population Exposure', requiredForRisk: false, panelId: 'population-exposure' },
@@ -103,7 +100,6 @@ const SOURCE_METADATA: Record<DataSourceId, { name: string; requiredForRisk: boo
   bis: { name: 'BIS Central Banks', requiredForRisk: false, panelId: 'economic' },
   wto_trade: { name: 'WTO Trade Policy', requiredForRisk: false, panelId: 'trade-policy' },
   supply_chain: { name: 'Supply Chain Intelligence', requiredForRisk: false, panelId: 'supply-chain' },
-  security_advisories: { name: 'Security Advisories', requiredForRisk: false, panelId: 'security-advisories' },
   gpsjam: { name: 'GPS/GNSS Interference', requiredForRisk: false, panelId: 'map' },
 };
 
@@ -355,7 +351,6 @@ const INTELLIGENCE_GAP_MESSAGES: Record<DataSourceId, string> = {
   acled_conflict: 'Armed conflict events may be missed—ACLED conflict data unavailable',
   ucdp: 'Conflict classification unavailable—UCDP data not loading',
   hapi: 'Aggregated conflict data unavailable—HDX HAPI not responding',
-  ucdp_events: 'UCDP event-level conflict data unavailable',
   unhcr: 'UNHCR displacement data unavailable—refugee flows unknown',
   climate: 'Climate anomaly data unavailable—extreme weather patterns undetected',
   worldpop: 'Population exposure data unavailable—affected population unknown',
@@ -363,7 +358,6 @@ const INTELLIGENCE_GAP_MESSAGES: Record<DataSourceId, string> = {
   bis: 'Central bank policy data may be stale—BIS feed unavailable',
   wto_trade: 'Trade policy intelligence unavailable—WTO data not updating',
   supply_chain: 'Supply chain disruption status unavailable—chokepoint monitoring offline',
-  security_advisories: 'Government travel advisory data unavailable—security alerts may be missed',
   gpsjam: 'GPS/GNSS interference data unavailable—jamming zones undetected',
 };
 

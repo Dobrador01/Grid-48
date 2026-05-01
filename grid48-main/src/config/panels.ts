@@ -14,15 +14,9 @@ const FULL_PANELS: Record<string, PanelConfig> = {
   map: { name: 'Mapa â€” Grande FlorianÃ³polis', enabled: true, priority: 1 },
   'celesc-status': { name: 'Celesc Status', enabled: true, priority: 1 },
   'tactical-status': { name: 'Comando & Controle', enabled: true, priority: 1 },
-  insights: { name: 'AI Insights', enabled: true, priority: 1 },
-  'strategic-posture': { name: 'AI Strategic Posture', enabled: true, priority: 1 },
-  'strategic-risk': { name: 'Strategic Risk Overview', enabled: true, priority: 1, ...(_desktop && { premium: 'enhanced' as const }) },
   intel: { name: 'Intel Feed', enabled: true, priority: 1 },
-  'gdelt-intel': { name: 'Live Intelligence', enabled: true, priority: 1, ...(_desktop && { premium: 'enhanced' as const }) },
-  'ucdp-events': { name: 'UCDP Conflict Events', enabled: true, priority: 2 },
   climate: { name: 'Climate Anomalies', enabled: true, priority: 2 },
   'population-exposure': { name: 'Population Exposure', enabled: true, priority: 2 },
-  'security-advisories': { name: 'Security Advisories', enabled: true, priority: 2 },
   'airline-intel': { name: 'Airline Intelligence', enabled: true, priority: 2 },
   'tech-readiness': { name: 'Tech Readiness Index', enabled: true, priority: 2 },
   'world-clock': { name: 'World Clock', enabled: true, priority: 2 },
@@ -792,13 +786,13 @@ export const PANEL_CATEGORY_MAP: Record<string, { labelKey: string; panelKeys: s
   // All variants â€” essential panels
   core: {
     labelKey: 'header.panelCatCore',
-    panelKeys: ['map', 'celesc-status', 'tactical-status', 'insights', 'strategic-posture'],
+    panelKeys: ['map', 'celesc-status', 'tactical-status'],
   },
 
   // Full (geopolitical) variant
   intelligence: {
     labelKey: 'header.panelCatIntelligence',
-    panelKeys: ['strategic-risk', 'intel', 'gdelt-intel', 'telegram-intel'],
+    panelKeys: ['intel', 'telegram-intel'],
     variants: ['full'],
   },
   regionalNews: {
@@ -818,7 +812,7 @@ export const PANEL_CATEGORY_MAP: Record<string, { labelKey: string; panelKeys: s
   },
   dataTracking: {
     labelKey: 'header.panelCatDataTracking',
-    panelKeys: ['ucdp-events', 'climate', 'population-exposure', 'security-advisories', 'oref-sirens', 'world-clock', 'tech-readiness'],
+    panelKeys: ['climate', 'population-exposure', 'oref-sirens', 'world-clock', 'tech-readiness'],
     variants: ['full'],
   },
 
