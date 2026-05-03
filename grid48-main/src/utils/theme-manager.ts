@@ -102,6 +102,14 @@ export function applyStoredTheme(): void {
   const effective: Theme = 'light';
   try { localStorage.setItem(STORAGE_KEY, 'light'); } catch { /* noop */ }
 
+  // Alinhar o basemap do MapLibre ao tema light (ele lê chaves próprias em localStorage e ignora data-theme).
+  try {
+    localStorage.setItem('wm-map-theme:pmtiles', 'light');
+    localStorage.setItem('wm-map-theme:auto', 'light');
+    localStorage.setItem('wm-map-theme:openfreemap', 'positron');
+    localStorage.setItem('wm-map-theme:carto', 'positron');
+  } catch { /* noop */ }
+
   document.documentElement.dataset.theme = effective;
   const meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
   if (meta) {
