@@ -206,32 +206,11 @@ export class App {
       mapLayers = sanitizeLayersForVariant(initialUrlState.layers, currentVariant as MapVariant);
       initialUrlState.layers = mapLayers;
     }
-    // One-time migration: reduce default-enabled sources (full variant only)
-    if (currentVariant === 'full') {
-      const baseKey = 'grid48-sources-reduction-v3';
-      if (!localStorage.getItem(baseKey)) {
-        const defaultDisabled = new Set();
-        saveToStorage(STORAGE_KEYS.disabledFeeds, defaultDisabled);
-        localStorage.setItem(baseKey, 'done');
-        const total = 0;
-        console.log(`[App] Sources reduction: ${defaultDisabled.length} disabled, ${total - defaultDisabled.length} enabled`);
-      }
-      // Locale boost: additively enable locale-matched sources (runs once per locale)
-      const userLang = ((navigator.language ?? 'en').split('-')[0] ?? 'en').toLowerCase();
-      const localeKey = `grid48-locale-boost-${userLang}`;
-      if (userLang !== 'en' && !localStorage.getItem(localeKey)) {
-        const boosted = [];
-        if (boosted.size > 0) {
-          const current = loadFromStorage<string[]>(STORAGE_KEYS.disabledFeeds, []);
-          const updated = current.filter(name => !boosted.has(name));
-          saveToStorage(STORAGE_KEYS.disabledFeeds, updated);
-          console.log(`[App] Locale boost (${userLang}): enabled ${current.length - updated.length} sources`);
-        }
-        localStorage.setItem(localeKey, 'done');
-      }
+    let disabledFeedsRaw = loadFromStorage<string[]>(STORAGE_KEYS.disabledFeeds, []);
+    if (!Array.isArray(disabledFeedsRaw)) {
+      disabledFeedsRaw = [];
     }
-
-    const disabledSources = new Set(loadFromStorage<string[]>(STORAGE_KEYS.disabledFeeds, []));
+    const disabledSources = new Set(disabledFeedsRaw);
 
     // Build shared state object
     this.state = {
