@@ -429,14 +429,14 @@ export class App {
       });
       
       // Initialize Beacon OSINT
-      dataProvider.initBeacon((alertas) => {
+      dataProvider.initBeacon((snapshot) => {
         if (this.state.map) {
-           this.state.map.setBeaconAlerts(alertas);
+           this.state.map.setBeaconAlerts(snapshot.alertas);
         }
         const setPanel = () => {
           const beaconPanel = this.state.panels['beacon-status'] as any;
-          if (beaconPanel && typeof beaconPanel.setAlertas === 'function') {
-            beaconPanel.setAlertas(alertas);
+          if (beaconPanel && typeof beaconPanel.setSnapshot === 'function') {
+            beaconPanel.setSnapshot(snapshot);
             return true;
           }
           return false;

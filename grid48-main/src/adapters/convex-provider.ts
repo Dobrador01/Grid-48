@@ -1,4 +1,5 @@
 import { IDataProvider, TelemetryData } from './types';
+import type { BeaconSnapshot } from '@/services/beacon-client';
 
 export class ConvexProvider implements IDataProvider {
   async initCelesc(callback: (outages: any[]) => void) {
@@ -6,12 +7,12 @@ export class ConvexProvider implements IDataProvider {
     initCelescPoller(callback);
   }
 
-  async initBeacon(callback: (alerts: any[]) => void) {
+  async initBeacon(callback: (snapshot: BeaconSnapshot) => void) {
     const { initBeaconClient } = await import('@/services/beacon-client');
     initBeaconClient(callback);
   }
 
-  async initTelemetry(callback: (data: TelemetryData[]) => void) {
+  async initTelemetry(_callback: (data: TelemetryData[]) => void) {
     // Convex telemetry stream not implemented in UI yet
     console.log('[ConvexProvider] Telemetry stream initialized (placeholder)');
   }

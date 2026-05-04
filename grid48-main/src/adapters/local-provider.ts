@@ -1,4 +1,5 @@
 import { IDataProvider, TelemetryData } from './types';
+import type { BeaconSnapshot } from '@/services/beacon-client';
 
 const ENGINE_URL = 'http://localhost:3001';
 
@@ -21,7 +22,7 @@ export class LocalProvider implements IDataProvider {
     setInterval(fetchCelesc, 5 * 60 * 1000);
   }
 
-  async initBeacon(callback: (alerts: any[]) => void) {
+  async initBeacon(callback: (snapshot: BeaconSnapshot) => void) {
     try {
       const { initBeaconClient } = await import('@/services/beacon-client');
       initBeaconClient(callback);
