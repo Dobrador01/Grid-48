@@ -1,7 +1,6 @@
 import type { AppContext, AppModule } from '@/app/app-context';
 import type { AirlineIntelPanel } from '@/components/AirlineIntelPanel';
 import type { PanelConfig, MapLayers } from '@/types';
-import type { MapView } from '@/components';
 import type { ClusteredEvent } from '@/types';
 import type { DashboardSnapshot } from '@/services/storage';
 import {
@@ -23,21 +22,15 @@ import {
   LAYER_TO_SOURCE,
     DEFAULT_PANELS,
 } from '@/config';
-import { VARIANT_META } from '@/config/variant-meta';
 import {
   saveSnapshot,
 } from '@/services';
 import {
   trackPanelView,
-  trackVariantSwitch,
   trackThemeChanged,
-  trackMapViewChange,
   trackMapLayerToggle,
   trackPanelToggled,
-  trackDownloadClicked,
 } from '@/services/analytics';
-import { detectPlatform, allButtons, buttonsForPlatform } from '@/components/DownloadBanner';
-import type { Platform } from '@/components/DownloadBanner';
 import { invokeTauri } from '@/services/tauri-bridge';
 import { dataFreshness } from '@/services/data-freshness';
 import { mlWorker } from '@/services/ml-worker';
@@ -70,13 +63,10 @@ export class EventHandlerManager implements AppModule {
   private boundTvKeydownHandler: ((e: KeyboardEvent) => void) | null = null;
   private boundFocalPointsReadyHandler: (() => void) | null = null;
   private boundThemeChangedHandler: (() => void) | null = null;
-  private boundDropdownClickHandler: ((e: MouseEvent) => void) | null = null;
-  private boundDropdownKeydownHandler: ((e: KeyboardEvent) => void) | null = null;
   private boundMapResizeMoveHandler: ((e: MouseEvent) => void) | null = null;
   private boundMapEndResizeHandler: (() => void) | null = null;
   private boundMapResizeVisChangeHandler: (() => void) | null = null;
   private boundMapFullscreenEscHandler: ((e: KeyboardEvent) => void) | null = null;
-  private boundMobileMenuKeyHandler: ((e: KeyboardEvent) => void) | null = null;
   private boundPanelCloseHandler: ((e: Event) => void) | null = null;
   private idleTimeoutId: ReturnType<typeof setTimeout> | null = null;
   private snapshotIntervalId: ReturnType<typeof setInterval> | null = null;
@@ -194,14 +184,6 @@ export class EventHandlerManager implements AppModule {
       window.removeEventListener('theme-changed', this.boundThemeChangedHandler);
       this.boundThemeChangedHandler = null;
     }
-    if (this.boundDropdownClickHandler) {
-      document.removeEventListener('click', this.boundDropdownClickHandler);
-      this.boundDropdownClickHandler = null;
-    }
-    if (this.boundDropdownKeydownHandler) {
-      document.removeEventListener('keydown', this.boundDropdownKeydownHandler);
-      this.boundDropdownKeydownHandler = null;
-    }
     if (this.boundMapResizeMoveHandler) {
       document.removeEventListener('mousemove', this.boundMapResizeMoveHandler);
       this.boundMapResizeMoveHandler = null;
@@ -219,10 +201,6 @@ export class EventHandlerManager implements AppModule {
       document.removeEventListener('keydown', this.boundMapFullscreenEscHandler);
       this.boundMapFullscreenEscHandler = null;
     }
-    if (this.boundMobileMenuKeyHandler) {
-      document.removeEventListener('keydown', this.boundMobileMenuKeyHandler);
-      this.boundMobileMenuKeyHandler = null;
-    }
     if (this.boundPanelCloseHandler) {
       this.ctx.container.removeEventListener('wm:panel-close', this.boundPanelCloseHandler);
       this.boundPanelCloseHandler = null;
@@ -238,24 +216,7 @@ export class EventHandlerManager implements AppModule {
       this.callbacks.updateSearchIndex();
       this.ctx.searchModal?.open();
     };
-    document.getElementById('searchBtn')?.addEventListener('click', openSearch);
-    document.getElementById('mobileSearchBtn')?.addEventListener('click', openSearch);
     document.getElementById('searchMobileFab')?.addEventListener('click', openSearch);
-
-    document.getElementById('copyLinkBtn')?.addEventListener('click', async () => {
-      const shareUrl = this.getShareUrl();
-      if (!shareUrl) return;
-      const button = document.getElementById('copyLinkBtn');
-      try {
-        await this.copyToClipboard(shareUrl);
-        this.setCopyLinkFeedback(button, 'Copied!');
-      } catch (error) {
-        console.warn('Failed to copy share link:', error);
-        this.setCopyLinkFeedback(button, 'Copy failed');
-      }
-    });
-
-    this.initDownloadDropdown();
 
     this.boundStorageHandler = (e: StorageEvent) => {
       if (e.key === STORAGE_KEYS.panels && e.newValue) {
@@ -288,19 +249,6 @@ export class EventHandlerManager implements AppModule {
       trackThemeChanged(next);
     });
 
-    const isLocalDev = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
-    this.ctx.container.querySelectorAll<HTMLAnchorElement>('.variant-option').forEach(link => {
-      link.addEventListener('click', (e) => {
-        const variant = link.dataset.variant;
-        if (!variant || variant === SITE_VARIANT) return;
-        e.preventDefault();
-        void this.navigateToVariant(variant, {
-          href: link.href,
-          isLocalDev,
-        });
-      });
-    });
-
     const fullscreenBtn = document.getElementById('fullscreenBtn');
     if (!this.ctx.isDesktopApp && fullscreenBtn) {
       fullscreenBtn.addEventListener('click', () => this.toggleFullscreen());
@@ -310,12 +258,6 @@ export class EventHandlerManager implements AppModule {
       };
       document.addEventListener('fullscreenchange', this.boundFullscreenHandler);
     }
-
-    const regionSelect = document.getElementById('regionSelect') as HTMLSelectElement;
-    regionSelect?.addEventListener('change', () => {
-      this.ctx.map?.setView(regionSelect.value as MapView);
-      trackMapViewChange(regionSelect.value);
-    });
 
     this.boundResizeHandler = debounce(() => {
       this.ctx.map?.setIsResizing(false);
@@ -349,11 +291,8 @@ export class EventHandlerManager implements AppModule {
     this.boundThemeChangedHandler = () => {
       this.ctx.map?.render();
       this.updateHeaderThemeIcon();
-      this.updateMobileMenuThemeItem();
     };
     window.addEventListener('theme-changed', this.boundThemeChangedHandler);
-
-    this.setupMobileMenu();
 
     if (this.ctx.isDesktopApp) {
       if (this.boundDesktopExternalLinkHandler) {
@@ -383,116 +322,6 @@ export class EventHandlerManager implements AppModule {
       };
       document.addEventListener('click', this.boundDesktopExternalLinkHandler, true);
     }
-  }
-
-  private setupMobileMenu(): void {
-    const hamburger = document.getElementById('hamburgerBtn');
-    const overlay = document.getElementById('mobileMenuOverlay');
-    const menu = document.getElementById('mobileMenu');
-    const closeBtn = document.getElementById('mobileMenuClose');
-    if (!hamburger || !overlay || !menu || !closeBtn) return;
-
-    hamburger.addEventListener('click', () => this.openMobileMenu());
-    overlay.addEventListener('click', () => this.closeMobileMenu());
-    closeBtn.addEventListener('click', () => this.closeMobileMenu());
-
-    const isLocalDev = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
-    menu.querySelectorAll<HTMLButtonElement>('.mobile-menu-variant').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const variant = btn.dataset.variant;
-        if (!variant || variant === SITE_VARIANT) return;
-        void this.navigateToVariant(variant, { isLocalDev });
-      });
-    });
-
-    document.getElementById('mobileMenuRegion')?.addEventListener('click', () => {
-      this.closeMobileMenu();
-      this.openRegionSheet();
-    });
-
-    document.getElementById('mobileMenuSettings')?.addEventListener('click', () => {
-      this.closeMobileMenu();
-      this.ctx.unifiedSettings?.open();
-    });
-
-    document.getElementById('mobileMenuTheme')?.addEventListener('click', () => {
-      this.closeMobileMenu();
-      const next = getCurrentTheme() === 'dark' ? 'light' : 'dark';
-      setTheme(next);
-      this.updateHeaderThemeIcon();
-      trackThemeChanged(next);
-    });
-
-    const sheetBackdrop = document.getElementById('regionSheetBackdrop');
-    sheetBackdrop?.addEventListener('click', () => this.closeRegionSheet());
-
-    const sheet = document.getElementById('regionBottomSheet');
-    sheet?.querySelectorAll<HTMLButtonElement>('.region-sheet-option').forEach(opt => {
-      opt.addEventListener('click', () => {
-        const region = opt.dataset.region;
-        if (!region) return;
-        this.ctx.map?.setView(region as MapView);
-        trackMapViewChange(region);
-        const regionSelect = document.getElementById('regionSelect') as HTMLSelectElement;
-        if (regionSelect) regionSelect.value = region;
-        sheet.querySelectorAll('.region-sheet-option').forEach(o => {
-          o.classList.toggle('active', o === opt);
-          const check = o.querySelector('.region-sheet-check');
-          if (check) check.textContent = o === opt ? '✓' : '';
-        });
-        const menuRegionLabel = document.getElementById('mobileMenuRegion')?.querySelector('.mobile-menu-item-label');
-        if (menuRegionLabel) menuRegionLabel.textContent = opt.querySelector('span')?.textContent ?? '';
-        this.closeRegionSheet();
-      });
-    });
-
-    this.boundMobileMenuKeyHandler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        if (sheet?.classList.contains('open')) {
-          this.closeRegionSheet();
-        } else if (menu.classList.contains('open')) {
-          this.closeMobileMenu();
-        }
-      }
-    };
-    document.addEventListener('keydown', this.boundMobileMenuKeyHandler);
-  }
-
-  private openMobileMenu(): void {
-    const overlay = document.getElementById('mobileMenuOverlay');
-    const menu = document.getElementById('mobileMenu');
-    if (!overlay || !menu) return;
-    overlay.classList.add('open');
-    requestAnimationFrame(() => menu.classList.add('open'));
-    document.body.style.overflow = 'hidden';
-  }
-
-  private closeMobileMenu(): void {
-    const overlay = document.getElementById('mobileMenuOverlay');
-    const menu = document.getElementById('mobileMenu');
-    if (!overlay || !menu) return;
-    menu.classList.remove('open');
-    overlay.classList.remove('open');
-    const sheetOpen = document.getElementById('regionBottomSheet')?.classList.contains('open');
-    if (!sheetOpen) document.body.style.overflow = '';
-  }
-
-  private openRegionSheet(): void {
-    const backdrop = document.getElementById('regionSheetBackdrop');
-    const sheet = document.getElementById('regionBottomSheet');
-    if (!backdrop || !sheet) return;
-    backdrop.classList.add('open');
-    requestAnimationFrame(() => sheet.classList.add('open'));
-    document.body.style.overflow = 'hidden';
-  }
-
-  private closeRegionSheet(): void {
-    const backdrop = document.getElementById('regionSheetBackdrop');
-    const sheet = document.getElementById('regionBottomSheet');
-    if (!backdrop || !sheet) return;
-    sheet.classList.remove('open');
-    backdrop.classList.remove('open');
-    document.body.style.overflow = '';
   }
 
   private setupIdleDetection(): void {
@@ -529,13 +358,6 @@ export class EventHandlerManager implements AppModule {
 
     this.ctx.map.onStateChanged(() => {
       this.debouncedUrlSync();
-      const regionSelect = document.getElementById('regionSelect') as HTMLSelectElement;
-      if (regionSelect && this.ctx.map) {
-        const state = this.ctx.map.getState();
-        if (regionSelect.value !== state.view) {
-          regionSelect.value = state.view;
-        }
-      }
     });
     this.debouncedUrlSync();
   }
@@ -562,113 +384,6 @@ export class EventHandlerManager implements AppModule {
     });
   }
 
-  private async copyToClipboard(text: string): Promise<void> {
-    if (navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(text);
-      return;
-    }
-    const textarea = document.createElement('textarea');
-    textarea.value = text;
-    textarea.style.position = 'fixed';
-    textarea.style.opacity = '0';
-    document.body.appendChild(textarea);
-    textarea.select();
-    document.execCommand('copy');
-    document.body.removeChild(textarea);
-  }
-
-  private platformLabel(p: Platform): string {
-    switch (p) {
-      case 'macos-arm64': return '\uF8FF Silicon';
-      case 'macos-x64': return '\uF8FF Intel';
-      case 'macos': return '\uF8FF macOS';
-      case 'windows': return 'Windows';
-      case 'linux': return 'Linux';
-      default: return t('header.downloadApp');
-    }
-  }
-
-  private initDownloadDropdown(): void {
-    const btn = document.getElementById('downloadBtn');
-    const dropdown = document.getElementById('downloadDropdown');
-    const label = document.getElementById('downloadBtnLabel');
-    if (!btn || !dropdown) return;
-
-    const platform = detectPlatform();
-    if (label) label.textContent = this.platformLabel(platform);
-
-    const primary = buttonsForPlatform(platform);
-    const all = allButtons();
-    const others = all.filter(b => !primary.some(p => p.href === b.href));
-
-    const renderDropdown = () => {
-      const primaryHtml = primary.map(b =>
-        `<a class="dl-dd-btn ${b.cls} primary" href="${b.href}">${b.label}</a>`
-      ).join('');
-      const othersHtml = others.map(b =>
-        `<a class="dl-dd-btn ${b.cls}" href="${b.href}">${b.label}</a>`
-      ).join('');
-
-      dropdown.innerHTML = `
-        <div class="dl-dd-tagline">${t('modals.downloadBanner.description')}</div>
-        <div class="dl-dd-buttons">${primaryHtml}</div>
-        ${others.length ? `<button class="dl-dd-toggle" id="dlDdToggle">${t('modals.downloadBanner.showAllPlatforms')}</button>
-        <div class="dl-dd-others" id="dlDdOthers">${othersHtml}</div>` : ''}
-      `;
-
-      dropdown.querySelectorAll<HTMLAnchorElement>('.dl-dd-btn').forEach(a => {
-        a.addEventListener('click', (e) => {
-          e.preventDefault();
-          const plat = new URL(a.href, location.origin).searchParams.get('platform') || 'unknown';
-          trackDownloadClicked(plat);
-          window.open(a.href, '_blank');
-          dropdown.classList.remove('open');
-        });
-      });
-
-      const toggle = dropdown.querySelector('#dlDdToggle');
-      const othersEl = dropdown.querySelector('#dlDdOthers') as HTMLElement | null;
-      if (toggle && othersEl) {
-        toggle.addEventListener('click', () => {
-          const showing = othersEl.classList.toggle('show');
-          toggle.textContent = showing
-            ? t('modals.downloadBanner.showLess')
-            : t('modals.downloadBanner.showAllPlatforms');
-        });
-      }
-    };
-
-    renderDropdown();
-
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      dropdown.classList.toggle('open');
-    });
-
-    this.boundDropdownClickHandler = (e: MouseEvent) => {
-      if (!dropdown.contains(e.target as Node) && !btn.contains(e.target as Node)) {
-        dropdown.classList.remove('open');
-      }
-    };
-    document.addEventListener('click', this.boundDropdownClickHandler);
-
-    this.boundDropdownKeydownHandler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') dropdown.classList.remove('open');
-    };
-    document.addEventListener('keydown', this.boundDropdownKeydownHandler);
-  }
-
-  private setCopyLinkFeedback(button: HTMLElement | null, message: string): void {
-    if (!button) return;
-    const originalText = button.textContent ?? '';
-    button.textContent = message;
-    button.classList.add('copied');
-    window.setTimeout(() => {
-      button.textContent = originalText;
-      button.classList.remove('copied');
-    }, 1500);
-  }
-
   private getFullscreenDocument(): Document & {
     webkitFullscreenElement?: Element | null;
     webkitExitFullscreen?: () => Promise<void> | void;
@@ -677,35 +392,6 @@ export class EventHandlerManager implements AppModule {
       webkitFullscreenElement?: Element | null;
       webkitExitFullscreen?: () => Promise<void> | void;
     };
-  }
-
-  private async exitFullscreenForNavigation(): Promise<void> {
-    const fullscreenDocument = this.getFullscreenDocument();
-    if (!fullscreenDocument.fullscreenElement && !fullscreenDocument.webkitFullscreenElement) return;
-    try {
-      if (typeof fullscreenDocument.exitFullscreen === 'function') {
-        await fullscreenDocument.exitFullscreen();
-        return;
-      }
-      await fullscreenDocument.webkitExitFullscreen?.();
-    } catch { /* proceed with navigation regardless */ }
-  }
-
-  private async navigateToVariant(
-    variant: string,
-    options: { href?: string; isLocalDev: boolean },
-  ): Promise<void> {
-    trackVariantSwitch(SITE_VARIANT, variant);
-    await this.exitFullscreenForNavigation();
-
-    if (this.ctx.isDesktopApp || options.isLocalDev) {
-      localStorage.setItem('worldmonitor-variant', variant);
-      window.location.reload();
-      return;
-    }
-
-    const target = options.href || VARIANT_META[variant]?.url;
-    if (target) window.location.href = target;
   }
 
   toggleFullscreen(): void {
@@ -734,16 +420,6 @@ export class EventHandlerManager implements AppModule {
     btn.innerHTML = isDark
       ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>'
       : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>';
-  }
-
-  private updateMobileMenuThemeItem(): void {
-    const btn = document.getElementById('mobileMenuTheme');
-    if (!btn) return;
-    const isDark = getCurrentTheme() === 'dark';
-    const icon = btn.querySelector('.mobile-menu-item-icon');
-    const label = btn.querySelector('.mobile-menu-item-label');
-    if (icon) icon.textContent = isDark ? '☀️' : '🌙';
-    if (label) label.textContent = isDark ? 'Light Mode' : 'Dark Mode';
   }
 
   startHeaderClock(): void {
