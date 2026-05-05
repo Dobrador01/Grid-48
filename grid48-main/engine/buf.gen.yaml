@@ -1,0 +1,14 @@
+# Engine-only codegen for the grid48.* protos. Outputs TS sources under
+# engine/src/generated/, runtime is @bufbuild/protobuf v1 (already a dep).
+#
+# Why a separate file (vs. proto/buf.gen.yaml at the repo root): that template
+# uses Go-based plugins (protoc-gen-ts-client, protoc-gen-openapiv3) shared
+# with the Worldmonitor toolchain, which we don't have on this side. Keeping
+# the engine generation self-contained avoids dragging the whole toolchain.
+version: v1
+plugins:
+  - plugin: es
+    out: src/generated
+    opt:
+      - target=ts
+      - import_extension=.js
