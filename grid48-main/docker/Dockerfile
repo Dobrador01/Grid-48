@@ -18,9 +18,11 @@ COPY . .
 # can be added here or via --build-arg for custom builds; see .env.example for the full list.
 ARG VITE_VARIANT=full
 ARG VITE_WS_API_URL=https://api.worldmonitor.app
+ARG VITE_API_MODE=cloud
 
 ENV VITE_VARIANT=${VITE_VARIANT}
 ENV VITE_WS_API_URL=${VITE_WS_API_URL}
+ENV VITE_API_MODE=${VITE_API_MODE}
 
 # tsc + vite build (see package.json "build" script)
 RUN npm run build

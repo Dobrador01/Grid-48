@@ -2,13 +2,13 @@ version: '3.8'
 
 services:
   web:
+    # VITE_API_MODE is baked at build time (see docker/Dockerfile + .github/workflows/main.yml).
+    # Setting it as runtime env here is a no-op: nginx serves pre-built static assets.
     image: ghcr.io/dobrador01/grid-48/web:latest
     container_name: grid48-web
     restart: always
     ports:
       - "80:80"
-    environment:
-      - VITE_API_MODE=local
 
   engine:
     image: ghcr.io/dobrador01/grid-48/engine:latest
@@ -23,9 +23,11 @@ services:
       - /dev:/dev # Allow ttyUSB* access
     environment:
       - NODE_ENV=production
+      - TZ=America/Sao_Paulo
       - ENGINE_PORT=3001
       - DB_PATH=/app/data/grid48.db
       - CONVEX_GW_URL=${CONVEX_GW_URL}
+      - CONVEX_BEACON_URL=${CONVEX_BEACON_URL}
       - PSK_GATEWAY=${PSK_GATEWAY}
 
   watchtower:
