@@ -412,12 +412,13 @@ export class App {
       this.eventHandlers.syncUrlState();
     });
 
-    // Data Provider Adapter (Convex Cloud OR Local Engine)
-    import('@/adapters').then(({ getDataProvider }) => {
+    // Data Provider Adapter (Convex Cloud OR Local Engine).
+    // Each init* returns a disposer; we register them as modules so App teardown
+    // (variant switch, HMR, desktop close) cleans up intervals/sockets.
+    import('@/adapters').then(async ({ getDataProvider }) => {
       const dataProvider = getDataProvider();
-      
-      // Initialize Celesc
-      dataProvider.initCelesc((outages) => {
+
+      const unsubCelesc = await dataProvider.initCelesc((outages) => {
         if (this.state.map) {
           this.state.map.setCelescOutages(outages);
         }
@@ -427,9 +428,9 @@ export class App {
           celescPanel.setOutages(outages, lastUpdate);
         }
       });
-      
-      // Initialize Beacon OSINT
-      dataProvider.initBeacon((snapshot) => {
+      this.modules.push({ destroy: unsubCelesc });
+
+      const unsubBeacon = await dataProvider.initBeacon((snapshot) => {
         if (this.state.map) {
            this.state.map.setBeaconAlerts(snapshot.alertas);
         }
@@ -445,12 +446,13 @@ export class App {
            const retry = setInterval(() => { if (setPanel()) clearInterval(retry); }, 500);
         }
       });
-      
-      // Initialize Grid 48 RF Telemetry
-      dataProvider.initTelemetry((data) => {
+      this.modules.push({ destroy: unsubBeacon });
+
+      const unsubTelemetry = await dataProvider.initTelemetry((data) => {
         console.log('[App] Telemetry updated', data.length, 'records');
         // Will be routed to a specific map layer in the future
       });
+      this.modules.push({ destroy: unsubTelemetry });
     }).catch((err) => {
       console.error('[App] Adapter initialization failed:', err);
     });
