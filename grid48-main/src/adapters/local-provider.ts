@@ -1,4 +1,4 @@
-import { IDataProvider, TelemetryData, Disposer, HealthStatus } from './types';
+import { IDataProvider, TelemetryData, Disposer, HealthStatus, SitrepRequestResult, SitrepResponse } from './types';
 import type { BeaconSnapshot } from '@/services/beacon-client';
 import type { CelescMunicipioPayload } from '@/types/celesc';
 
@@ -64,6 +64,31 @@ export class LocalProvider implements IDataProvider {
       return (await res.json()) as HealthStatus;
     } catch {
       return { status: 'offline' };
+    }
+  }
+
+  async requestSitrep(categoria: number, localidade: number): Promise<SitrepRequestResult | null> {
+    try {
+      const res = await fetch(`${ENGINE_URL}/api/sitrep-request`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ categoria, localidade }),
+      });
+      if (!res.ok) return null;
+      return (await res.json()) as SitrepRequestResult;
+    } catch (e) {
+      console.warn('[LocalProvider] requestSitrep error', e);
+      return null;
+    }
+  }
+
+  async getSitrepResponse(requestId: string): Promise<SitrepResponse> {
+    try {
+      const res = await fetch(`${ENGINE_URL}/api/sitrep-response/${encodeURIComponent(requestId)}`);
+      const data = (await res.json()) as SitrepResponse;
+      return data;
+    } catch {
+      return { status: 'pending', request_id: requestId };
     }
   }
 }

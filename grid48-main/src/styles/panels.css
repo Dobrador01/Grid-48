@@ -2260,3 +2260,204 @@
   font-weight: 500;
   margin-top: 4px;
 }
+
+/* ============================================ */
+/* HealthWidget — Engine status (glassmorphism) */
+/* ============================================ */
+.hw-container {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: 100%;
+  background: var(--panel-bg);
+}
+
+.hw-placeholder {
+  padding: 16px;
+  font-size: 11px;
+  color: var(--text-dim);
+  text-align: center;
+}
+
+.hw-pill {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--overlay-light);
+  backdrop-filter: blur(8px);
+}
+
+.hw-pill-icon {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.hw-pill-text { display: flex; flex-direction: column; gap: 2px; }
+
+.hw-pill-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.hw-pill-subtitle {
+  font-size: 10px;
+  color: var(--text-dim);
+}
+
+.hw-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.hw-metric {
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--overlay-light);
+}
+
+.hw-metric-label {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-dim);
+  margin-bottom: 4px;
+}
+
+.hw-metric-value {
+  font-size: 12px;
+  color: var(--text);
+  font-weight: 500;
+}
+
+/* ============================================ */
+/* SitrepButton — request panel                  */
+/* ============================================ */
+.sitrep-container {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: 100%;
+  background: var(--panel-bg);
+}
+
+.sitrep-form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sitrep-label {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-dim);
+}
+
+.sitrep-select {
+  padding: 6px 8px;
+  font-size: 12px;
+  background: rgba(0, 0, 0, 0.4);
+  color: var(--text);
+  border: 1px solid var(--overlay-light);
+  border-radius: 4px;
+  outline: none;
+}
+
+.sitrep-select:focus {
+  border-color: var(--accent);
+}
+
+.sitrep-button {
+  margin-top: 6px;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  background: color-mix(in srgb, var(--accent) 25%, transparent);
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+
+.sitrep-button:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+.sitrep-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.sitrep-status {
+  padding: 10px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--overlay-light);
+  min-height: 48px;
+  font-size: 11px;
+}
+
+.sitrep-status-idle    { color: var(--text-dim); }
+.sitrep-status-sending { color: var(--accent); }
+.sitrep-status-error   { color: var(--threat-high); }
+
+.sitrep-progress {
+  height: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+
+.sitrep-progress-bar {
+  height: 100%;
+  background: var(--accent);
+  transition: width 1s linear;
+}
+
+.sitrep-progress-label {
+  font-size: 10px;
+  color: var(--text-dim);
+}
+
+.sitrep-request-id {
+  font-size: 9px;
+  font-family: ui-monospace, monospace;
+  color: var(--text-dim);
+  margin-top: 4px;
+}
+
+.sitrep-result {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sitrep-result-headline {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-dim);
+}
+
+.sitrep-result-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--accent);
+  line-height: 1;
+}
+
+.sitrep-result-meta {
+  font-size: 9px;
+  font-family: ui-monospace, monospace;
+  color: var(--text-dim);
+}

@@ -11,6 +11,8 @@ import {
 } from '@/components';
 import { CelescStatusWidget } from '@/components/CelescStatusWidget';
 import { TacticalStatusPanel } from '@/components/TacticalStatusPanel';
+import { HealthWidget } from '@/components/HealthWidget';
+import { SitrepButton } from '@/components/SitrepButton';
 import { debounce, saveToStorage, loadFromStorage } from '@/utils';
 import {
   DEFAULT_PANELS,
@@ -224,6 +226,16 @@ export class PanelLayoutManager implements AppModule {
       console.log('[Grid 48 Debug] TacticalStatusPanel instantiated and added to ctx.panels.');
     } else {
       console.error('[Grid 48 Debug] shouldCreatePanel("tactical-status") returned false! It is missing from DEFAULT_PANELS.');
+    }
+
+    if (this.shouldCreatePanel('engine-health')) {
+      const widget = new HealthWidget();
+      this.ctx.panels['engine-health'] = widget;
+    }
+
+    if (this.shouldCreatePanel('sitrep')) {
+      const widget = new SitrepButton();
+      this.ctx.panels['sitrep'] = widget;
     }
 
     // Injeção Prioritária O(1) do Beacon Widget (Light Mode Transparente) no topo.

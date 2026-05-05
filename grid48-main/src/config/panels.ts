@@ -11,6 +11,8 @@ const FULL_PANELS: Record<string, PanelConfig> = {
   map: { name: 'Mapa â€” Grande FlorianÃ³polis', enabled: true, priority: 1 },
   'celesc-status': { name: 'Celesc Status', enabled: true, priority: 1 },
   'tactical-status': { name: 'Comando & Controle', enabled: true, priority: 1 },
+  'engine-health': { name: 'Engine — Saúde', enabled: true, priority: 1 },
+  'sitrep': { name: 'SITREP — Pedido C2', enabled: true, priority: 1 },
   intel: { name: 'Intel Feed', enabled: true, priority: 1 },
   climate: { name: 'Climate Anomalies', enabled: true, priority: 2 },
   'population-exposure': { name: 'Population Exposure', enabled: true, priority: 2 },

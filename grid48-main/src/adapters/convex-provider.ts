@@ -1,4 +1,4 @@
-import { IDataProvider, TelemetryData, Disposer, HealthStatus } from './types';
+import { IDataProvider, TelemetryData, Disposer, HealthStatus, SitrepRequestResult, SitrepResponse } from './types';
 import type { BeaconSnapshot } from '@/services/beacon-client';
 import type { CelescMunicipioPayload } from '@/types/celesc';
 
@@ -25,5 +25,15 @@ export class ConvexProvider implements IDataProvider {
 
   async getHealthStatus(): Promise<HealthStatus> {
     return { status: 'cloud-ok' };
+  }
+
+  // SITREP needs the Engine to bridge browser ↔ LoRa. In cloud mode there is
+  // no such bridge from the user's browser, so stub these out.
+  async requestSitrep(_categoria: number, _localidade: number): Promise<SitrepRequestResult | null> {
+    return null;
+  }
+
+  async getSitrepResponse(requestId: string): Promise<SitrepResponse> {
+    return { status: 'unavailable', request_id: requestId };
   }
 }

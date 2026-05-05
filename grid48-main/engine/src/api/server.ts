@@ -6,15 +6,56 @@ import { telemetryLocal, configTable } from '../db/schema';
 import { desc, eq, gt } from 'drizzle-orm';
 import { ENGINE_PORT } from '../config';
 import { readBeaconCache } from '../sync/pull';
+import { proxySitrepRequest } from '../sync/sitrep';
 import { engineEvents, type EngineEvent } from '../events';
+import { computeHealth } from './health';
 
 export const app = new Hono();
 const { upgradeWebSocket, injectWebSocket } = createNodeWebSocket({ app });
 
-app.get('/api/health', (c) => {
+app.get('/api/health', async (c) => {
+  return c.json(await computeHealth());
+});
+
+// SITREP: frontend hits this to enqueue a request via the radio gateway path.
+// Body: { request_id?: string, categoria: number, localidade: number }.
+// Engine generates request_id if missing and returns it for client polling.
+app.post('/api/sitrep-request', async (c) => {
+  let body: { request_id?: string; categoria?: number; localidade?: number };
+  try {
+    body = await c.req.json();
+  } catch {
+    return c.json({ error: 'Invalid JSON body' }, 400);
+  }
+  if (typeof body.categoria !== 'number' || typeof body.localidade !== 'number') {
+    return c.json({ error: 'categoria and localidade (numbers) are required' }, 400);
+  }
+  const requestId = body.request_id ?? `r${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+  // Fire-and-forget: proxy handles polling internally and fills sitrepCache.
+  proxySitrepRequest(requestId, body.categoria, body.localidade).catch((err) => {
+    console.error('[API] proxySitrepRequest failed', err);
+  });
+  return c.json({ request_id: requestId, status: 'pending' }, 202);
+});
+
+// SITREP polling endpoint — reads what the proxy worker dropped in sitrepCache.
+// Returns 202 while pending, 200 with payload when ready, 404 if unknown id.
+app.get('/api/sitrep-response/:requestId', async (c) => {
+  const requestId = c.req.param('requestId');
+  const { sitrepCache } = await import('../db/schema');
+  const row = await db.select().from(sitrepCache).where(eq(sitrepCache.requestId, requestId)).limit(1);
+  if (row.length === 0) {
+    return c.json({ status: 'pending', request_id: requestId }, 202);
+  }
+  const r = row[0]!;
   return c.json({
-    status: 'ok',
-    uptime: process.uptime(),
+    status: 'ready',
+    request_id: requestId,
+    categoria: r.categoria,
+    localidade: r.localidade,
+    resposta_valor: r.respostaValor,
+    ttl_seconds: r.ttlSeconds,
+    received_at: r.receivedAt,
   });
 });
 
