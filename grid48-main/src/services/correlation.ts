@@ -58,7 +58,7 @@ export function analyzeCorrelations(
   predictions: PredictionMarket[],
   markets: MarketData[]
 ): CorrelationSignal[] {
-  const getSourceTypeFn = (source: string): SourceType => 'mainstream' as SourceType;
+  const getSourceTypeFn = (_source: string): SourceType => 'mainstream' as SourceType;
 
   const { signals, snapshot } = analyzeCorrelationsCore(
     events,

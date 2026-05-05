@@ -1,5 +1,8 @@
 name: Grid 48 CI/CD
 
+# All paths are relative to the repository root (Grid 48/). The actual project
+# lives under grid48-main/, so docker contexts and file paths are prefixed.
+
 on:
   push:
     branches: [ "main" ]
@@ -21,10 +24,10 @@ jobs:
       - name: Build Web
         uses: docker/build-push-action@v5
         with:
-          context: .
-          file: docker/Dockerfile
+          context: ./grid48-main
+          file: ./grid48-main/docker/Dockerfile
           push: true
-          tags: ghcr.io/${{ github.repository_owner }}/grid-48/web:latest
+          tags: ghcr.io/dobrador01/grid-48/web:latest
           build-args: |
             VITE_API_MODE=local
 
@@ -48,11 +51,11 @@ jobs:
       - name: Build Engine (Multi-Arch)
         uses: docker/build-push-action@v5
         with:
-          context: .
-          file: docker/Dockerfile.engine
+          context: ./grid48-main
+          file: ./grid48-main/docker/Dockerfile.engine
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: ghcr.io/${{ github.repository_owner }}/grid-48/engine:latest
+          tags: ghcr.io/dobrador01/grid-48/engine:latest
 
   deploy-vercel:
     runs-on: ubuntu-latest

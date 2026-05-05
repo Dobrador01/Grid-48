@@ -1,5 +1,8 @@
 name: Typecheck
 
+# The actual project lives in grid48-main/. Default working-directory is set
+# at the job level so each `run:` step executes there without per-step prefix.
+
 on:
   pull_request:
   push:
@@ -9,12 +12,16 @@ jobs:
   typecheck:
     if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: grid48-main
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: 'npm'
+          cache-dependency-path: grid48-main/package-lock.json
       - run: npm ci
       - run: npm run typecheck
       - run: npm run typecheck:api

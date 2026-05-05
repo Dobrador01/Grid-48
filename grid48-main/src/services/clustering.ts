@@ -9,6 +9,10 @@ import { clusterNewsCore } from './analysis-core';
 import { mlWorker } from './ml-worker';
 import { ML_THRESHOLDS } from '@/config/ml-config';
 
+// Source-tier metadata was removed with the news/RSS purge. Default everything
+// to tier 3 (lowest priority) so clustering still works without per-source bias.
+const getSourceTier = (_source: string): number => 3;
+
 export function clusterNews(items: NewsItem[]): ClusteredEvent[] {
   return clusterNewsCore(items, getSourceTier) as ClusteredEvent[];
 }

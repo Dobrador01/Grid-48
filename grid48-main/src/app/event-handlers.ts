@@ -469,23 +469,6 @@ export class EventHandlerManager implements AppModule {
         saveToStorage(STORAGE_KEYS.panels, this.ctx.panelSettings);
         this.applyPanelSettings();
       },
-      getDisabledSources: () => this.ctx.disabledSources,
-      toggleSource: (name: string) => {
-        if (this.ctx.disabledSources.has(name)) {
-          this.ctx.disabledSources.delete(name);
-        } else {
-          this.ctx.disabledSources.add(name);
-        }
-        saveToStorage(STORAGE_KEYS.disabledFeeds, Array.from(this.ctx.disabledSources));
-      },
-      setSourcesEnabled: (names: string[], enabled: boolean) => {
-        for (const name of names) {
-          if (enabled) this.ctx.disabledSources.delete(name);
-          else this.ctx.disabledSources.add(name);
-        }
-        saveToStorage(STORAGE_KEYS.disabledFeeds, Array.from(this.ctx.disabledSources));
-      },
-      getAllSourceNames: () => this.getAllSourceNames(),
       getLocalizedPanelName: (key: string, fallback: string) => this.getLocalizedPanelName(key, fallback),
       resetLayout: () => {
         localStorage.removeItem(this.ctx.PANEL_SPANS_KEY);
@@ -557,10 +540,6 @@ export class EventHandlerManager implements AppModule {
   }
 
   restoreSnapshot(snapshot: DashboardSnapshot): void {
-    for (const panel of Object.values(this.ctx.newsPanels)) {
-      panel.showLoading();
-    }
-
     const events = snapshot.events as ClusteredEvent[];
     this.ctx.latestClusters = events;
 
@@ -851,12 +830,10 @@ export class EventHandlerManager implements AppModule {
   }
 
   getAllSourceNames(): string[] {
-    const sources = new Set<string>();
-    Object.values(FEEDS).forEach(feeds => {
-      if (feeds) feeds.forEach(f => sources.add(f.name));
-    });
-    INTEL_SOURCES.forEach(f => sources.add(f.name));
-    return Array.from(sources).sort((a, b) => a.localeCompare(b));
+    // FEEDS and INTEL_SOURCES were removed in the news/RSS purge. Method
+    // retained as a no-op so any stale callers don't crash; UnifiedSettings
+    // no longer wires it.
+    return [];
   }
 
   applyPanelSettings(): void {

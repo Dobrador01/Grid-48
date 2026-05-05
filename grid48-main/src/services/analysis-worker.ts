@@ -194,7 +194,9 @@ class AnalysisWorkerManager {
         type: 'cluster',
         id,
         items,
-        sourceTiers: SOURCE_TIERS,
+        // SOURCE_TIERS was removed with the news/RSS purge. Worker handles
+        // missing tiers by defaulting to tier 3.
+        sourceTiers: {},
       });
     });
   }
@@ -231,7 +233,9 @@ class AnalysisWorkerManager {
         clusters,
         predictions,
         markets,
-        sourceTypes: SOURCE_TYPES as Record<string, SourceType>,
+        // SOURCE_TYPES was removed with the news/RSS purge. Worker treats
+        // unknown sources as 'mainstream' downstream.
+        sourceTypes: {},
       });
     });
   }

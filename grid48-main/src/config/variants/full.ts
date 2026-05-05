@@ -6,7 +6,7 @@ import type { VariantConfig } from './base';
 export * from './base';
 
 // Geopolitical-specific exports
-export * from '../feeds';
+// '../feeds' removed in news/RSS purge.
 export * from '../geo';
 export * from '../irradiators';
 export * from '../pipelines';

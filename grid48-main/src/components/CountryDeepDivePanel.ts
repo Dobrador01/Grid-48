@@ -290,10 +290,7 @@ export class CountryDeepDivePanel implements CountryBriefPanel {
       const severityLabel = t(`countryBrief.levels.${levelKey}`);
       top.append(this.badge(severityLabel.toUpperCase(), `cdp-severity-badge sev-${severity}`));
 
-      const risk = 'medium';
-      if (risk.stateAffiliated) {
-        top.append(this.badge(`State-affiliated: ${risk.stateAffiliated}`, 'cdp-state-badge'));
-      }
+      // State-affiliation badge removed with news/RSS source metadata purge.
 
       const title = this.el('div', 'cdp-news-title', this.decodeEntities(item.title));
       const meta = this.el('div', 'cdp-news-meta', `${item.source} • ${this.formatRelativeTime(item.pubDate)}`);

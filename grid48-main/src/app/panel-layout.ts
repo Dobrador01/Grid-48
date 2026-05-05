@@ -1,6 +1,5 @@
 import type { AppContext, AppModule } from '@/app/app-context';
 import { replayPendingCalls, clearAllPendingCalls } from '@/app/pending-panel-data';
-import type { RelatedAsset } from '@/types';
 import {
   MapContainer,
   RuntimeConfigPanel,
@@ -14,8 +13,7 @@ import { CelescStatusWidget } from '@/components/CelescStatusWidget';
 import { TacticalStatusPanel } from '@/components/TacticalStatusPanel';
 import { debounce, saveToStorage, loadFromStorage } from '@/utils';
 import {
-  FEEDS,
-    DEFAULT_PANELS,
+  DEFAULT_PANELS,
   STORAGE_KEYS,
   SITE_VARIANT,
 } from '@/config';
@@ -731,11 +729,6 @@ export class PanelLayoutManager implements AppModule {
         }
       });
     }
-  }
-
-  
-  private handleRelatedAssetClick(_asset: RelatedAsset): void {
-    // RelatedAsset layers (pipelines, cables, datacenters, bases, nuclear) removed from MapLayers.
   }
 
   private lazyPanel<T extends { getElement(): HTMLElement }>(

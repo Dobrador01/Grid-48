@@ -1,9 +1,6 @@
 import type { PanelConfig } from '@/types';
 import type { DataSourceId } from '@/services/data-freshness';
 import { SITE_VARIANT } from './variant';
-import { isDesktopRuntime } from '@/services/runtime';
-
-const _desktop = isDesktopRuntime();
 
 // ============================================
 // FULL VARIANT (Geopolitical)
@@ -770,7 +767,7 @@ export const LAYER_TO_SOURCE: Partial<Record<any, DataSourceId[]>> = {
   outages: ['outages'],
   cyberThreats: ['cyber_threats'],
   protests: ['acled', 'gdelt_doc'],
-  ucdpEvents: ['ucdp_events'],
+  ucdpEvents: ['ucdp'],
   displacement: ['unhcr'],
   climate: ['climate'],
 };
