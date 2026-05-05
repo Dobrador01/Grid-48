@@ -13,6 +13,9 @@ RUN apk add --no-cache python3 make g++ gcc eudev-dev
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/src/db/schema.ts ./src/db/schema.ts
+# Drizzle migrations are read at runtime by db:migrate. They live alongside the
+# compiled JS so the path resolution (cwd-based) is identical in dev and prod.
+COPY --from=builder /app/src/db/migrations ./src/db/migrations
 RUN npm ci --production
 COPY docker/engine-entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/engine-entrypoint.sh

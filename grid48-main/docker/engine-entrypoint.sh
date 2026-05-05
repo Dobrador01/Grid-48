@@ -16,7 +16,7 @@ else
   echo "[ENTRYPOINT] USB storage confirmed mounted at /app/data."
 fi
 
-# Drizzle migrations are re-enabled once the migrations/ directory is generated (Onda 2).
-# npm run db:migrate
+echo "[ENTRYPOINT] Running Drizzle migrations..."
+npm run db:migrate
 
 exec "$@"

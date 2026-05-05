@@ -7,15 +7,18 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "dev": "tsx watch src/index.ts",
-    "db:generate": "drizzle-kit generate",
-    "db:migrate": "tsx src/db/migrate.ts"
+    "db:generate": "drizzle-kit generate:sqlite --schema=./src/db/schema.ts --out=./src/db/migrations",
+    "db:migrate": "node dist/db/migrate.js",
+    "db:migrate:dev": "tsx src/db/migrate.ts"
   },
   "dependencies": {
     "better-sqlite3": "^9.6.0",
     "drizzle-orm": "^0.30.10",
     "serialport": "^12.0.0",
-    "@meshtastic/js": "^3.0.0",
     "hono": "^4.2.7",
+    "@hono/node-server": "^1.11.0",
+    "@hono/node-ws": "^1.0.4",
+    "convex": "^1.12.0",
     "node-cron": "^3.0.3",
     "ws": "^8.16.0",
     "@bufbuild/protobuf": "^1.8.0",

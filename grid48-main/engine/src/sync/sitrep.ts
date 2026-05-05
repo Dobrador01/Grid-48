@@ -36,7 +36,11 @@ export async function proxySitrepRequest(requestId: string, categoria: number, l
         });
 
         if (checkRes.status === 200) {
-          const data = await checkRes.json();
+          const data = (await checkRes.json()) as {
+            status: string;
+            resposta_valor: number;
+            ttl_seconds: number;
+          };
           if (data.status === 'ready') {
             clearInterval(pollInterval);
             console.log(`[SITREP PROXY] Response ready for ${requestId}: Valor ${data.resposta_valor}`);

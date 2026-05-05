@@ -1,6 +1,7 @@
 import cron from 'node-cron';
 import { startRadioListener } from './radio/listener';
 import { runPushSync } from './sync/push';
+import { runPullSync } from './sync/pull';
 import { scrapeCelesc } from './scrapers/celesc';
 import { runGarbageCollection } from './gc/retention';
 import { startServer } from './api/server';
@@ -31,13 +32,20 @@ function withLock(name: string, fn: () => Promise<void>) {
   };
 }
 
-// Sync push every minute
+// Sync push every minute (Engine → Convex Gateway)
 cron.schedule('* * * * *', withLock('push', () => runPushSync()));
 
-// Celesc scraper every 5 minutes
+// Beacon pull every 2 minutes (Convex Beacon → SQLite cache for offline serving)
+cron.schedule('*/2 * * * *', withLock('pull-beacon', () => runPullSync()));
+
+// Celesc scraper every 5 minutes (residential IP bypasses Cloudflare blocks)
 cron.schedule('*/5 * * * *', withLock('celesc', async () => { await scrapeCelesc(); }));
 
 // GC at 3 AM every day (TZ is set on the container — see docker-compose.yml)
 cron.schedule('0 3 * * *', withLock('gc', async () => { await runGarbageCollection(); }));
+
+// Kick off the first beacon pull immediately so /api/beacon-alerts has data
+// before the first cron tick (saves the LOCAL frontend from waiting 2 min).
+runPullSync().catch((err) => console.error('[BOOT] initial beacon pull failed', err));
 
 console.log('=== All Engine Components Initialized ===');
