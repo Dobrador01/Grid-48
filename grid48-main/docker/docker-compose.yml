@@ -9,6 +9,10 @@ services:
     restart: always
     ports:
       - "80:80"
+    labels:
+      # Watchtower opt-in: only labelled containers are auto-updated. Drop this
+      # label to pin a container to its current image (e.g. for canary).
+      - "com.centurylinklabs.watchtower.enable=true"
 
   engine:
     image: ghcr.io/dobrador01/grid-48/engine:latest
@@ -29,6 +33,8 @@ services:
       - CONVEX_GW_URL=${CONVEX_GW_URL}
       - CONVEX_BEACON_URL=${CONVEX_BEACON_URL}
       - PSK_GATEWAY=${PSK_GATEWAY}
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
 
   watchtower:
     image: containrrr/watchtower
@@ -36,4 +42,7 @@ services:
     restart: always
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-    command: --interval 3600 grid48-web grid48-engine
+    # --label-enable: only watch containers carrying the watchtower.enable label.
+    # Removing the label from a service freezes it on its current image — useful
+    # for canary deploys where you don't want auto-update during validation.
+    command: --interval 3600 --label-enable

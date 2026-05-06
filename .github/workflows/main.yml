@@ -27,7 +27,12 @@ jobs:
           context: ./grid48-main
           file: ./grid48-main/docker/Dockerfile
           push: true
-          tags: ghcr.io/dobrador01/grid-48/web:latest
+          # Dual tag: :latest is what Watchtower follows on the Pi, :sha-<commit>
+          # is the immutable handle for rollback (re-tag a previous SHA as :latest
+          # to revert without re-running the workflow).
+          tags: |
+            ghcr.io/dobrador01/grid-48/web:latest
+            ghcr.io/dobrador01/grid-48/web:sha-${{ github.sha }}
           build-args: |
             VITE_API_MODE=local
 
@@ -55,7 +60,9 @@ jobs:
           file: ./grid48-main/docker/Dockerfile.engine
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: ghcr.io/dobrador01/grid-48/engine:latest
+          tags: |
+            ghcr.io/dobrador01/grid-48/engine:latest
+            ghcr.io/dobrador01/grid-48/engine:sha-${{ github.sha }}
 
   deploy-vercel:
     runs-on: ubuntu-latest

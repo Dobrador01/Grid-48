@@ -4,17 +4,31 @@ import { internal } from "./_generated/api";
 
 const http = httpRouter();
 
-// Helper to validate PSK (Pre-Shared Key)
+// Validate the X-Grid48-GW-Key header against any of the configured PSKs.
+//
+// Rotation flow (zero-downtime):
+//   1. Set PSK_GATEWAY_V2 alongside the existing PSK_GATEWAY. Gateway accepts
+//      both — clients can migrate one at a time.
+//   2. Update each client (engine, ESP32, etc.) to send the new key.
+//   3. Once no traffic uses the old key, unset PSK_GATEWAY (or rename V2→main).
+//
+// `expectedKeyEnv` is kept as a parameter so a future "sensor" key namespace
+// (PSK_SENSOR / PSK_SENSOR_V2) can reuse the same helper without code changes.
 const validateAuth = (request: Request, expectedKeyEnv: string) => {
   const authHeader = request.headers.get("X-Grid48-GW-Key");
-  const expectedKey = process.env[expectedKeyEnv];
-  
-  if (!expectedKey) {
-    console.error(`[AUTH] Missing environment variable for key: ${expectedKeyEnv}`);
+  if (!authHeader) return false;
+
+  const accepted = [
+    process.env[expectedKeyEnv],
+    process.env[`${expectedKeyEnv}_V2`],
+  ].filter((v): v is string => typeof v === "string" && v.length > 0);
+
+  if (accepted.length === 0) {
+    console.error(`[AUTH] No keys configured for ${expectedKeyEnv} or ${expectedKeyEnv}_V2`);
     return false;
   }
-  
-  return authHeader === expectedKey;
+
+  return accepted.includes(authHeader);
 };
 
 // POST /gateway -> Recebe telemetria do ESP32 Gateway

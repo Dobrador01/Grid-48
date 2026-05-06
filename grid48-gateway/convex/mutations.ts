@@ -81,3 +81,29 @@ export const completeSitrep = internalMutation({
     }
   },
 });
+
+// Garbage collection: deletes sitrep_queue rows past their expiresAt.
+// Runs on cron (see convex/crons.ts). Without this, the table grew forever
+// since no path purged completed/expired requests.
+export const gcSitrepQueue = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const now = Date.now();
+    // by_status index lets us scan candidate rows without a full table scan.
+    // expiresAt is the source of truth — status alone is not enough because
+    // 'ready' rows also need to age out.
+    const rows = await ctx.db.query("sitrep_queue").collect();
+    let deleted = 0;
+    for (const row of rows) {
+      const expired = typeof row.expiresAt === "number" && row.expiresAt < now;
+      if (expired) {
+        await ctx.db.delete(row._id);
+        deleted++;
+      }
+    }
+    if (deleted > 0) {
+      console.log(`[GC] sitrep_queue: deleted ${deleted} expired rows`);
+    }
+    return { deleted };
+  },
+});
