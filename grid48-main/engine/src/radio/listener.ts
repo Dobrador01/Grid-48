@@ -6,24 +6,20 @@ import { TelemetryPacket } from '../generated/grid48/telemetry_pb';
 import { SitrepRequest } from '../generated/grid48/sitrep_pb';
 import { proxySitrepRequest } from '../sync/sitrep';
 import { engineEvents } from '../events';
+import { TYPE_SITREP_REQUEST, TYPE_TELEMETRY } from './frame';
+import { setActivePort } from './transmitter';
 
 let currentPort: SerialPort | null = null;
 
 /**
- * Wire format (one frame per serialport `data` event):
- *   [type:u8][protobuf payload]
- *
- * Type discriminator is a single byte that selects the message schema:
- *   0x01 → SitrepRequest  (proxy to Convex Cloud)
- *   0x02 → TelemetryPacket (persist locally + emit engineEvent)
+ * Reads frames from the LoRa serial link. See radio/frame.ts for the wire
+ * format and the full type discriminator table (RX + TX share the codes).
  *
  * NOTE: real framing (length prefix or delimiter) is the ESP32 firmware's
  * responsibility (Wave 6). For now we trust each `data` event to be one
- * complete frame; the discovery loop runs at 115200 which is fast enough
- * that LoRa-rate frames arrive contiguously in the kernel buffer.
+ * complete frame; the link runs at 115200 baud which is fast enough that
+ * LoRa-rate frames arrive contiguously in the kernel buffer.
  */
-const TYPE_SITREP_REQUEST = 0x01;
-const TYPE_TELEMETRY = 0x02;
 
 async function handleTelemetry(payload: Buffer): Promise<void> {
   const packet = TelemetryPacket.fromBinary(payload);
@@ -61,7 +57,17 @@ export async function startRadioListener() {
   currentPort = new SerialPort({ path, baudRate: 115200 }, (err) => {
     if (err) {
       console.error(`[RADIO] Error opening port ${path}:`, err.message);
+      setActivePort(null);
+    } else {
+      // Register the port for outbound traffic (SITREP responses, etc).
+      // Listener owns the lifecycle; transmitter just holds the reference.
+      setActivePort(currentPort);
     }
+  });
+
+  currentPort.on('close', () => {
+    console.warn('[RADIO] Port closed');
+    setActivePort(null);
   });
 
   currentPort.on('data', async (data: Buffer) => {
