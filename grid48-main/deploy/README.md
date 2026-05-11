@@ -46,9 +46,9 @@ Este é o guia oficial de sobrevivência para subir o Nó Base (Ipiranga) do Gri
    ```bash
    cd grid48-main/docker
    # Crie um arquivo .env com suas chaves:
-   # echo "CONVEX_GW_URL=xxx" > .env
+   # echo "CONVEX_URL=https://<deployment>.convex.cloud" > .env
    # echo "PSK_GATEWAY=xxx" >> .env
-   
+
    docker compose pull
    docker compose up -d
    ```

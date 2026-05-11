@@ -2,7 +2,7 @@ import { ConvexHttpClient } from 'convex/browser';
 import { db } from '../db';
 import { configTable, syncLog } from '../db/schema';
 import { eq } from 'drizzle-orm';
-import { CONVEX_BEACON_URL } from '../config';
+import { CONVEX_URL } from '../config';
 import { engineEvents } from '../events';
 
 const BEACON_CACHE_KEY = 'beacon_alerts_snapshot';
@@ -25,11 +25,11 @@ interface BeaconCacheEnvelope {
 let client: ConvexHttpClient | null = null;
 
 function getClient(): ConvexHttpClient | null {
-  if (!CONVEX_BEACON_URL) {
-    console.warn('[PULL] CONVEX_BEACON_URL not set — Beacon pull disabled.');
+  if (!CONVEX_URL) {
+    console.warn('[PULL] CONVEX_URL not set — Beacon pull disabled.');
     return null;
   }
-  if (!client) client = new ConvexHttpClient(CONVEX_BEACON_URL);
+  if (!client) client = new ConvexHttpClient(CONVEX_URL);
   return client;
 }
 

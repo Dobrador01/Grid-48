@@ -1,6 +1,6 @@
 import { db } from '../db';
 import { sitrepCache } from '../db/schema';
-import { CONVEX_GW_URL, GATEWAY_PSK } from '../config';
+import { CONVEX_URL, GATEWAY_PSK } from '../config';
 import { SitrepResponse } from '../generated/grid48/sitrep_pb';
 import { transmit } from '../radio/transmitter';
 import { TYPE_SITREP_RESPONSE } from '../radio/frame';
@@ -22,7 +22,7 @@ export async function proxySitrepRequest(
   localidade: number,
 ): Promise<void> {
   try {
-    const res = await fetch(`${CONVEX_GW_URL}/sitrep-request`, {
+    const res = await fetch(`${CONVEX_URL}/sitrep-request`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -47,7 +47,7 @@ export async function proxySitrepRequest(
       }
 
       try {
-        const checkRes = await fetch(`${CONVEX_GW_URL}/sitrep-response?request_id=${requestId}`, {
+        const checkRes = await fetch(`${CONVEX_URL}/sitrep-response?request_id=${requestId}`, {
           headers: { 'X-Grid48-GW-Key': GATEWAY_PSK },
         });
 

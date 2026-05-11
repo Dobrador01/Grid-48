@@ -37,8 +37,11 @@ services:
       - TZ=America/Sao_Paulo
       - ENGINE_PORT=3001
       - DB_PATH=/app/data/grid48.db
-      - CONVEX_GW_URL=${CONVEX_GW_URL}
-      - CONVEX_BEACON_URL=${CONVEX_BEACON_URL}
+      # Single Convex deployment hosts both Beacon (alertas_rss) and Gateway
+      # (telemetry + SITREP) since the consolidation. Engine's config.ts still
+      # accepts the legacy CONVEX_GW_URL / CONVEX_BEACON_URL names as fallback
+      # for older .env files in the wild.
+      - CONVEX_URL=${CONVEX_URL}
       - PSK_GATEWAY=${PSK_GATEWAY}
     labels:
       - "com.centurylinklabs.watchtower.enable=true"

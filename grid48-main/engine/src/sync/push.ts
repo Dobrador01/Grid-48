@@ -1,7 +1,7 @@
 import { db } from '../db';
 import { telemetryLocal, syncLog } from '../db/schema';
 import { eq, and, sql } from 'drizzle-orm';
-import { CONVEX_GW_URL, GATEWAY_PSK } from '../config';
+import { CONVEX_URL, GATEWAY_PSK } from '../config';
 
 export async function runPushSync() {
   try {
@@ -29,7 +29,7 @@ export async function runPushSync() {
         battery_level: record.batteryLevel,
       };
 
-      const res = await fetch(`${CONVEX_GW_URL}/gateway`, {
+      const res = await fetch(`${CONVEX_URL}/gateway`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
