@@ -18,13 +18,20 @@ services:
     image: ghcr.io/dobrador01/grid-48/engine:latest
     container_name: grid48-engine
     restart: always
-    privileged: true # Required for USB Serial auto-discovery
+    # `privileged: true` was overkill — it granted full kernel access. The udev
+    # rule (deploy/udev/99-grid48-radio.rules) creates a stable symlink we can
+    # pass through narrowly via `devices` + libudev read access for VID/PID
+    # introspection. Removing privileged shrinks the blast radius if the engine
+    # is ever compromised.
+    devices:
+      - "/dev/radio_grid48:/dev/radio_grid48"
+    group_add:
+      - "dialout"
     ports:
       - "3001:3001"
     volumes:
       - /mnt/usb/grid48:/app/data
-      - /dev/bus/usb:/dev/bus/usb # Allow raw USB access
-      - /dev:/dev # Allow ttyUSB* access
+      - /run/udev:/run/udev:ro  # serialport uses libudev for VID/PID lookup
     environment:
       - NODE_ENV=production
       - TZ=America/Sao_Paulo
