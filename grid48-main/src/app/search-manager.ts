@@ -9,9 +9,7 @@ import { SITE_VARIANT, STORAGE_KEYS } from '@/config';
 import { getAllowedLayerKeys } from '@/config/map-layer-definitions';
 import type { MapVariant } from '@/config/map-layer-definitions';
 import { LAYER_PRESETS, LAYER_KEY_MAP } from '@/config/commands';
-import { calculateCII, TIER1_COUNTRIES } from '@/services/country-instability';
-import { CURATED_COUNTRIES } from '@/config/countries';
-import { getCountryBbox } from '@/services/country-geometry';
+
 import { INTEL_HOTSPOTS, CONFLICT_ZONES, MILITARY_BASES, UNDERSEA_CABLES, NUCLEAR_FACILITIES } from '@/config/geo';
 import { PIPELINES } from '@/config/pipelines';
 import { AI_DATA_CENTERS } from '@/config/ai-datacenters';
@@ -21,23 +19,18 @@ import { AI_RESEARCH_LABS } from '@/config/ai-research-labs';
 import { STARTUP_ECOSYSTEMS } from '@/config/startup-ecosystems';
 import { TECH_HQS, ACCELERATORS } from '@/config/tech-geo';
 import { STOCK_EXCHANGES, FINANCIAL_CENTERS, CENTRAL_BANKS, COMMODITY_HUBS } from '@/config/finance-geo';
-import { trackSearchResultSelected, trackCountrySelected } from '@/services/analytics';
+import { trackSearchResultSelected } from '@/services/analytics';
 import { t } from '@/services/i18n';
 import { saveToStorage, setTheme } from '@/utils';
-import { CountryIntelManager } from '@/app/country-intel';
-
 export interface SearchManagerCallbacks {
-  openCountryBriefByCode: (code: string, country: string) => void;
 }
 
 export class SearchManager implements AppModule {
   private ctx: AppContext;
-  private callbacks: SearchManagerCallbacks;
   private boundKeydownHandler: ((e: KeyboardEvent) => void) | null = null;
 
-  constructor(ctx: AppContext, callbacks: SearchManagerCallbacks) {
+  constructor(ctx: AppContext, _callbacks: SearchManagerCallbacks) {
     this.ctx = ctx;
-    this.callbacks = callbacks;
   }
 
   init(): void {
@@ -200,7 +193,6 @@ export class SearchManager implements AppModule {
       })));
     }
 
-    this.ctx.searchModal.registerSource('country', this.buildCountrySearchItems());
 
     this.ctx.searchModal.setActivePanels(Object.keys(this.ctx.panels));
     this.ctx.searchModal.setOnSelect((result) => this.handleSearchResult(result));
@@ -367,12 +359,7 @@ export class SearchManager implements AppModule {
         setTimeout(() => { this.ctx.map?.setCenter(hub.lat, hub.lon, 4); }, 300);
         break;
       }
-      case 'country': {
-        const { code, name } = result.data as { code: string; name: string };
-        trackCountrySelected(code, name, 'search');
-        this.callbacks.openCountryBriefByCode(code, name);
-        break;
-      }
+
     }
   }
 
@@ -459,29 +446,9 @@ export class SearchManager implements AppModule {
         this.ctx.map?.setTimeRange(action as import('@/components').TimeRange);
         break;
 
-      case 'country': {
-        const name = TIER1_COUNTRIES[action]
-          || CURATED_COUNTRIES[action]?.name
-          || new Intl.DisplayNames(['en'], { type: 'region' }).of(action)
-          || action;
-        trackCountrySelected(action, name, 'command');
-        this.callbacks.openCountryBriefByCode(action, name);
-        break;
-      }
 
-      case 'country-map': {
-        const bbox = getCountryBbox(action);
-        if (bbox) {
-          const [minLon, minLat, maxLon, maxLat] = bbox;
-          const lat = (minLat + maxLat) / 2;
-          const lon = (minLon + maxLon) / 2;
-          const span = Math.max(maxLat - minLat, maxLon - minLon);
-          const zoom = span > 40 ? 3 : span > 15 ? 4 : span > 5 ? 5 : 6;
-          this.ctx.map?.setView('global');
-          setTimeout(() => { this.ctx.map?.setCenter(lat, lon, zoom); }, 300);
-        }
-        break;
-      }
+
+
     }
   }
 
@@ -508,7 +475,6 @@ export class SearchManager implements AppModule {
   updateSearchIndex(): void {
     if (!this.ctx.searchModal) return;
 
-    this.ctx.searchModal.registerSource('country', this.buildCountrySearchItems());
 
     const newsItems = this.ctx.allNews.slice(0, 500).map(n => ({
       id: n.link,
@@ -522,17 +488,5 @@ export class SearchManager implements AppModule {
 
   }
 
-  private buildCountrySearchItems(): { id: string; title: string; subtitle: string; data: { code: string; name: string } }[] {
-    const scores = calculateCII();
-    const ciiByCode = new Map(scores.map((score) => [score.code, score]));
-    return Object.entries(TIER1_COUNTRIES).map(([code, name]) => {
-      const score = ciiByCode.get(code);
-      return {
-        id: code,
-        title: `${CountryIntelManager.toFlagEmoji(code)} ${name}`,
-        subtitle: score ? `CII: ${score.score}/100 • ${score.level}` : 'Country Brief',
-        data: { code, name },
-      };
-    });
-  }
+
 }

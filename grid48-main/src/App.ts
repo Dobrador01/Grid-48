@@ -18,13 +18,10 @@ import type { ParsedMapUrlState } from '@/utils';
 
 import { isDesktopRuntime, waitForSidecarReady } from '@/services/runtime';
 import { BETA_MODE } from '@/config/beta';
-import { trackEvent, trackDeeplinkOpened } from '@/services/analytics';
-import { preloadCountryGeometry, getCountryNameByCode } from '@/services/country-geometry';
+import { trackEvent } from '@/services/analytics';
 import { initI18n } from '@/services/i18n';
-
 import { fetchBootstrapData } from '@/services/bootstrap';
 import { DesktopUpdater } from '@/app/desktop-updater';
-import { CountryIntelManager } from '@/app/country-intel';
 import { SearchManager } from '@/app/search-manager';
 import { RefreshScheduler } from '@/app/refresh-scheduler';
 import { PanelLayoutManager } from '@/app/panel-layout';
@@ -38,15 +35,10 @@ export type { CountryBriefSignals } from '@/app/app-context';
 
 export class App {
   private state: AppContext;
-  private pendingDeepLinkCountry: string | null = null;
-  private pendingDeepLinkExpanded = false;
-  private pendingDeepLinkStoryCode: string | null = null;
-
   private panelLayout: PanelLayoutManager;
   private dataLoader: DataLoaderManager;
   private eventHandlers: EventHandlerManager;
   private searchManager: SearchManager;
-  private countryIntel: CountryIntelManager;
   private refreshScheduler: RefreshScheduler;
   private desktopUpdater: DesktopUpdater;
 
@@ -241,18 +233,7 @@ export class App {
       exportPanel: null,
       unifiedSettings: null,
 
-      countryBriefPage: null,
-      countryTimeline: null,
-      positivePanel: null,
-      countersPanel: null,
-      progressPanel: null,
-      breakthroughsPanel: null,
-      heroPanel: null,
-      digestPanel: null,
-      speciesPanel: null,
-      renewablePanel: null,
-      tvMode: null,
-      happyAllItems: [],
+
       isDestroyed: false,
       isPlaybackMode: false,
       isIdle: false,
@@ -265,23 +246,17 @@ export class App {
 
     // Instantiate modules (callbacks wired after all modules exist)
     this.refreshScheduler = new RefreshScheduler(this.state);
-    this.countryIntel = new CountryIntelManager(this.state);
     this.desktopUpdater = new DesktopUpdater(this.state);
 
     this.dataLoader = new DataLoaderManager(this.state, {
-      refreshOpenCountryBrief: () => this.countryIntel.refreshOpenBrief(),
+      refreshOpenCountryBrief: () => {},
     });
 
-    this.searchManager = new SearchManager(this.state, {
-      openCountryBriefByCode: (code, country) => this.countryIntel.openCountryBriefByCode(code, country),
-    });
+    this.searchManager = new SearchManager(this.state, {});
 
     this.panelLayout = new PanelLayoutManager(this.state, {
-      openCountryStory: (code, name) => this.countryIntel.openCountryStory(code, name),
-      openCountryBrief: (code) => {
-        const name = CountryIntelManager.resolveCountryName(code);
-        void this.countryIntel.openCountryBriefByCode(code, name);
-      },
+      openCountryStory: () => {},
+      openCountryBrief: () => {},
       loadAllData: () => this.dataLoader.loadAllData(),
     });
 
@@ -293,7 +268,7 @@ export class App {
       loadDataForLayer: (layer) => { void this.dataLoader.loadDataForLayer(layer as keyof MapLayers); },
       syncDataFreshnessWithLayers: () => this.dataLoader.syncDataFreshnessWithLayers(),
       ensureCorrectZones: () => this.panelLayout.ensureCorrectZones(),
-      refreshOpenCountryBrief: () => this.countryIntel.refreshOpenBrief(),
+      refreshOpenCountryBrief: () => {},
       stopLayerActivity: (layer) => this.dataLoader.stopLayerActivity(layer),
     });
 
@@ -304,7 +279,6 @@ export class App {
     this.modules = [
       this.desktopUpdater,
       this.panelLayout,
-      this.countryIntel,
       this.searchManager,
       this.dataLoader,
       this.refreshScheduler,
@@ -394,21 +368,12 @@ export class App {
     // Phase 4: SearchManager, MapLayerHandlers, CountryIntel
     this.searchManager.init();
     this.eventHandlers.setupMapLayerHandlers();
-    this.countryIntel.init();
 
     // Phase 5: Event listeners + URL sync
     this.eventHandlers.init();
-    // Capture deep link params BEFORE URL sync overwrites them
-    const initState = parseMapUrlState(window.location.search, this.state.mapLayers);
-    this.pendingDeepLinkCountry = initState.country ?? null;
-    this.pendingDeepLinkExpanded = initState.expanded === true;
-    const earlyParams = new URLSearchParams(window.location.search);
-    this.pendingDeepLinkStoryCode = earlyParams.get('c') ?? null;
     this.eventHandlers.setupUrlStateSync();
 
-    this.state.countryBriefPage?.onStateChange?.(() => {
-      this.eventHandlers.syncUrlState();
-    });
+
 
     // Data Provider Adapter (Convex Cloud OR Local Engine).
     // Each init* returns a disposer; we register them as modules so App teardown
@@ -462,7 +427,6 @@ export class App {
 
     // Phase 6: Data loading
     this.dataLoader.syncDataFreshnessWithLayers();
-    await preloadCountryGeometry();
     await this.dataLoader.loadAllData();
 
 
@@ -502,42 +466,7 @@ export class App {
   }
 
   private handleDeepLinks(): void {
-    const url = new URL(window.location.href);
-    const DEEP_LINK_INITIAL_DELAY_MS = 1500;
-
-    // Check for country brief deep link: ?c=IR (captured early before URL sync)
-    const storyCode = this.pendingDeepLinkStoryCode ?? url.searchParams.get('c');
-    this.pendingDeepLinkStoryCode = null;
-    if (url.pathname === '/story' || storyCode) {
-      const countryCode = storyCode;
-      if (countryCode) {
-        trackDeeplinkOpened('country', countryCode);
-        const countryName = getCountryNameByCode(countryCode.toUpperCase()) || countryCode;
-        setTimeout(() => {
-          this.countryIntel.openCountryBriefByCode(countryCode.toUpperCase(), countryName, {
-            maximize: true,
-          });
-          this.eventHandlers.syncUrlState();
-        }, DEEP_LINK_INITIAL_DELAY_MS);
-        return;
-      }
-    }
-
-    // Check for country brief deep link: ?country=UA or ?country=UA&expanded=1
-    const deepLinkCountry = this.pendingDeepLinkCountry;
-    const deepLinkExpanded = this.pendingDeepLinkExpanded;
-    this.pendingDeepLinkCountry = null;
-    this.pendingDeepLinkExpanded = false;
-    if (deepLinkCountry) {
-      trackDeeplinkOpened('country', deepLinkCountry);
-      const cName = CountryIntelManager.resolveCountryName(deepLinkCountry);
-      setTimeout(() => {
-        this.countryIntel.openCountryBriefByCode(deepLinkCountry, cName, {
-          maximize: deepLinkExpanded,
-        });
-        this.eventHandlers.syncUrlState();
-      }, DEEP_LINK_INITIAL_DELAY_MS);
-    }
+    // Legacy country intel links removed
   }
 
   private setupRefreshIntervals(): void {
