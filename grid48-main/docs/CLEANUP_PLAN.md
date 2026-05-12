@@ -1,6 +1,6 @@
 # Grid 48 — Plano de Limpeza Pós-WorldMonitor (Camadas B & C)
 
-> **Documento de handoff para uma nova sessão Claude.** Este arquivo descreve a
+> **Documento de handoff para uma nova sessão da agente de IA.** Este arquivo descreve a
 > faxina de código herdado do WorldMonitor que sobrou no fork Grid 48. Trabalho
 > é dividido em duas camadas com risco/escopo crescente. Lê tudo antes de
 > começar, valida o estado atual com os comandos da seção "Estado de partida",
@@ -8,6 +8,21 @@
 > coisas mudam.
 
 ---
+
+- Lê docs/CLEANUP_PLAN.md primeiro inteiro antes de tocar em nada.
+- Roda a seção "Estado de partida" (typecheck, build, bundle baseline)
+  e me mostra o resultado ANTES de começar a deletar.
+- Faz UM commit por bloco coerente. Após cada push, espera o CI ficar
+  verde antes do próximo commit. Não acumula múltiplos commits sem
+  validação.
+- Se algum delete causar TS error não-óbvio, para e me pergunta —
+  não tenta consertar errado por cima de errado.
+- Camada B inteira primeiro. Para. Reporta resultado (bundle size
+  antes/depois, linhas deletadas, smoke test). SÓ aí passa pra Camada C.
+- Antes de Camada C, me pergunta sobre Tauri (manter ou deletar)
+  e ESPERA minha resposta.
+
+
 
 ## 1. Contexto rápido
 

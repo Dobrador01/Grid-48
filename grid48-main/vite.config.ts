@@ -38,8 +38,7 @@ function brotliPrecompressPlugin(): Plugin {
   };
 }
 
-const activeVariant = process.env.VITE_VARIANT || 'full';
-const activeMeta = VARIANT_META[activeVariant] || VARIANT_META.full;
+const activeMeta = VARIANT_META.full;
 
 function htmlVariantPlugin(): Plugin {
   return {
@@ -67,23 +66,6 @@ function htmlVariantPlugin(): Plugin {
         .replace(/"description": "Real-time global intelligence dashboard with live news, markets, military tracking, infrastructure monitoring, and geopolitical data."/, `"description": "${activeMeta.description}"`)
         .replace(/"featureList": \[[\s\S]*?\]/, `"featureList": ${JSON.stringify(activeMeta.features, null, 8).replace(/\n/g, '\n      ')}`);
 
-      // Theme-color meta — warm cream for happy variant
-      if (activeVariant === 'happy') {
-        result = result.replace(
-          /<meta name="theme-color" content=".*?" \/>/,
-          '<meta name="theme-color" content="#FAFAF5" />'
-        );
-      }
-
-      // Desktop builds: inject build-time variant into the inline script so data-variant is set
-      // before CSS loads. Web builds always use 'full' — runtime hostname detection handles variants.
-      if (activeVariant !== 'full') {
-        result = result.replace(
-          /if\(v\)document\.documentElement\.dataset\.variant=v;/,
-          `v='${activeVariant}';document.documentElement.dataset.variant=v;`
-        );
-      }
-
       // Desktop CSP: inject localhost wildcard for dynamic sidecar port.
       // Web builds intentionally exclude localhost to avoid exposing attack surface.
       if (isDesktopBuild) {
@@ -96,16 +78,6 @@ function htmlVariantPlugin(): Plugin {
             /frame-src 'self'/,
             "frame-src 'self' http://127.0.0.1:*"
           );
-      }
-
-      // Desktop builds: replace favicon paths with variant-specific subdirectory.
-      // Web builds use 'full' favicons in HTML; runtime JS swaps them per hostname.
-      if (activeVariant !== 'full') {
-        result = result
-          .replace(/\/favico\/favicon/g, `/favico/${activeVariant}/favicon`)
-          .replace(/\/favico\/apple-touch-icon/g, `/favico/${activeVariant}/apple-touch-icon`)
-          .replace(/\/favico\/android-chrome/g, `/favico/${activeVariant}/android-chrome`)
-          .replace(/\/favico\/og-image/g, `/favico/${activeVariant}/og-image`);
       }
 
       return result;
