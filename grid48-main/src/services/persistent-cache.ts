@@ -1,5 +1,3 @@
-import { isDesktopRuntime } from './runtime';
-import { invokeTauri } from './tauri-bridge';
 import { isStorageQuotaExceeded, isQuotaError, markStorageQuotaExceeded } from '@/utils';
 
 type CacheEnvelope<T> = {
@@ -70,14 +68,6 @@ async function setInIndexedDb<T>(payload: CacheEnvelope<T>): Promise<void> {
 }
 
 export async function getPersistentCache<T>(key: string): Promise<CacheEnvelope<T> | null> {
-  if (isDesktopRuntime()) {
-    try {
-      const value = await invokeTauri<CacheEnvelope<T> | null>('read_cache_entry', { key });
-      return value ?? null;
-    } catch (error) {
-      console.warn('[persistent-cache] Desktop read failed; falling back to browser storage', error);
-    }
-  }
 
   if (isIndexedDbAvailable()) {
     try {
@@ -99,15 +89,6 @@ export async function getPersistentCache<T>(key: string): Promise<CacheEnvelope<
 export async function setPersistentCache<T>(key: string, data: T): Promise<void> {
   const payload: CacheEnvelope<T> = { key, data, updatedAt: Date.now() };
 
-  if (isDesktopRuntime()) {
-    try {
-      await invokeTauri<void>('write_cache_entry', { key, value: JSON.stringify(payload) });
-      return;
-    } catch (error) {
-      console.warn('[persistent-cache] Desktop write failed; falling back to browser storage', error);
-    }
-  }
-
   if (isIndexedDbAvailable() && !isStorageQuotaExceeded()) {
     try {
       await setInIndexedDb(payload);
@@ -128,14 +109,6 @@ export async function setPersistentCache<T>(key: string, data: T): Promise<void>
 }
 
 export async function deletePersistentCache(key: string): Promise<void> {
-  if (isDesktopRuntime()) {
-    try {
-      await invokeTauri<void>('delete_cache_entry', { key });
-      return;
-    } catch {
-      // Fall through to browser storage
-    }
-  }
 
   if (isIndexedDbAvailable()) {
     try {

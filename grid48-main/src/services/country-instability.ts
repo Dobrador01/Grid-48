@@ -1,4 +1,4 @@
-﻿import type { SocialUnrestEvent, MilitaryFlight, MilitaryVessel, ClusteredEvent, InternetOutage, AisDisruptionEvent, CyberThreat } from '@/types';
+import type { SocialUnrestEvent, MilitaryFlight, MilitaryVessel, ClusteredEvent, InternetOutage, AisDisruptionEvent, CyberThreat } from '@/types';
 import type { AirportDelayAlert } from '@/services/aviation';
 import type { SecurityAdvisory } from '@/services/security-advisories';
 import type { TemporalAnomaly } from '@/services/temporal-baseline';
@@ -763,7 +763,7 @@ function calcNewsConflictFloor(data: CountryData, multiplier: number, now = Date
   const recentConflictNews = data.newsEvents.filter(e =>
     e.isAlert &&
     e.threat &&
-    (e.threat.category === 'conflict' || e.threat.category === 'military') &&
+    (e.threat.category === 'conflict') &&
     e.firstSeen.getTime() >= cutoff
   );
 

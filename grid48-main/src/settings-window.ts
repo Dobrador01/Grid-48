@@ -7,7 +7,7 @@ import { DEFAULT_PANELS, STORAGE_KEYS } from '@/config';
 import { loadFromStorage, saveToStorage } from '@/utils';
 import { t } from '@/services/i18n';
 import { escapeHtml } from '@/utils/sanitize';
-import { isDesktopRuntime } from '@/services/runtime';
+
 
 function getLocalizedPanelName(panelKey: string, fallback: string): string {
   if (panelKey === 'runtime-config') {
@@ -31,7 +31,7 @@ export function initSettingsWindow(): void {
     DEFAULT_PANELS
   );
 
-  const isDesktopApp = isDesktopRuntime();
+  const isDesktopApp = false;
 
   function render(): void {
     const panelEntries = Object.entries(panelSettings).filter(

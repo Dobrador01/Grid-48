@@ -85,257 +85,6 @@ function htmlVariantPlugin(): Plugin {
   };
 }
 
-function polymarketPlugin(): Plugin {
-  const GAMMA_BASE = 'https://gamma-api.polymarket.com';
-  const ALLOWED_ORDER = ['volume', 'liquidity', 'startDate', 'endDate', 'spread'];
-
-  return {
-    name: 'polymarket-dev',
-    configureServer(server) {
-      server.middlewares.use(async (req, res, next) => {
-        if (!req.url?.startsWith('/api/polymarket')) return next();
-
-        const url = new URL(req.url, 'http://localhost');
-        const endpoint = url.searchParams.get('endpoint') || 'markets';
-        const closed = ['true', 'false'].includes(url.searchParams.get('closed') ?? '') ? url.searchParams.get('closed') : 'false';
-        const order = ALLOWED_ORDER.includes(url.searchParams.get('order') ?? '') ? url.searchParams.get('order') : 'volume';
-        const ascending = ['true', 'false'].includes(url.searchParams.get('ascending') ?? '') ? url.searchParams.get('ascending') : 'false';
-        const rawLimit = parseInt(url.searchParams.get('limit') ?? '', 10);
-        const limit = isNaN(rawLimit) ? 50 : Math.max(1, Math.min(100, rawLimit));
-
-        const params = new URLSearchParams({ closed: closed!, order: order!, ascending: ascending!, limit: String(limit) });
-        if (endpoint === 'events') {
-          const tag = (url.searchParams.get('tag') ?? '').replace(/[^a-z0-9-]/gi, '').slice(0, 100);
-          if (tag) params.set('tag_slug', tag);
-        }
-
-        const gammaUrl = `${GAMMA_BASE}/${endpoint === 'events' ? 'events' : 'markets'}?${params}`;
-
-        res.setHeader('Content-Type', 'application/json');
-        try {
-          const controller = new AbortController();
-          const timer = setTimeout(() => controller.abort(), 8000);
-          const resp = await fetch(gammaUrl, { headers: { Accept: 'application/json' }, signal: controller.signal });
-          clearTimeout(timer);
-          if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-          const data = await resp.text();
-          res.setHeader('Cache-Control', 'public, max-age=120');
-          res.setHeader('X-Polymarket-Source', 'gamma');
-          res.end(data);
-        } catch {
-          // Expected: Cloudflare JA3 blocks server-side TLS — return empty array
-          res.setHeader('Cache-Control', 'public, max-age=300');
-          res.end('[]');
-        }
-      });
-    },
-  };
-}
-
-// RSS proxy allowlist — duplicated from api/rss-proxy.js for dev mode.
-// Keep in sync when adding new domains.
-const RSS_PROXY_ALLOWED_DOMAINS = new Set([
-  'feeds.bbci.co.uk', 'www.theguardian.com', 'feeds.npr.org', 'news.google.com',
-  'www.aljazeera.com', 'rss.cnn.com', 'hnrss.org', 'feeds.arstechnica.com',
-  'www.theverge.com', 'www.cnbc.com', 'feeds.marketwatch.com', 'www.defenseone.com',
-  'breakingdefense.com', 'www.bellingcat.com', 'techcrunch.com', 'huggingface.co',
-  'www.technologyreview.com', 'rss.arxiv.org', 'export.arxiv.org',
-  'www.federalreserve.gov', 'www.sec.gov', 'www.whitehouse.gov', 'www.state.gov',
-  'www.defense.gov', 'home.treasury.gov', 'www.justice.gov', 'tools.cdc.gov',
-  'www.fema.gov', 'www.dhs.gov', 'www.thedrive.com', 'krebsonsecurity.com',
-  'finance.yahoo.com', 'thediplomat.com', 'venturebeat.com', 'foreignpolicy.com',
-  'www.ft.com', 'openai.com', 'www.reutersagency.com', 'feeds.reuters.com',
-  'asia.nikkei.com', 'www.cfr.org', 'www.csis.org', 'www.politico.com',
-  'www.brookings.edu', 'layoffs.fyi', 'www.defensenews.com', 'www.militarytimes.com',
-  'taskandpurpose.com', 'news.usni.org', 'www.oryxspioenkop.com', 'www.gov.uk',
-  'www.foreignaffairs.com', 'www.atlanticcouncil.org',
-  // Tech variant
-  'www.zdnet.com', 'www.techmeme.com', 'www.darkreading.com', 'www.schneier.com',
-  'rss.politico.com', 'www.anandtech.com', 'www.tomshardware.com', 'www.semianalysis.com',
-  'feed.infoq.com', 'thenewstack.io', 'devops.com', 'dev.to', 'lobste.rs', 'changelog.com',
-  'seekingalpha.com', 'news.crunchbase.com', 'www.saastr.com', 'feeds.feedburner.com',
-  'www.producthunt.com', 'www.axios.com', 'api.axios.com', 'github.blog', 'githubnext.com',
-  'mshibanami.github.io', 'www.engadget.com', 'news.mit.edu', 'dev.events',
-  'www.ycombinator.com', 'a16z.com', 'review.firstround.com', 'www.sequoiacap.com',
-  'www.nfx.com', 'www.aaronsw.com', 'bothsidesofthetable.com', 'www.lennysnewsletter.com',
-  'stratechery.com', 'www.eu-startups.com', 'tech.eu', 'sifted.eu', 'www.techinasia.com',
-  'kr-asia.com', 'techcabal.com', 'disrupt-africa.com', 'lavca.org', 'contxto.com',
-  'inc42.com', 'yourstory.com', 'pitchbook.com', 'www.cbinsights.com', 'www.techstars.com',
-  // Regional & international
-  'english.alarabiya.net', 'www.arabnews.com', 'www.timesofisrael.com', 'www.haaretz.com',
-  'www.scmp.com', 'kyivindependent.com', 'www.themoscowtimes.com', 'feeds.24.com',
-  'feeds.capi24.com', 'www.france24.com', 'www.euronews.com', 'www.lemonde.fr',
-  'rss.dw.com', 'www.africanews.com', 'www.lasillavacia.com', 'www.channelnewsasia.com',
-  'www.thehindu.com', 'news.un.org', 'www.iaea.org', 'www.who.int', 'www.cisa.gov',
-  'www.crisisgroup.org',
-  // Think tanks
-  'rusi.org', 'warontherocks.com', 'www.aei.org', 'responsiblestatecraft.org',
-  'www.fpri.org', 'jamestown.org', 'www.chathamhouse.org', 'ecfr.eu', 'www.gmfus.org',
-  'www.wilsoncenter.org', 'www.lowyinstitute.org', 'www.mei.edu', 'www.stimson.org',
-  'www.cnas.org', 'carnegieendowment.org', 'www.rand.org', 'fas.org',
-  'www.armscontrol.org', 'www.nti.org', 'thebulletin.org', 'www.iss.europa.eu',
-  // Economic & Food Security
-  'www.fao.org', 'worldbank.org', 'www.imf.org',
-  // Regional locale feeds
-  'www.hurriyet.com.tr', 'tvn24.pl', 'www.polsatnews.pl', 'www.rp.pl', 'meduza.io',
-  'novayagazeta.eu', 'www.bangkokpost.com', 'vnexpress.net', 'www.abc.net.au',
-  'news.ycombinator.com',
-  // Finance variant
-  'www.coindesk.com', 'cointelegraph.com',
-  // Happy variant — positive news sources
-  'www.goodnewsnetwork.org', 'www.positive.news', 'reasonstobecheerful.world',
-  'www.optimistdaily.com', 'www.sunnyskyz.com', 'www.huffpost.com',
-  'www.sciencedaily.com', 'feeds.nature.com', 'www.livescience.com', 'www.newscientist.com',
-]);
-
-function rssProxyPlugin(): Plugin {
-  return {
-    name: 'rss-proxy',
-    configureServer(server) {
-      server.middlewares.use(async (req, res, next) => {
-        if (!req.url?.startsWith('/api/rss-proxy')) {
-          return next();
-        }
-
-        const url = new URL(req.url, 'http://localhost');
-        const feedUrl = url.searchParams.get('url');
-        if (!feedUrl) {
-          res.statusCode = 400;
-          res.setHeader('Content-Type', 'application/json');
-          res.end(JSON.stringify({ error: 'Missing url parameter' }));
-          return;
-        }
-
-        try {
-          const parsed = new URL(feedUrl);
-          if (!RSS_PROXY_ALLOWED_DOMAINS.has(parsed.hostname)) {
-            res.statusCode = 403;
-            res.setHeader('Content-Type', 'application/json');
-            res.end(JSON.stringify({ error: `Domain not allowed: ${parsed.hostname}` }));
-            return;
-          }
-
-          const controller = new AbortController();
-          const timeout = feedUrl.includes('news.google.com') ? 20000 : 12000;
-          const timer = setTimeout(() => controller.abort(), timeout);
-
-          const response = await fetch(feedUrl, {
-            signal: controller.signal,
-            headers: {
-              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-              'Accept': 'application/rss+xml, application/xml, text/xml, */*',
-            },
-            redirect: 'follow',
-          });
-          clearTimeout(timer);
-
-          const data = await response.text();
-          res.statusCode = response.status;
-          res.setHeader('Content-Type', 'application/xml');
-          res.setHeader('Cache-Control', 'public, max-age=300');
-          res.setHeader('Access-Control-Allow-Origin', '*');
-          res.end(data);
-        } catch (error: any) {
-          console.error('[rss-proxy]', feedUrl, error.message);
-          res.statusCode = error.name === 'AbortError' ? 504 : 502;
-          res.setHeader('Content-Type', 'application/json');
-          res.end(JSON.stringify({ error: error.name === 'AbortError' ? 'Feed timeout' : 'Failed to fetch feed' }));
-        }
-      });
-    },
-  };
-}
-
-function youtubeLivePlugin(): Plugin {
-  return {
-    name: 'youtube-live',
-    configureServer(server) {
-      server.middlewares.use(async (req, res, next) => {
-        if (!req.url?.startsWith('/api/youtube/live')) {
-          return next();
-        }
-
-        const url = new URL(req.url, 'http://localhost');
-        const channel = url.searchParams.get('channel');
-
-        if (!channel) {
-          res.statusCode = 400;
-          res.setHeader('Content-Type', 'application/json');
-          res.end(JSON.stringify({ error: 'Missing channel parameter' }));
-          return;
-        }
-
-        try {
-          const channelHandle = channel.startsWith('@') ? channel : `@${channel}`;
-          const liveUrl = `https://www.youtube.com/${channelHandle}/live`;
-
-          const ytRes = await fetch(liveUrl, {
-            headers: {
-              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-            },
-            redirect: 'follow',
-          });
-
-          if (!ytRes.ok) {
-            res.setHeader('Content-Type', 'application/json');
-            res.setHeader('Cache-Control', 'public, max-age=300');
-            res.end(JSON.stringify({ videoId: null, channel }));
-            return;
-          }
-
-          const html = await ytRes.text();
-
-          // Scope both fields to the same videoDetails block so we don't
-          // combine a videoId from one object with isLive from another.
-          let videoId: string | null = null;
-          const detailsIdx = html.indexOf('"videoDetails"');
-          if (detailsIdx !== -1) {
-            const block = html.substring(detailsIdx, detailsIdx + 5000);
-            const vidMatch = block.match(/"videoId":"([a-zA-Z0-9_-]{11})"/);
-            const liveMatch = block.match(/"isLive"\s*:\s*true/);
-            if (vidMatch && liveMatch) {
-              videoId = vidMatch[1];
-            }
-          }
-
-          res.setHeader('Content-Type', 'application/json');
-          res.setHeader('Cache-Control', 'public, max-age=300');
-          res.end(JSON.stringify({ videoId, isLive: videoId !== null, channel }));
-        } catch (error) {
-          console.error(`[YouTube Live] Error:`, error);
-          res.statusCode = 500;
-          res.setHeader('Content-Type', 'application/json');
-          res.end(JSON.stringify({ error: 'Failed to fetch', videoId: null }));
-        }
-      });
-    },
-  };
-}
-
-function gpsjamDevPlugin(): Plugin {
-  return {
-    name: 'gpsjam-dev',
-    configureServer(server) {
-      server.middlewares.use(async (req, res, next) => {
-        if (req.url !== '/api/gpsjam' && !req.url?.startsWith('/api/gpsjam?')) {
-          return next();
-        }
-
-        try {
-          const data = await readFile(resolve(__dirname, 'scripts/data/gpsjam-latest.json'), 'utf8');
-          res.setHeader('Content-Type', 'application/json');
-          res.setHeader('Cache-Control', 'no-cache');
-          res.end(data);
-        } catch {
-          res.statusCode = 503;
-          res.setHeader('Content-Type', 'application/json');
-          res.setHeader('Cache-Control', 'no-cache');
-          res.end(JSON.stringify({ error: 'No GPS jam data. Run: node scripts/fetch-gpsjam.mjs' }));
-        }
-      });
-    },
-  };
-}
 
 export default defineConfig({
   define: {
@@ -344,9 +93,6 @@ export default defineConfig({
   },
   plugins: [
     htmlVariantPlugin(),
-    polymarketPlugin(),
-    rssProxyPlugin(),
-    gpsjamDevPlugin(),
     brotliPrecompressPlugin(),
     VitePWA({
       registerType: 'autoUpdate',
@@ -378,7 +124,7 @@ export default defineConfig({
 
       workbox: {
         globPatterns: ['**/*.{js,css,ico,png,svg,woff2}'],
-        globIgnores: ['**/ml*.js', '**/onnx*.wasm', '**/locale-*.js'],
+        globIgnores: ['**/locale-*.js'],
         // globe.gl + three.js grows main bundle past the 2 MiB default limit
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
         navigateFallback: null,
@@ -489,16 +235,6 @@ export default defineConfig({
     chunkSizeWarningLimit: 1200,
     rollupOptions: {
       onwarn(warning, warn) {
-        // onnxruntime-web ships a minified browser bundle that intentionally uses eval.
-        // Keep build logs focused by filtering this known third-party warning only.
-        if (
-          warning.code === 'EVAL'
-          && typeof warning.id === 'string'
-          && warning.id.includes('/onnxruntime-web/dist/ort-web.min.js')
-        ) {
-          return;
-        }
-
         warn(warning);
       },
       input: {
@@ -508,12 +244,6 @@ export default defineConfig({
       output: {
         manualChunks(id) {
           if (id.includes('node_modules')) {
-            if (id.includes('/@xenova/transformers/')) {
-              return 'transformers';
-            }
-            if (id.includes('/onnxruntime-web/')) {
-              return 'onnxruntime';
-            }
             if (id.includes('/maplibre-gl/') || id.includes('/pmtiles/') || id.includes('/@protomaps/basemaps/')) {
               return 'maplibre';
             }

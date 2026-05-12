@@ -1,5 +1,4 @@
-import { getApiBaseUrl, isDesktopRuntime } from './runtime';
-import { invokeTauri } from './tauri-bridge';
+
 
 export type RuntimeSecretKey =
   | 'GROQ_API_KEY'
@@ -77,15 +76,6 @@ export interface RuntimeConfig {
 }
 
 const TOGGLES_STORAGE_KEY = 'worldmonitor-runtime-feature-toggles';
-function getSidecarEnvUpdateUrl(): string {
-  return `${getApiBaseUrl()}/api/local-env-update`;
-}
-function getSidecarEnvUpdateBatchUrl(): string {
-  return `${getApiBaseUrl()}/api/local-env-update-batch`;
-}
-function getSidecarSecretValidateUrl(): string {
-  return `${getApiBaseUrl()}/api/local-validate-secret`;
-}
 
 const defaultToggles: Record<RuntimeFeatureId, boolean> = {
   aiGroq: true,
@@ -119,7 +109,7 @@ export const RUNTIME_FEATURES: RuntimeFeatureDefinition[] = [
   {
     id: 'aiOllama',
     name: 'Ollama local summarization',
-    description: 'Local LLM provider via OpenAI-compatible endpoint (Ollama or LM Studio, desktop-first).',
+    description: 'Local LLM provider via OpenAI-compatible endpoint.',
     requiredSecrets: ['OLLAMA_API_URL', 'OLLAMA_MODEL'],
     fallback: 'Falls back to Groq, then OpenRouter, then local browser model.',
   },
@@ -226,21 +216,19 @@ export const RUNTIME_FEATURES: RuntimeFeatureDefinition[] = [
     name: 'AIS vessel tracking',
     description: 'Live vessel ingestion via AISStream WebSocket.',
     requiredSecrets: ['WS_RELAY_URL', 'AISSTREAM_API_KEY'],
-    desktopRequiredSecrets: ['AISSTREAM_API_KEY'],
     fallback: 'AIS layer is disabled.',
   },
   {
     id: 'openskyRelay',
     name: 'OpenSky military flights (legacy)',
-    description: 'OpenSky OAuth credentials for military flight data (legacy direct proxy).',
+    description: 'OpenSky OAuth credentials for military flight data.',
     requiredSecrets: ['VITE_OPENSKY_RELAY_URL', 'OPENSKY_CLIENT_ID', 'OPENSKY_CLIENT_SECRET'],
-    desktopRequiredSecrets: ['OPENSKY_CLIENT_ID', 'OPENSKY_CLIENT_SECRET'],
     fallback: 'Military flights fall back to limited/no data.',
   },
   {
     id: 'militaryFlights',
     name: 'Military flight tracking',
-    description: 'Military flight data via Redis-backed edge handler (no credentials needed).',
+    description: 'Military flight data via edge handler.',
     requiredSecrets: [],
     fallback: 'Military flights panel is disabled.',
   },
@@ -268,14 +256,14 @@ export const RUNTIME_FEATURES: RuntimeFeatureDefinition[] = [
   {
     id: 'supplyChain',
     name: 'Supply Chain Intelligence',
-    description: 'Shipping rates via FRED Baltic Dry Index. Chokepoints and minerals use public data.',
+    description: 'Shipping rates via FRED Baltic Dry Index.',
     requiredSecrets: ['FRED_API_KEY'],
     fallback: 'Chokepoints and minerals always available; shipping requires FRED key.',
   },
   {
     id: 'newsPerFeedFallback',
     name: 'News per-feed fallback',
-    description: 'If digest aggregation is unavailable, use stale headlines first and optionally fetch a limited feed subset.',
+    description: 'If digest aggregation is unavailable, use stale headlines first.',
     requiredSecrets: [],
     fallback: 'Stale headlines remain available; limited per-feed fallback is disabled.',
   },
@@ -352,10 +340,7 @@ export function validateSecret(key: RuntimeSecretKey, value: string): { valid: b
   return { valid: true };
 }
 
-let secretsReadyResolve!: () => void;
-export const secretsReady = new Promise<void>(r => { secretsReadyResolve = r; });
-
-if (!isDesktopRuntime()) secretsReadyResolve();
+export const secretsReady = Promise.resolve();
 
 const listeners = new Set<() => void>();
 
@@ -364,15 +349,11 @@ const runtimeConfig: RuntimeConfig = {
   secrets: {},
 };
 
-let localApiTokenPromise: Promise<string | null> | null = null;
-
 function notifyConfigChanged(): void {
   for (const listener of listeners) listener();
 }
 
 function seedSecretsFromEnvironment(): void {
-  if (isDesktopRuntime()) return;
-
   const keys = new Set<RuntimeSecretKey>(RUNTIME_FEATURES.flatMap(feature => feature.requiredSecrets));
   for (const key of keys) {
     const value = readEnvSecret(key);
@@ -384,8 +365,6 @@ function seedSecretsFromEnvironment(): void {
 
 seedSecretsFromEnvironment();
 
-// Listen for cross-window state updates (settings ↔ main).
-// When one window saves secrets or toggles features, the `storage` event fires in other same-origin windows.
 if (typeof window !== 'undefined') {
   window.addEventListener('storage', (e) => {
     if (e.key === 'wm-secrets-updated') {
@@ -395,7 +374,7 @@ if (typeof window !== 'undefined') {
         const parsed = JSON.parse(e.newValue) as Partial<Record<RuntimeFeatureId, boolean>>;
         Object.assign(runtimeConfig.featureToggles, parsed);
         notifyConfigChanged();
-      } catch { /* ignore malformed JSON */ }
+      } catch { /* ignore */ }
     }
   });
 }
@@ -425,20 +404,13 @@ export function getSecretState(key: RuntimeSecretKey): { present: boolean; valid
 export function isFeatureAvailable(featureId: RuntimeFeatureId): boolean {
   if (!isFeatureEnabled(featureId)) return false;
 
-  // Cloud/web deployments validate credentials server-side.
-  // Desktop runtime validates local secrets client-side for capability gating.
-  if (!isDesktopRuntime()) {
-    return true;
-  }
-
   const feature = RUNTIME_FEATURES.find(item => item.id === featureId);
   if (!feature) return false;
-  const secrets = feature.desktopRequiredSecrets ?? feature.requiredSecrets;
-  return secrets.every(secretKey => getSecretState(secretKey).valid);
+  return feature.requiredSecrets.every(secretKey => getSecretState(secretKey).valid);
 }
 
 export function getEffectiveSecrets(feature: RuntimeFeatureDefinition): RuntimeSecretKey[] {
-  return (isDesktopRuntime() && feature.desktopRequiredSecrets) ? feature.desktopRequiredSecrets : feature.requiredSecrets;
+  return feature.requiredSecrets;
 }
 
 export function setFeatureToggle(featureId: RuntimeFeatureId, enabled: boolean): void {
@@ -448,184 +420,49 @@ export function setFeatureToggle(featureId: RuntimeFeatureId, enabled: boolean):
 }
 
 export async function setSecretValue(key: RuntimeSecretKey, value: string): Promise<void> {
-  if (!isDesktopRuntime()) {
-    console.warn('[runtime-config] Ignoring secret write outside desktop runtime');
-    return;
-  }
-
   const sanitized = value.trim();
   if (sanitized) {
-    await invokeTauri<void>('set_secret', { key, value: sanitized });
+    localStorage.setItem(`wm-secret-${key}`, sanitized);
     runtimeConfig.secrets[key] = { value: sanitized, source: 'vault' };
   } else {
-    await invokeTauri<void>('delete_secret', { key });
+    localStorage.removeItem(`wm-secret-${key}`);
     delete runtimeConfig.secrets[key];
   }
 
-  // Push to sidecar so handlers pick it up immediately.
-  // This is best-effort: keyring persistence is the source of truth.
-  try {
-    await pushSecretToSidecar(key, sanitized || '');
-  } catch (error) {
-    console.warn(`[runtime-config] Failed to sync ${key} to sidecar`, error);
-  }
-
-  // Signal other windows (main ↔ settings) to reload secrets from keychain.
-  // The `storage` event fires in all same-origin windows except the one that wrote.
   try {
     localStorage.setItem('wm-secrets-updated', String(Date.now()));
-  } catch { /* localStorage may be unavailable */ }
+  } catch { /* ignore */ }
 
   notifyConfigChanged();
-}
-
-async function getLocalApiToken(): Promise<string | null> {
-  if (!localApiTokenPromise) {
-    localApiTokenPromise = invokeTauri<string>('get_local_api_token')
-      .then((token) => token.trim() || null)
-      .catch((error) => {
-        // Allow retries on subsequent calls if bridge/token is temporarily unavailable.
-        localApiTokenPromise = null;
-        throw error;
-      });
-  }
-  return localApiTokenPromise;
-}
-
-async function pushSecretToSidecar(key: string, value: string): Promise<void> {
-  const headers = new Headers({ 'Content-Type': 'application/json' });
-  const token = await getLocalApiToken();
-  if (token) {
-    headers.set('Authorization', `Bearer ${token}`);
-  }
-
-  const response = await fetch(getSidecarEnvUpdateUrl(), {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({ key, value: value || null }),
-  });
-
-  if (!response.ok) {
-    let detail = '';
-    try {
-      detail = await response.text();
-    } catch { /* ignore non-readable body */ }
-    throw new Error(`Sidecar secret sync failed (${response.status})${detail ? `: ${detail.slice(0, 200)}` : ''}`);
-  }
-}
-
-async function callSidecarWithAuth(url: string, init: RequestInit): Promise<Response> {
-  const headers = new Headers(init.headers ?? {});
-  const token = await getLocalApiToken();
-  if (token) {
-    headers.set('Authorization', `Bearer ${token}`);
-  }
-  return fetch(url, { ...init, headers });
 }
 
 export async function verifySecretWithApi(
   key: RuntimeSecretKey,
   value: string,
-  context: Partial<Record<RuntimeSecretKey, string>> = {},
+  _context: Partial<Record<RuntimeSecretKey, string>> = {},
 ): Promise<SecretVerificationResult> {
   const localValidation = validateSecret(key, value);
   if (!localValidation.valid) {
     return { valid: false, message: localValidation.hint || 'Invalid value' };
   }
-
-  if (!isDesktopRuntime()) {
-    return { valid: true, message: 'Saved' };
-  }
-
-  try {
-    const response = await callSidecarWithAuth(getSidecarSecretValidateUrl(), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ key, value: value.trim(), context }),
-    });
-
-    let payload: unknown = null;
-    try {
-      payload = await response.json();
-    } catch { /* non-JSON response */ }
-
-    if (!response.ok) {
-      const message = payload && typeof payload === 'object'
-        ? String(
-          (payload as Record<string, unknown>).message
-          || (payload as Record<string, unknown>).error
-          || 'Secret validation failed'
-        )
-        : `Secret validation failed (${response.status})`;
-      return { valid: false, message };
-    }
-
-    if (!payload || typeof payload !== 'object') {
-      return { valid: false, message: 'Secret validation returned an invalid response' };
-    }
-
-    const valid = Boolean((payload as Record<string, unknown>).valid);
-    const message = String((payload as Record<string, unknown>).message || (valid ? 'Verified' : 'Verification failed'));
-    return { valid, message };
-  } catch (error) {
-    // Network errors reaching the sidecar should NOT block saving.
-    // Only explicit 401/403 from the provider means the key is invalid.
-    const message = error instanceof Error ? error.message : 'Secret validation failed';
-    return { valid: true, message: `Saved (could not verify – ${message})` };
-  }
+  return { valid: true, message: 'Saved' };
 }
 
 export async function loadDesktopSecrets(): Promise<void> {
-  if (!isDesktopRuntime()) return;
-
-  try {
-    const allSecrets = await invokeTauri<Record<string, string>>('get_all_secrets');
-
-    const entries: { key: string; value: string }[] = [];
-    for (const [key, value] of Object.entries(allSecrets)) {
-      if (value && value.trim().length > 0) {
-        runtimeConfig.secrets[key as RuntimeSecretKey] = { value, source: 'vault' };
-        entries.push({ key, value });
-      }
+  // Now just loads from localStorage for web fat client
+  const keys = new Set<RuntimeSecretKey>(RUNTIME_FEATURES.flatMap(feature => feature.requiredSecrets));
+  let changed = false;
+  for (const key of keys) {
+    const val = localStorage.getItem(`wm-secret-${key}`);
+    if (val) {
+      runtimeConfig.secrets[key] = { value: val, source: 'vault' };
+      changed = true;
     }
-
-    if (entries.length > 0) {
-      try {
-        await pushSecretBatchToSidecar(entries);
-      } catch (batchErr) {
-        console.warn('[runtime-config] Batch env update failed, falling back to individual pushes', batchErr);
-        await Promise.allSettled(
-          entries.map(({ key, value }) =>
-            pushSecretToSidecar(key as RuntimeSecretKey, value).catch((error) => {
-              console.warn(`[runtime-config] Failed to sync ${key} to sidecar`, error);
-            })
-          )
-        );
-      }
-    }
-
-    notifyConfigChanged();
-  } catch (error) {
-    console.warn('[runtime-config] Failed to load desktop secrets from vault', error);
-  } finally {
-    secretsReadyResolve();
   }
+  if (changed) notifyConfigChanged();
 }
 
-async function pushSecretBatchToSidecar(entries: { key: string; value: string }[]): Promise<void> {
-  const headers = new Headers({ 'Content-Type': 'application/json' });
-  const token = await getLocalApiToken();
-  if (token) {
-    headers.set('Authorization', `Bearer ${token}`);
-  }
-
-  const response = await fetch(getSidecarEnvUpdateBatchUrl(), {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({ entries }),
-  });
-
-  if (!response.ok) {
-    throw new Error(`Batch env update failed (${response.status})`);
-  }
+// Initial load
+if (typeof window !== 'undefined') {
+  loadDesktopSecrets();
 }

@@ -7,12 +7,12 @@
  * per-provider fetch endpoints.
  */
 
-import { mlWorker } from './ml-worker';
+
 import { SITE_VARIANT } from '@/config';
 import { BETA_MODE } from '@/config/beta';
 import { isFeatureAvailable, type RuntimeFeatureId } from './runtime-config';
 import { trackLLMUsage, trackLLMFailure } from './analytics';
-import { getCurrentLanguage } from './i18n';
+
 import { NewsServiceClient, type SummarizeArticleResponse } from '@/generated/client/worldmonitor/news/v1/service_client';
 import { createCircuitBreaker } from '@/utils';
 import { buildSummaryCacheKey } from '@/utils/summary-cache-key';
@@ -100,35 +100,9 @@ async function tryApiProvider(
 
 // ── Browser T5 provider (different interface -- no API call) ──
 
-async function tryBrowserT5(headlines: string[], modelId?: string): Promise<SummarizationResult | null> {
-  try {
-    if (!mlWorker.isAvailable) {
-      return null;
-    }
-    lastAttemptedProvider = 'browser';
-
-    const lang = getCurrentLanguage();
-    const combinedText = headlines.slice(0, 5).map(h => h.slice(0, 80)).join('. ');
-    const prompt = lang === 'fr'
-      ? `Résumez le titre le plus important en 2 phrases concises (moins de 60 mots) : ${combinedText}`
-      : `Summarize the most important headline in 2 concise sentences (under 60 words): ${combinedText}`;
-
-    const [summary] = await mlWorker.summarize([prompt], modelId);
-
-    if (!summary || summary.length < 20 || summary.toLowerCase().includes('summarize') || summary.toLowerCase().includes('résumez')) {
-      return null;
-    }
-
-    return {
-      summary,
-      provider: 'browser',
-      model: modelId || 't5-small',
-      cached: false,
-    };
-  } catch (error) {
-    console.warn('[Summarization] Browser T5 failed:', error);
-    return null;
-  }
+async function tryBrowserT5(_headlines: string[], _modelId?: string): Promise<SummarizationResult | null> {
+  // ML worker removed — browser T5 no longer available
+  return null;
 }
 
 // ── Fallback chain runner ──
@@ -198,49 +172,11 @@ async function generateSummaryInternal(
   }
 
   if (BETA_MODE) {
-    const modelReady = mlWorker.isAvailable && mlWorker.isModelLoaded('summarization-beta');
-
-    if (modelReady) {
-      const totalSteps = 1 + API_PROVIDERS.length;
-      // Model already loaded -- use browser T5-small first
-      if (!options?.skipBrowserFallback) {
-        onProgress?.(1, totalSteps, 'Running local AI model (beta)...');
-        const browserResult = await tryBrowserT5(headlines, 'summarization-beta');
-        if (browserResult) {
-          const groqProvider = API_PROVIDERS.find(p => p.provider === 'groq');
-          if (groqProvider && !options?.skipCloudProviders) tryApiProvider(groqProvider, headlines, geoContext).catch(() => {});
-
-          return browserResult;
-        }
-      }
-
-      // Warm model failed inference -- fallback through API providers
-      if (!options?.skipCloudProviders) {
-        const chainResult = await runApiChain(API_PROVIDERS, headlines, geoContext, undefined, onProgress, 2, totalSteps);
-        if (chainResult) return chainResult;
-      }
-    } else {
-      const totalSteps = API_PROVIDERS.length + 2;
-      if (mlWorker.isAvailable && !options?.skipBrowserFallback) {
-        mlWorker.loadModel('summarization-beta').catch(() => {});
-      }
-
-      // API providers while model loads
-      if (!options?.skipCloudProviders) {
-        const chainResult = await runApiChain(API_PROVIDERS, headlines, geoContext, undefined, onProgress, 1, totalSteps);
-        if (chainResult) {
-          return chainResult;
-        }
-      }
-
-      // Last resort: try browser T5 (may have finished loading by now)
-      if (mlWorker.isAvailable && !options?.skipBrowserFallback) {
-        onProgress?.(API_PROVIDERS.length + 1, totalSteps, 'Waiting for local AI model...');
-        const browserResult = await tryBrowserT5(headlines, 'summarization-beta');
-        if (browserResult) return browserResult;
-      }
-
-      onProgress?.(totalSteps, totalSteps, 'No providers available');
+    // ML worker removed — beta mode now just uses API providers
+    const totalSteps = API_PROVIDERS.length;
+    if (!options?.skipCloudProviders) {
+      const chainResult = await runApiChain(API_PROVIDERS, headlines, geoContext, undefined, onProgress, 1, totalSteps);
+      if (chainResult) return chainResult;
     }
 
     console.warn('[BETA] All providers failed');

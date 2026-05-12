@@ -31,7 +31,7 @@ import {
 } from '@/services/analytics';
 import { invokeTauri } from '@/services/tauri-bridge';
 import { dataFreshness } from '@/services/data-freshness';
-import { mlWorker } from '@/services/ml-worker';
+
 import { UnifiedSettings } from '@/components/UnifiedSettings';
 import { t } from '@/services/i18n';
 
@@ -224,7 +224,7 @@ export class EventHandlerManager implements AppModule {
       }
       if (document.hidden) {
         this.callbacks.setHiddenSince(Date.now());
-        mlWorker.unloadOptionalModels();
+        // ML worker removed
       } else {
         this.resetIdleTimer();
         this.callbacks.flushStaleRefreshes();

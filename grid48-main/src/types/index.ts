@@ -16,7 +16,14 @@ export interface Feed {
   lang?: string;             // ISO 2-letter code for filtering
 }
 
-export type { ThreatClassification, ThreatLevel, EventCategory } from '@/services/threat-classifier';
+export type ThreatLevel = 'critical' | 'high' | 'medium' | 'low' | 'info';
+export type EventCategory = 'conflict' | 'politics' | 'cyber' | 'market' | 'general' | 'health' | 'disaster';
+export interface ThreatClassification {
+  level: ThreatLevel;
+  confidence: number;
+  category: EventCategory;
+  reasoning: string;
+}
 
 export interface NewsItem {
   source: string;
@@ -26,7 +33,7 @@ export interface NewsItem {
   isAlert: boolean;
   monitorColor?: string;
   tier?: number;
-  threat?: import('@/services/threat-classifier').ThreatClassification;
+  threat?: ThreatClassification;
   lat?: number;
   lon?: number;
   locationName?: string;
@@ -62,7 +69,7 @@ export interface ClusteredEvent {
   isAlert: boolean;
   monitorColor?: string;
   velocity?: VelocityMetrics;
-  threat?: import('@/services/threat-classifier').ThreatClassification;
+  threat?: ThreatClassification;
   lat?: number;
   lon?: number;
   lang?: string;

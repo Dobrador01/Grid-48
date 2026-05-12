@@ -26,8 +26,8 @@ import {
   type RuntimeFeatureId,
   type RuntimeSecretKey,
 } from '@/services/runtime-config';
-import { getApiBaseUrl, isDesktopRuntime, resolveLocalApiPort, startSmartPollLoop, type SmartPollLoopHandle } from '@/services/runtime';
-import { tryInvokeTauri, invokeTauri } from '@/services/tauri-bridge';
+import { startSmartPollLoop, type SmartPollLoopHandle } from '@/services/runtime';
+import { tryInvokeTauri } from '@/services/tauri-bridge';
 import { escapeHtml } from '@/utils/sanitize';
 import { initI18n, t } from '@/services/i18n';
 import { applyStoredTheme } from '@/utils/theme-manager';
@@ -59,7 +59,7 @@ function closeSettingsWindow(): void {
 }
 
 function getSidecarBase(): string {
-  return getApiBaseUrl() || '';
+  return '';
 }
 
 let _diagToken: string | null = null;
@@ -527,11 +527,7 @@ function initFeatureSectionListeners(area: HTMLElement): void {
       e.preventDefault();
       const url = link.dataset.signupUrl;
       if (!url) return;
-      if (isDesktopRuntime()) {
-        void invokeTauri<void>('open_url', { url }).catch(() => window.open(url, '_blank'));
-      } else {
-        window.open(url, '_blank');
-      }
+      window.open(url, '_blank');
     });
   });
 
@@ -897,7 +893,7 @@ async function initSettingsWindow(): Promise<void> {
   await initI18n();
   applyStoredTheme();
 
-  try { await resolveLocalApiPort(); } catch { /* use default */ }
+  // resolveLocalApiPort removed — web-only mode
 
   requestAnimationFrame(() => {
     document.documentElement.classList.remove('no-transition');

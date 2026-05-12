@@ -1,6 +1,5 @@
 import { calculateCII, type CountryScore } from './country-instability';
-import type { ClusteredEvent } from '@/types';
-import type { ThreatLevel } from './threat-classifier';
+import type { ClusteredEvent, ThreatLevel } from '@/types';
 import { CURATED_COUNTRIES } from '@/config/countries';
 import { tokenizeForMatch, matchKeyword } from '@/utils/keyword-match';
 

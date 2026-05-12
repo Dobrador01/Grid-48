@@ -284,7 +284,7 @@ window.addEventListener('unhandledrejection', (e) => {
 
 import { debugGetCells, getCellCount } from '@/services/geo-convergence';
 import { initMetaTags } from '@/services/meta-tags';
-import { installRuntimeFetchPatch, installWebApiRedirect } from '@/services/runtime';
+import { installWebApiRedirect } from '@/services/runtime';
 import { loadDesktopSecrets } from '@/services/runtime-config';
 import { applyStoredTheme } from '@/utils/theme-manager';
 import { SITE_VARIANT } from '@/config/variant';
@@ -301,7 +301,7 @@ injectSpeedInsights();
 initMetaTags();
 
 // In desktop mode, route /api/* calls to the local Tauri sidecar backend.
-installRuntimeFetchPatch();
+
 // In web production, route RPC calls through api.grid48.app (Cloudflare edge).
 installWebApiRedirect();
 loadDesktopSecrets().catch(() => {});

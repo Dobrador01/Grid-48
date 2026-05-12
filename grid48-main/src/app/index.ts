@@ -1,5 +1,5 @@
 export type { AppContext, AppModule, CountryBriefSignals, IntelligenceCache } from './app-context';
-export { DesktopUpdater } from './desktop-updater';
+
 export { SearchManager } from './search-manager';
 export { RefreshScheduler } from './refresh-scheduler';
 export { PanelLayoutManager } from './panel-layout';

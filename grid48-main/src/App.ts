@@ -10,18 +10,17 @@ import {
 import { sanitizeLayersForVariant } from '@/config/map-layer-definitions';
 import type { MapVariant } from '@/config/map-layer-definitions';
 import { initDB, cleanOldSnapshots } from '@/services';
-import { mlWorker } from '@/services/ml-worker';
-import { getAiFlowSettings, subscribeAiFlowChange, isHeadlineMemoryEnabled } from '@/services/ai-flow-settings';
+
+import { subscribeAiFlowChange } from '@/services/ai-flow-settings';
 
 import { loadFromStorage, parseMapUrlState, saveToStorage, isMobileDevice } from '@/utils';
 import type { ParsedMapUrlState } from '@/utils';
 
-import { isDesktopRuntime, waitForSidecarReady } from '@/services/runtime';
-import { BETA_MODE } from '@/config/beta';
+
 import { trackEvent } from '@/services/analytics';
 import { initI18n } from '@/services/i18n';
 import { fetchBootstrapData } from '@/services/bootstrap';
-import { DesktopUpdater } from '@/app/desktop-updater';
+
 import { SearchManager } from '@/app/search-manager';
 import { RefreshScheduler } from '@/app/refresh-scheduler';
 import { PanelLayoutManager } from '@/app/panel-layout';
@@ -40,7 +39,7 @@ export class App {
   private eventHandlers: EventHandlerManager;
   private searchManager: SearchManager;
   private refreshScheduler: RefreshScheduler;
-  private desktopUpdater: DesktopUpdater;
+
 
   private modules: { destroy(): void }[] = [];
   private unsubAiFlow: (() => void) | null = null;
@@ -53,7 +52,7 @@ export class App {
     const PANEL_SPANS_KEY = 'grid48-panel-spans';
 
     const isMobile = isMobileDevice();
-    const isDesktopApp = isDesktopRuntime();
+    const isDesktopApp = false;
     const monitors = loadFromStorage<Monitor[]>(STORAGE_KEYS.monitors, []);
 
     // Use mobile-specific defaults on first load (no saved layers)
@@ -246,7 +245,7 @@ export class App {
 
     // Instantiate modules (callbacks wired after all modules exist)
     this.refreshScheduler = new RefreshScheduler(this.state);
-    this.desktopUpdater = new DesktopUpdater(this.state);
+
 
     this.dataLoader = new DataLoaderManager(this.state, {
       refreshOpenCountryBrief: () => {},
@@ -277,7 +276,6 @@ export class App {
 
     // Track destroy order (reverse of init)
     this.modules = [
-      this.desktopUpdater,
       this.panelLayout,
       this.searchManager,
       this.dataLoader,
@@ -290,48 +288,16 @@ export class App {
     const initStart = performance.now();
     await initDB();
     await initI18n();
-    const aiFlow = getAiFlowSettings();
-    if (aiFlow.browserModel || isDesktopRuntime()) {
-      await mlWorker.init();
-      if (BETA_MODE) mlWorker.loadModel('summarization-beta').catch(() => { });
-    }
 
-    if (aiFlow.headlineMemory) {
-      mlWorker.init().then(ok => {
-        if (ok) mlWorker.loadModel('embeddings').catch(() => { });
-      }).catch(() => { });
-    }
 
-    this.unsubAiFlow = subscribeAiFlowChange((key) => {
-      if (key === 'browserModel') {
-        const s = getAiFlowSettings();
-        if (s.browserModel) {
-          mlWorker.init();
-        } else if (!isHeadlineMemoryEnabled()) {
-          mlWorker.terminate();
-        }
-      }
-      if (key === 'headlineMemory') {
-        if (isHeadlineMemoryEnabled()) {
-          mlWorker.init().then(ok => {
-            if (ok) mlWorker.loadModel('embeddings').catch(() => { });
-          }).catch(() => { });
-        } else {
-          mlWorker.unloadModel('embeddings').catch(() => { });
-          const s = getAiFlowSettings();
-          if (!s.browserModel && !isDesktopRuntime()) {
-            mlWorker.terminate();
-          }
-        }
-      }
+    this.unsubAiFlow = subscribeAiFlowChange((_key) => {
+      // AI flow changes (browser ML removed)
     });
 
 
 
-    // Wait for sidecar readiness on desktop so bootstrap hits a live server
-    if (isDesktopRuntime()) {
-      await waitForSidecarReady(3000);
-    }
+
+
 
     // Hydrate in-memory cache from bootstrap endpoint (before panels construct and fetch)
     await fetchBootstrapData();
@@ -439,8 +405,7 @@ export class App {
     this.eventHandlers.setupSnapshotSaving();
     cleanOldSnapshots().catch((e) => console.warn('[Storage] Snapshot cleanup failed:', e));
 
-    // Phase 8: Update checks
-    this.desktopUpdater.init();
+
 
     // Analytics
     trackEvent('wm_app_loaded', {

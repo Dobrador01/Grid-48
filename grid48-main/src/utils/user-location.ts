@@ -1,4 +1,3 @@
-import { isDesktopRuntime } from '@/services/runtime';
 
 type MapView = 'global' | 'america' | 'mena' | 'eu' | 'asia' | 'latam' | 'africa' | 'oceania';
 
@@ -81,15 +80,13 @@ const TIMEZONE_TO_COUNTRY: Record<string, string> = {
 let _countryPromise: Promise<string | null> | undefined;
 
 async function resolveCountryCodeInternal(): Promise<string | null> {
-  if (!isDesktopRuntime()) {
-    try {
-      const res = await fetch('/api/geo', { signal: AbortSignal.timeout(3000) });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.country && data.country !== 'XX') return data.country;
-      }
-    } catch { /* fallback to timezone */ }
-  }
+  try {
+    const res = await fetch('/api/geo', { signal: AbortSignal.timeout(3000) });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.country && data.country !== 'XX') return data.country;
+    }
+  } catch { /* fallback to timezone */ }
 
   try {
     const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;

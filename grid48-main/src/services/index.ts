@@ -2,11 +2,11 @@ export * from './trending-keywords';
 export * from './market';
 export * from './prediction';
 export * from './earthquakes';
-export * from './clustering';
+
 export * from './related-assets';
 export * from './velocity';
 export * from './storage';
-export * from './correlation';
+
 export * from './weather';
 export * from './economic';
 export * from './infrastructure';
@@ -18,7 +18,7 @@ export * from './climate';
 export * from './unrest';
 export * from './aviation';
 export * from './eonet';
-export { analysisWorker } from './analysis-worker';
+
 export { activityTracker } from './activity-tracker';
 export * from './geo-convergence';
 export * from './country-instability';
