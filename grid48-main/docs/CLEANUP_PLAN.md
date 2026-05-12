@@ -547,3 +547,78 @@ o resumo das remoções e bump de versão.
 - **TypeCheck quebra com erros de tipo bizarros**: provavelmente um arquivo `_pb.ts` (proto generated) foi deletado mas ainda há `import` dele. Procurar `from '@/generated'` e limpar.
 
 Se ficar travado, parar e reverter o último commit (`git revert HEAD`) e abordar de outro ângulo. Não tentar "consertar errado por cima de errado".
+
+---
+
+## 10. Apêndice — Camada D residual (descoberta pós-1.3.0)
+
+Auditoria depois de Camadas B+C revelou uma rede de código WorldMonitor
+**ainda reachable do código vivo**, que não dava pra cortar sem refactor mais
+profundo. Lista de arquivos no `src/services/` que precisam ir embora juntos
+(deletar um isolado quebra os outros):
+
+```
+threat-classifier.ts              ← classificação de ameaças
+analysis-core.ts                  ← motor de análise
+analysis-constants.ts             ← constantes do motor
+analysis.worker.ts (em src/workers/)
+intelligence/index.ts             ← agregador de inteligência
+correlation.ts                    ← correlação cross-source
+entity-extraction.ts              ← extração de entidades
+focal-point-detector.ts           ← detecção de hotspots
+geo-convergence.ts                ← análise de convergência geográfica
+cross-module-integration.ts       ← integração entre módulos
+trending-keywords.ts              ← keywords trending
+cached-risk-scores.ts             ← scores de risco cacheados
+desktop-readiness.ts              ← readiness check (resíduo Tauri)
+pizzint.ts                        ← Pentagon Pizza Index, dead
+```
+
+**Por que não foi feito agora:** `geo-convergence` é importado por:
+
+```
+src/components/DeckGLMap.ts        ← LIVE
+src/components/Map.ts              ← LIVE
+src/main.ts                        ← LIVE (entry point)
+```
+
+Cortar isso exige editar DeckGLMap/Map/main.ts pra remover os call sites,
+o que vai além do escopo "delete arquivos órfãos". Camada D requer:
+
+1. Identificar exatamente quais funções de `geo-convergence` são chamadas
+   pelos componentes vivos.
+2. Verificar se essas funções fazem algo útil em Grid 48 (provável que não —
+   eram pra processar news/threats que não existem mais).
+3. Remover as chamadas dos componentes vivos.
+4. Aí sim deletar a cadeia inteira de cima.
+
+Outras pendências de baixo impacto pra Camada D:
+
+- **index.html**: hreflang alternates e CSP ainda referenciam `worldmonitor.app`
+  e subdomínios. `htmlVariantPlugin` em `vite.config.ts` só substitui um
+  subset dos tags meta; os hard-coded sobreviveram.
+- **vercel.json**: header `X-WorldMonitor-Key` no CORS allowlist.
+- **public/** assets: provavelmente tem favicons/og-images herdados que não
+  são Grid 48-branded.
+- **i18next**: 20+ arquivos de locale (`src/locales/*.json`) que duplicam
+  textos do WorldMonitor. Grid 48 só usa pt-BR efetivamente. Bundle gera
+  `locale-*.js` chunks de 100-145 KB cada — economia real se cortar.
+- **`src/components/GlobeMap.ts`**: visualizador globo 3D do WorldMonitor.
+  Grid 48 só usa mapa 2D (deck.gl + maplibre). Provável dead weight.
+
+Quando atacar Camada D, começar por:
+
+```bash
+# Listar todas as chamadas a geo-convergence dos componentes vivos
+grep -n "from.*geo-convergence" src/components/DeckGLMap.ts src/components/Map.ts src/main.ts
+
+# Para cada função importada, ver se de fato é usada no body do arquivo
+grep -nE "computeFocalPoints|detectClusters|<nome da função>" <arquivo>
+```
+
+Se for tudo dead-code-after-purge (chamadas que processam dados que não
+existem mais), basta remover as chamadas + a import line, e a cadeia inteira
+fica liberada pra delete em massa.
+
+Ganho esperado de Camada D: provavelmente +5-10% redução de bundle, dezenas
+de arquivos órfãos a menos, repo significativamente mais navegável.
