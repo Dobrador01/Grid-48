@@ -1,13 +1,8 @@
 import type { AppContext, AppModule } from '@/app/app-context';
-import { replayPendingCalls, clearAllPendingCalls } from '@/app/pending-panel-data';
+import { clearAllPendingCalls } from '@/app/pending-panel-data';
 import {
   MapContainer,
   RuntimeConfigPanel,
-  InvestmentsPanel,
-  GulfEconomiesPanel,
-  WorldClockPanel,
-  AirlineIntelPanel,
-  AviationCommandBar,
 } from '@/components';
 import { CelescStatusWidget } from '@/components/CelescStatusWidget';
 import { TacticalStatusPanel } from '@/components/TacticalStatusPanel';
@@ -17,11 +12,9 @@ import { debounce, saveToStorage, loadFromStorage } from '@/utils';
 import {
   DEFAULT_PANELS,
   STORAGE_KEYS,
-  SITE_VARIANT,
 } from '@/config';
 import { t } from '@/services/i18n';
 import { getCurrentTheme } from '@/utils';
-import { getSecretState } from '@/services/runtime-config';
 
 export interface PanelLayoutCallbacks {
   openCountryStory: (code: string, name: string) => void;
@@ -37,7 +30,6 @@ export class PanelLayoutManager implements AppModule {
   private resolvedPanelOrder: string[] = [];
   private bottomSetMemory: Set<string> = new Set();
   private criticalBannerEl: HTMLElement | null = null;
-  private aviationCommandBar: AviationCommandBar | null = null;
   private readonly applyTimeRangeFilterDebounced: (() => void) & { cancel(): void };
 
   constructor(ctx: AppContext, callbacks: PanelLayoutCallbacks) {
@@ -60,22 +52,6 @@ export class PanelLayoutManager implements AppModule {
       this.criticalBannerEl.remove();
       this.criticalBannerEl = null;
     }
-    // Clean up happy variant panels
-    this.ctx.tvMode?.destroy();
-    this.ctx.tvMode = null;
-    this.ctx.countersPanel?.destroy();
-    this.ctx.progressPanel?.destroy();
-    this.ctx.breakthroughsPanel?.destroy();
-    this.ctx.heroPanel?.destroy();
-    this.ctx.digestPanel?.destroy();
-    this.ctx.speciesPanel?.destroy();
-    this.ctx.renewablePanel?.destroy();
-
-    // Clean up aviation components
-    this.aviationCommandBar?.destroy();
-    this.aviationCommandBar = null;
-    this.ctx.panels['airline-intel']?.destroy();
-
     window.removeEventListener('resize', this.ensureCorrectZones);
   }
 
@@ -104,7 +80,7 @@ export class PanelLayoutManager implements AppModule {
         <div class="map-section" id="mapSection">
           <div class="panel-header">
             <div class="panel-header-left">
-              <span class="panel-title">${SITE_VARIANT === 'tech' ? t('panels.techMap') : SITE_VARIANT === 'happy' ? 'Good News Map' : t('panels.map')}</span>
+              <span class="panel-title">${t('panels.map')}</span>
             </div>
             <span class="header-clock" id="headerClock" translate="no"></span>
             <div class="map-header-actions">
@@ -123,7 +99,6 @@ export class PanelLayoutManager implements AppModule {
             </div>
           </div>
           <div class="map-container" id="mapContainer"></div>
-          ${SITE_VARIANT === 'happy' ? '<button class="tv-exit-btn" id="tvExitBtn">Exit TV Mode</button>' : ''}
           <div class="map-resize-handle" id="mapResizeHandle"></div>
           <div class="map-bottom-grid" id="mapBottomGrid"></div>
         </div>
@@ -255,149 +230,9 @@ export class PanelLayoutManager implements AppModule {
 
 
 
-    this.lazyPanel('climate', () =>
-      import('@/components/ClimateAnomalyPanel').then(m => {
-        const p = new m.ClimateAnomalyPanel();
-        p.setZoneClickHandler((lat: number, lon: number) => { this.ctx.map?.setCenter(lat, lon, 4); });
-        return p;
-      }),
-    );
-
-    this.lazyPanel('population-exposure', () =>
-      import('@/components/PopulationExposurePanel').then(m => new m.PopulationExposurePanel()),
-    );
-
-
-    const _wmKeyPresent = getSecretState('WORLDMONITOR_API_KEY').present;
-    const _lockPanels = this.ctx.isDesktopApp && !_wmKeyPresent;
-
-
-
-    this.lazyPanel('oref-sirens', () =>
-      import('@/components/OrefSirensPanel').then(m => new m.OrefSirensPanel()),
-      undefined,
-      _lockPanels ? [t('premium.features.orefSirens1'), t('premium.features.orefSirens2')] : undefined,
-    );
-
-    this.lazyPanel('telegram-intel', () =>
-      import('@/components/TelegramIntelPanel').then(m => new m.TelegramIntelPanel()),
-      undefined,
-      _lockPanels ? [t('premium.features.telegramIntel1'), t('premium.features.telegramIntel2')] : undefined,
-    );
-
-    if (this.shouldCreatePanel('gcc-investments')) {
-      const investmentsPanel = new InvestmentsPanel(() => {
-        // focusInvestmentOnMap removed
-      });
-      this.ctx.panels['gcc-investments'] = investmentsPanel;
-    }
-
-    if (this.shouldCreatePanel('world-clock')) {
-      this.ctx.panels['world-clock'] = new WorldClockPanel();
-    }
-
-    if (this.shouldCreatePanel('airline-intel')) {
-      this.ctx.panels['airline-intel'] = new AirlineIntelPanel();
-      this.aviationCommandBar = new AviationCommandBar();
-    }
-
-    if (this.shouldCreatePanel('gulf-economies') && !this.ctx.panels['gulf-economies']) {
-      this.ctx.panels['gulf-economies'] = new GulfEconomiesPanel();
-    }
-
-
-
-
-
-    this.lazyPanel('tech-readiness', () =>
-      import('@/components/TechReadinessPanel').then(m => {
-        const p = new m.TechReadinessPanel();
-        void p.refresh();
-        return p;
-      }),
-    );
-
-
-
     if (this.ctx.isDesktopApp) {
       const runtimeConfigPanel = new RuntimeConfigPanel({ mode: 'alert' });
       this.ctx.panels['runtime-config'] = runtimeConfigPanel;
-    }
-
-
-
-
-
-    // Happy variant panels (lazy-loaded — only relevant for happy variant)
-    if (SITE_VARIANT === 'happy') {
-      this.lazyPanel('positive-feed', () =>
-        import('@/components/PositiveNewsFeedPanel').then(m => {
-          const p = new m.PositiveNewsFeedPanel();
-          this.ctx.positivePanel = p;
-          return p;
-        }),
-      );
-
-      this.lazyPanel('counters', () =>
-        import('@/components/CountersPanel').then(m => {
-          const p = new m.CountersPanel();
-          p.startTicking();
-          this.ctx.countersPanel = p;
-          return p;
-        }),
-      );
-
-      this.lazyPanel('progress', () =>
-        import('@/components/ProgressChartsPanel').then(m => {
-          const p = new m.ProgressChartsPanel();
-          this.ctx.progressPanel = p;
-          return p;
-        }),
-      );
-
-      this.lazyPanel('breakthroughs', () =>
-        import('@/components/BreakthroughsTickerPanel').then(m => {
-          const p = new m.BreakthroughsTickerPanel();
-          this.ctx.breakthroughsPanel = p;
-          return p;
-        }),
-      );
-
-      this.lazyPanel('spotlight', () =>
-        import('@/components/HeroSpotlightPanel').then(m => {
-          const p = new m.HeroSpotlightPanel();
-          p.onLocationRequest = (lat: number, lon: number) => {
-            this.ctx.map?.setCenter(lat, lon, 4);
-            this.ctx.map?.flashLocation(lat, lon, 3000);
-          };
-          this.ctx.heroPanel = p;
-          return p;
-        }),
-      );
-
-      this.lazyPanel('digest', () =>
-        import('@/components/GoodThingsDigestPanel').then(m => {
-          const p = new m.GoodThingsDigestPanel();
-          this.ctx.digestPanel = p;
-          return p;
-        }),
-      );
-
-      this.lazyPanel('species', () =>
-        import('@/components/SpeciesComebackPanel').then(m => {
-          const p = new m.SpeciesComebackPanel();
-          this.ctx.speciesPanel = p;
-          return p;
-        }),
-      );
-
-      this.lazyPanel('renewable', () =>
-        import('@/components/RenewableEnergyPanel').then(m => {
-          const p = new m.RenewableEnergyPanel();
-          this.ctx.renewablePanel = p;
-          return p;
-        }),
-      );
     }
 
     const defaultOrder = Object.keys(DEFAULT_PANELS).filter(k => k !== 'map');
@@ -442,7 +277,7 @@ export class PanelLayoutManager implements AppModule {
 
       const monitorsIdx = valid.indexOf('monitors');
       if (monitorsIdx !== -1) valid.splice(monitorsIdx, 1);
-      if (SITE_VARIANT !== 'happy') valid.push('monitors');
+      valid.push('monitors');
       allOrder = valid;
     } else {
       allOrder = [...defaultOrder];
@@ -741,38 +576,6 @@ export class PanelLayoutManager implements AppModule {
         }
       });
     }
-  }
-
-  private lazyPanel<T extends { getElement(): HTMLElement }>(
-    key: string,
-    loader: () => Promise<T>,
-    setup?: (panel: T) => void,
-    lockedFeatures?: string[],
-  ): void {
-    if (!this.shouldCreatePanel(key)) return;
-    loader().then(async (panel) => {
-      this.ctx.panels[key] = panel as unknown as import('@/components/Panel').Panel;
-      if (lockedFeatures) {
-        (panel as unknown as import('@/components/Panel').Panel).showLocked(lockedFeatures);
-      } else {
-        await replayPendingCalls(key, panel);
-        if (setup) setup(panel);
-      }
-      const el = panel.getElement();
-      this.makeDraggable(el, key);
-
-      const bottomGrid = document.getElementById('mapBottomGrid');
-      if (bottomGrid && this.getEffectiveUltraWide() && this.bottomSetMemory.has(key)) {
-        this.insertByOrder(bottomGrid, el, key);
-        return;
-      }
-
-      const grid = document.getElementById('panelsGrid');
-      if (!grid) return;
-      this.insertByOrder(grid, el, key);
-    }).catch((err) => {
-      console.error(`[panel] failed to lazy-load "${key}"`, err);
-    });
   }
 
   private makeDraggable(el: HTMLElement, key: string): void {
