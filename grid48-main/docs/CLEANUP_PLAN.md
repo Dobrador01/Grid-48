@@ -88,7 +88,6 @@ git log --oneline -5                    # último commit deve ser consolidação
 # 3. Type-check baseline (deve passar zero erros)
 cd grid48-main
 npx tsc --noEmit && echo OK || echo BROKEN
-npx tsc --noEmit -p tsconfig.api.json && echo OK || echo BROKEN
 cd engine && npx tsc --noEmit && echo OK || echo BROKEN
 
 # 4. Bundle size baseline (para comparar depois)
@@ -229,7 +228,6 @@ Sugestão de commits:
 
 ```bash
 npx tsc --noEmit                       # zero erros
-npx tsc --noEmit -p tsconfig.api.json  # zero erros
 npm run build                          # sucesso
 ```
 
@@ -393,7 +391,7 @@ Após cada commit grande:
 
 ```bash
 # Type-check
-npx tsc --noEmit && npx tsc --noEmit -p tsconfig.api.json
+npx tsc --noEmit
 
 # Build (e medir bundle size!)
 npm run build
