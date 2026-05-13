@@ -4,7 +4,9 @@ import LanguageDetector from 'i18next-browser-languagedetector';
 // English is always needed as fallback — bundle it eagerly.
 import enTranslation from '../locales/en.json';
 
-const SUPPORTED_LANGUAGES = ['en', 'bg', 'cs', 'fr', 'de', 'el', 'es', 'it', 'pl', 'pt', 'nl', 'sv', 'ru', 'ar', 'zh', 'ja', 'ko', 'ro', 'tr', 'th', 'vi'] as const;
+// Grid 48 ships only en (fallback) + pt (Brazilian Portuguese, primary audience).
+// Outras línguas foram removidas no fim da Camada D — restore via git se voltar a precisar.
+const SUPPORTED_LANGUAGES = ['en', 'pt'] as const;
 type SupportedLanguage = typeof SUPPORTED_LANGUAGES[number];
 type TranslationDictionary = Record<string, unknown>;
 
@@ -17,7 +19,7 @@ const localeModules = import.meta.glob<TranslationDictionary>(
   { import: 'default' },
 );
 
-const RTL_LANGUAGES = new Set(['ar']);
+const RTL_LANGUAGES = new Set<string>();  // ar foi removido junto com os outros locales
 
 function normalizeLanguage(lng: string): SupportedLanguage {
   const base = (lng || 'en').split('-')[0]?.toLowerCase() || 'en';
