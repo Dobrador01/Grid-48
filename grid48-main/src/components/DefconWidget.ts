@@ -142,11 +142,9 @@ export class DefconWidget extends Panel {
     // Pulse só se o nível mudou recentemente (evita ficar pulsando pra sempre).
     const desdeUltimaMudanca = Date.now() - defcon.ultima_mudanca_em;
     const pulseAtivo = desdeUltimaMudanca < PULSE_WINDOW_MS;
-
-    const pulseStyle = pulseAtivo
-      ? `style="--defcon-pulse-color: ${corPrincipal}99;"`
-      : '';
     const pulseClass = pulseAtivo ? 'defcon-pulse' : '';
+
+    const gaugeSvg = this.renderGaugeSvg(defcon.nivel_global);
 
     const pills = (['energia', 'clima', 'mobilidade'] as const).map((cat) => {
       const nivel = defcon.niveis_categoria[cat];
@@ -167,37 +165,36 @@ export class DefconWidget extends Panel {
       : '';
 
     return `
-      <div style="height: 100%; display: flex; flex-direction: column; background: rgba(245, 247, 250, 0.5); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px); font-family: ui-sans-serif, system-ui, sans-serif;">
+      <div style="height: 100%; display: flex; flex-direction: column; min-height: 0; background: rgba(245, 247, 250, 0.5); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px); font-family: ui-sans-serif, system-ui, sans-serif;">
         ${stale ? `
-          <div style="background: rgba(249, 115, 22, 0.18); border-bottom: 1px solid rgba(249, 115, 22, 0.35); padding: 0.4rem 0.75rem; text-align: center;">
+          <div style="background: rgba(249, 115, 22, 0.18); border-bottom: 1px solid rgba(249, 115, 22, 0.35); padding: 0.4rem 0.75rem; text-align: center; flex-shrink: 0;">
             <span style="font-size: 0.65rem; color: #c2410c; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">⚠ Sem socket — estado pode estar desatualizado</span>
           </div>
         ` : ''}
 
-        <div style="padding: 1rem 1.25rem 0.75rem 1.25rem; display: flex; align-items: center; gap: 1rem;">
-          <div ${pulseStyle} class="${pulseClass}" style="width: 92px; height: 92px; border-radius: 18px; background: ${corPrincipal}; color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 6px 18px ${corPrincipal}55, inset 0 2px 6px rgba(255,255,255,0.25); flex-shrink: 0;">
-            <div style="font-size: 0.55rem; font-weight: 600; letter-spacing: 0.12em; opacity: 0.9;">DEFCON</div>
-            <div style="font-size: 2.6rem; font-weight: 900; line-height: 1;">${defcon.nivel_global}</div>
+        <div style="padding: 0.75rem 1.25rem 0.5rem 1.25rem; display: flex; align-items: center; gap: 1rem; flex-shrink: 0;">
+          <div class="${pulseClass}" style="width: 180px; flex-shrink: 0; ${pulseAtivo ? `--defcon-pulse-color: ${corPrincipal}66;` : ''}">
+            ${gaugeSvg}
           </div>
           <div style="flex: 1; min-width: 0;">
             <div style="font-size: 0.7rem; color: #6b7280; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600;">Estado Atual</div>
-            <div style="font-size: 1.15rem; font-weight: 800; color: ${corPrincipal}; letter-spacing: -0.01em;">${labelPrincipal}</div>
+            <div style="font-size: 1.25rem; font-weight: 800; color: ${corPrincipal}; letter-spacing: -0.01em;">${labelPrincipal}</div>
             <div style="font-size: 0.7rem; color: #6b7280; margin-top: 4px;">recomputado ${recomputadoStr} ${transicao}</div>
           </div>
         </div>
 
-        <div style="padding: 0 1.25rem 0.75rem 1.25rem; display: flex; gap: 0.5rem;">
+        <div style="padding: 0 1.25rem 0.75rem 1.25rem; display: flex; gap: 0.5rem; flex-shrink: 0;">
           ${pills}
         </div>
 
-        <div style="margin: 0 1.25rem; padding: 0.75rem 0.85rem; background: rgba(255,255,255,0.65); border: 1px solid rgba(0,0,0,0.06); border-radius: 10px; font-size: 0.78rem; color: #374151; line-height: 1.45; ${explicacaoStaleHash ? 'opacity: 0.6;' : ''}">
+        <div style="margin: 0 1.25rem 0.75rem 1.25rem; padding: 0.75rem 0.85rem; background: rgba(255,255,255,0.65); border: 1px solid rgba(0,0,0,0.06); border-radius: 10px; font-size: 0.78rem; color: #374151; line-height: 1.45; flex-shrink: 0; ${explicacaoStaleHash ? 'opacity: 0.6;' : ''}">
           ${this.escapeHtml(explicacaoTexto)}
           ${explicacaoStaleHash ? `<div style="font-size: 0.6rem; color: #9ca3af; margin-top: 4px; font-style: italic;">(explicação anterior — nova sendo gerada)</div>` : ''}
         </div>
 
         ${defcon.sinais_disparadores.length > 0 ? `
-          <div style="padding: 0.75rem 1.25rem 1rem 1.25rem; flex: 1; overflow-y: auto;">
-            <div style="font-size: 0.6rem; color: #6b7280; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; margin-bottom: 0.4rem;">Sinais Disparadores</div>
+          <div style="padding: 0.75rem 1.25rem 1rem 1.25rem; flex: 1 1 0; min-height: 0; overflow-y: auto;">
+            <div style="font-size: 0.6rem; color: #6b7280; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; margin-bottom: 0.4rem; position: sticky; top: 0; background: rgba(245, 247, 250, 0.95); padding: 4px 0;">Sinais Disparadores</div>
             ${defcon.sinais_disparadores.map((s) => `
               <div style="font-size: 0.72rem; color: #4b5563; padding: 0.3rem 0; border-bottom: 1px dashed rgba(0,0,0,0.06);">
                 <span style="font-weight: 600; color: ${NIVEL_COR[defcon.niveis_categoria[s.categoria as 'energia' | 'clima' | 'mobilidade']] ?? '#6b7280'};">${this.escapeHtml(s.categoria.toUpperCase())}</span>
@@ -208,6 +205,73 @@ export class DefconWidget extends Panel {
         ` : ''}
       </div>
     `;
+  }
+
+  /**
+   * Gauge semicircular SVG: 5 quadrantes coloridos (vermelho à direita = crítico,
+   * verde à esquerda = tranquilo). O quadrante do nível atual fica em opacity
+   * cheia; os outros ficam esmaecidos. Número grande no centro.
+   *
+   * Convenção visual: nível 1 (mais crítico) à direita, nível 5 (tranquilo) à esquerda
+   * — espelha gauges de risco tipo "Doom Index".
+   */
+  private renderGaugeSvg(nivelAtual: number): string {
+    const cx = 100;
+    const cy = 100;
+    const rOuter = 92;
+    const rInner = 58;
+    // Cada quadrante = 36° (180/5). Pequeno gap pra separação visual.
+    const gapDeg = 1.5;
+
+    // Mapeamento posicional: nível 5 (verde) à esquerda, nível 1 (vermelho) à direita.
+    // Ângulos em SVG (0 = direita, 180 = esquerda, sentido anti-horário positivo).
+    // Quadrantes ocupam 180° (esquerda) → 0° (direita).
+    // Nível 5: 180→144, Nível 4: 144→108, Nível 3: 108→72, Nível 2: 72→36, Nível 1: 36→0.
+    const quadrantes = [5, 4, 3, 2, 1].map((nivel, idx) => {
+      const startDeg = 180 - idx * 36 - gapDeg / 2;
+      const endDeg = 180 - (idx + 1) * 36 + gapDeg / 2;
+      const cor = NIVEL_COR[nivel] ?? '#6b7280';
+      const ativo = nivel === nivelAtual;
+      const opacity = ativo ? 1 : 0.18;
+      const path = this.arcPath(cx, cy, rOuter, rInner, startDeg, endDeg);
+      return `<path d="${path}" fill="${cor}" opacity="${opacity}" />`;
+    }).join('');
+
+    const corCentral = NIVEL_COR[nivelAtual] ?? '#6b7280';
+
+    return `
+      <svg viewBox="0 0 200 115" xmlns="http://www.w3.org/2000/svg" style="display: block; width: 100%; height: auto;">
+        ${quadrantes}
+        <text x="${cx}" y="${cy - 8}" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif"
+              font-size="9" font-weight="700" fill="#6b7280" letter-spacing="2">DEFCON</text>
+        <text x="${cx}" y="${cy + 22}" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif"
+              font-size="38" font-weight="900" fill="${corCentral}">${nivelAtual}</text>
+      </svg>
+    `;
+  }
+
+  /**
+   * Constrói o `d` attribute de um path SVG pra um arco-anel (donut slice).
+   * Ângulos em graus, convenção: 0 = direita, 90 = topo, 180 = esquerda.
+   */
+  private arcPath(cx: number, cy: number, rOuter: number, rInner: number, startDeg: number, endDeg: number): string {
+    const polar = (r: number, deg: number) => {
+      const rad = (deg * Math.PI) / 180;
+      return { x: cx + r * Math.cos(rad), y: cy - r * Math.sin(rad) };
+    };
+    const p1 = polar(rOuter, startDeg);
+    const p2 = polar(rOuter, endDeg);
+    const p3 = polar(rInner, endDeg);
+    const p4 = polar(rInner, startDeg);
+    // largeArcFlag: 0 (cada quadrante é < 180°). sweepFlag: 0 = anti-horário pro arco externo.
+    const largeArc = Math.abs(startDeg - endDeg) > 180 ? 1 : 0;
+    return [
+      `M ${p1.x} ${p1.y}`,
+      `A ${rOuter} ${rOuter} 0 ${largeArc} 0 ${p2.x} ${p2.y}`,
+      `L ${p3.x} ${p3.y}`,
+      `A ${rInner} ${rInner} 0 ${largeArc} 1 ${p4.x} ${p4.y}`,
+      'Z',
+    ].join(' ');
   }
 
   private formatRelative(ts: number): string {
