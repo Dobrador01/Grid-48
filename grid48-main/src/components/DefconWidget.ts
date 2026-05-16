@@ -164,15 +164,19 @@ export class DefconWidget extends Panel {
       ? `<span style="color: #6b7280;">• transição de DEFCON ${defcon.nivel_anterior} → ${defcon.nivel_global}</span>`
       : '';
 
+    // Layout: container raiz com overflow-y: auto. Estratégia simples e
+    // robusta — quando o conteúdo total excede a altura do painel, scrolla
+    // o widget inteiro. Sticky header em "Sinais Disparadores" mantém o
+    // rótulo visível enquanto se rola pela lista.
     return `
-      <div style="height: 100%; display: flex; flex-direction: column; min-height: 0; background: rgba(245, 247, 250, 0.5); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px); font-family: ui-sans-serif, system-ui, sans-serif;">
+      <div style="height: 100%; overflow-y: auto; background: rgba(245, 247, 250, 0.5); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px); font-family: ui-sans-serif, system-ui, sans-serif;">
         ${stale ? `
-          <div style="background: rgba(249, 115, 22, 0.18); border-bottom: 1px solid rgba(249, 115, 22, 0.35); padding: 0.4rem 0.75rem; text-align: center; flex-shrink: 0;">
+          <div style="background: rgba(249, 115, 22, 0.18); border-bottom: 1px solid rgba(249, 115, 22, 0.35); padding: 0.4rem 0.75rem; text-align: center;">
             <span style="font-size: 0.65rem; color: #c2410c; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">⚠ Sem socket — estado pode estar desatualizado</span>
           </div>
         ` : ''}
 
-        <div style="padding: 0.75rem 1.25rem 0.5rem 1.25rem; display: flex; align-items: center; gap: 1rem; flex-shrink: 0;">
+        <div style="padding: 0.75rem 1.25rem 0.5rem 1.25rem; display: flex; align-items: center; gap: 1rem;">
           <div class="${pulseClass}" style="width: 180px; flex-shrink: 0; ${pulseAtivo ? `--defcon-pulse-color: ${corPrincipal}66;` : ''}">
             ${gaugeSvg}
           </div>
@@ -183,18 +187,18 @@ export class DefconWidget extends Panel {
           </div>
         </div>
 
-        <div style="padding: 0 1.25rem 0.75rem 1.25rem; display: flex; gap: 0.5rem; flex-shrink: 0;">
+        <div style="padding: 0 1.25rem 0.75rem 1.25rem; display: flex; gap: 0.5rem;">
           ${pills}
         </div>
 
-        <div style="margin: 0 1.25rem 0.75rem 1.25rem; padding: 0.75rem 0.85rem; background: rgba(255,255,255,0.65); border: 1px solid rgba(0,0,0,0.06); border-radius: 10px; font-size: 0.78rem; color: #374151; line-height: 1.45; flex-shrink: 0; ${explicacaoStaleHash ? 'opacity: 0.6;' : ''}">
+        <div style="margin: 0 1.25rem 0.75rem 1.25rem; padding: 0.75rem 0.85rem; background: rgba(255,255,255,0.65); border: 1px solid rgba(0,0,0,0.06); border-radius: 10px; font-size: 0.78rem; color: #374151; line-height: 1.45; ${explicacaoStaleHash ? 'opacity: 0.6;' : ''}">
           ${this.escapeHtml(explicacaoTexto)}
           ${explicacaoStaleHash ? `<div style="font-size: 0.6rem; color: #9ca3af; margin-top: 4px; font-style: italic;">(explicação anterior — nova sendo gerada)</div>` : ''}
         </div>
 
         ${defcon.sinais_disparadores.length > 0 ? `
-          <div style="padding: 0.75rem 1.25rem 1rem 1.25rem; flex: 1 1 0; min-height: 0; overflow-y: auto;">
-            <div style="font-size: 0.6rem; color: #6b7280; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; margin-bottom: 0.4rem; position: sticky; top: 0; background: rgba(245, 247, 250, 0.95); padding: 4px 0;">Sinais Disparadores</div>
+          <div style="padding: 0 1.25rem 1rem 1.25rem;">
+            <div style="font-size: 0.6rem; color: #6b7280; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; margin-bottom: 0.4rem; position: sticky; top: 0; background: rgba(245, 247, 250, 0.95); padding: 6px 0 4px 0; z-index: 1;">Sinais Disparadores</div>
             ${defcon.sinais_disparadores.map((s) => `
               <div style="font-size: 0.72rem; color: #4b5563; padding: 0.3rem 0; border-bottom: 1px dashed rgba(0,0,0,0.06);">
                 <span style="font-weight: 600; color: ${NIVEL_COR[defcon.niveis_categoria[s.categoria as 'energia' | 'clima' | 'mobilidade']] ?? '#6b7280'};">${this.escapeHtml(s.categoria.toUpperCase())}</span>
@@ -210,29 +214,30 @@ export class DefconWidget extends Panel {
   /**
    * Gauge semicircular SVG: 5 quadrantes coloridos (vermelho à direita = crítico,
    * verde à esquerda = tranquilo). O quadrante do nível atual fica em opacity
-   * cheia; os outros ficam esmaecidos. Número grande no centro.
+   * cheia; os outros ficam visíveis mas esmaecidos. Texto "DEFCON" + número
+   * grande do nível atual centralizados no "buraco" do anel.
    *
-   * Convenção visual: nível 1 (mais crítico) à direita, nível 5 (tranquilo) à esquerda
-   * — espelha gauges de risco tipo "Doom Index".
+   * Layout:
+   *   viewBox 0 0 200 110 — centro em (100, 100), arco entre y=8 (topo) e y=100 (base)
+   *   raio externo 92, raio interno 58 (anel de 34px de espessura)
+   *   "buraco" do anel = área central de y=42 a y=100, com texto centralizado em y~75
    */
   private renderGaugeSvg(nivelAtual: number): string {
     const cx = 100;
     const cy = 100;
     const rOuter = 92;
     const rInner = 58;
-    // Cada quadrante = 36° (180/5). Pequeno gap pra separação visual.
-    const gapDeg = 1.5;
+    const gapDeg = 1.5; // separação visual entre quadrantes
 
     // Mapeamento posicional: nível 5 (verde) à esquerda, nível 1 (vermelho) à direita.
-    // Ângulos em SVG (0 = direita, 180 = esquerda, sentido anti-horário positivo).
-    // Quadrantes ocupam 180° (esquerda) → 0° (direita).
-    // Nível 5: 180→144, Nível 4: 144→108, Nível 3: 108→72, Nível 2: 72→36, Nível 1: 36→0.
+    // Em coords matemáticas (Y invertido p/ SVG): 180° = esquerda, 0° = direita.
     const quadrantes = [5, 4, 3, 2, 1].map((nivel, idx) => {
       const startDeg = 180 - idx * 36 - gapDeg / 2;
       const endDeg = 180 - (idx + 1) * 36 + gapDeg / 2;
       const cor = NIVEL_COR[nivel] ?? '#6b7280';
       const ativo = nivel === nivelAtual;
-      const opacity = ativo ? 1 : 0.18;
+      // Inativos: opacity 0.32 (visíveis mas claramente "off"). Ativo: 1.
+      const opacity = ativo ? 1 : 0.32;
       const path = this.arcPath(cx, cy, rOuter, rInner, startDeg, endDeg);
       return `<path d="${path}" fill="${cor}" opacity="${opacity}" />`;
     }).join('');
@@ -240,12 +245,12 @@ export class DefconWidget extends Panel {
     const corCentral = NIVEL_COR[nivelAtual] ?? '#6b7280';
 
     return `
-      <svg viewBox="0 0 200 115" xmlns="http://www.w3.org/2000/svg" style="display: block; width: 100%; height: auto;">
+      <svg viewBox="0 0 200 110" xmlns="http://www.w3.org/2000/svg" style="display: block; width: 100%; height: auto;">
         ${quadrantes}
-        <text x="${cx}" y="${cy - 8}" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif"
-              font-size="9" font-weight="700" fill="#6b7280" letter-spacing="2">DEFCON</text>
-        <text x="${cx}" y="${cy + 22}" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif"
-              font-size="38" font-weight="900" fill="${corCentral}">${nivelAtual}</text>
+        <text x="${cx}" y="64" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif"
+              font-size="10" font-weight="700" fill="#6b7280" letter-spacing="2">DEFCON</text>
+        <text x="${cx}" y="98" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif"
+              font-size="34" font-weight="900" fill="${corCentral}">${nivelAtual}</text>
       </svg>
     `;
   }
