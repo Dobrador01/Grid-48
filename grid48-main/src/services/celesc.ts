@@ -1,5 +1,6 @@
 import type { CelescMunicipioPayload } from '@/types/celesc';
 import { CELESC_TO_IBGE } from '../utils/celesc-to-ibge';
+import { getOrCreateConvexClient } from './beacon-client';
 
 const STORAGE_KEY = 'grid48_celesc_histerese';
 
@@ -200,6 +201,76 @@ export async function pollCelescData(): Promise<CelescMunicipioPayload[]> {
   return payloads;
 }
 
+// ─── Backend reporting (Convex DEFCON pipeline) ─────────────────────────
+//
+// A cada ciclo, além de entregar os payloads pra UI/mapa, publicamos um
+// snapshot enxuto pro Convex (mutation `celesc/mutations:reportCelescSnapshot`).
+// O backend faz diff vs estado atual, alimenta `recomputeDefcon` e arquiva
+// em `celesc_history` (90d retention, com heartbeat 6h).
+//
+// Filtro: enviamos APENAS os afetados (ucsAfetadas > 0). Ausência no payload
+// é interpretada como "resolvido" pelo backend.
+//
+// Auth: pública sem token — single-user assumption (dívida técnica documentada).
+
+interface ConvexBairroEntry {
+  bairro: string;
+  ucs_afetadas: number;
+}
+
+interface ConvexMunicipioEntry {
+  ibge_municipio: number;
+  municipio_nome: string;
+  ucs_afetadas: number;
+  ucs_total_municipio?: number;
+  tendencia?: string;
+  bairros?: ConvexBairroEntry[];
+}
+
+function buildConvexSnapshot(payloads: CelescMunicipioPayload[]): ConvexMunicipioEntry[] {
+  const out: ConvexMunicipioEntry[] = [];
+  for (const p of payloads) {
+    if ((p as any).ucsAfetadas === 0 || p.ucsAfetadas <= 0) continue;
+    // codIbge vem como string ("4205407") — converte pra number. Pula se nulo.
+    const ibgeStr = (p as any).codIbge;
+    const ibge = ibgeStr ? parseInt(String(ibgeStr), 10) : NaN;
+    if (!Number.isFinite(ibge)) continue;
+
+    const bairros = Array.isArray((p as any).bairros)
+      ? ((p as any).bairros as Array<{ nome: string; ucsAfetadas: number }>)
+          .filter((b) => b && b.nome && b.ucsAfetadas > 0)
+          .map((b) => ({ bairro: b.nome, ucs_afetadas: b.ucsAfetadas }))
+      : undefined;
+
+    out.push({
+      ibge_municipio: ibge,
+      municipio_nome: p.nome,
+      ucs_afetadas: p.ucsAfetadas,
+      ucs_total_municipio: (p as any).totalUcsReal || undefined,
+      tendencia: (p as any).tendencia,
+      bairros: bairros && bairros.length > 0 ? bairros : undefined,
+    });
+  }
+  return out;
+}
+
+async function reportCelescSnapshotToConvex(payloads: CelescMunicipioPayload[]): Promise<void> {
+  const client = getOrCreateConvexClient();
+  if (!client) {
+    // Build sem VITE_CONVEX_URL ou falha de inicialização — não bloqueia o ciclo.
+    return;
+  }
+  const snapshot = buildConvexSnapshot(payloads);
+  try {
+    // Cast intencional: usamos string-FunctionReference pra não depender do
+    // codegen do backend (mesmo padrão do beacon-client.ts).
+    await (client as any).mutation("celesc/mutations:reportCelescSnapshot", { snapshot });
+    console.log(`[Celesc→Convex] snapshot enviado: ${snapshot.length} municípios afetados`);
+  } catch (e) {
+    console.error("[Celesc→Convex] Falha ao reportar snapshot:", e);
+  }
+}
+
 export function initCelescPoller(onDataCallback: (payloads: CelescMunicipioPayload[]) => void): () => void {
   const executeCycle = async () => {
       const payloads = await pollCelescData();
@@ -207,15 +278,18 @@ export function initCelescPoller(onDataCallback: (payloads: CelescMunicipioPaylo
           onDataCallback(payloads);
           (window as any).__CELESC_GLOBAL_DATA__ = payloads;
           window.dispatchEvent(new CustomEvent('CELESC_DATA_READY'));
+          // Best-effort: reporta snapshot pro backend Convex em paralelo.
+          // Não awaitamos pra não atrasar próximo ciclo se o backend estiver lento.
+          reportCelescSnapshotToConvex(payloads);
       }
   };
-  
+
   // Kickstart immediate ingestion
   executeCycle();
-  
+
   // Setup 5 min infinite poller
   const intervalId = window.setInterval(executeCycle, 5 * 60 * 1000);
-  
+
   // Expose destroy hook
   return () => clearInterval(intervalId);
 }

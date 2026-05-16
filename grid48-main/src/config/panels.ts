@@ -7,6 +7,7 @@ import type { DataSourceId } from '@/services/data-freshness';
 // Desired order: live-news, AI Insights, AI Strategic Posture, cii, strategic-risk, then rest
 const FULL_PANELS: Record<string, PanelConfig> = {
   map: { name: 'Mapa — Grande Florianópolis', enabled: true, priority: 1 },
+  'defcon': { name: 'DEFCON — Estado Operacional', enabled: true, priority: 1 },
   'celesc-status': { name: 'Celesc Status', enabled: true, priority: 1 },
   'beacon-status': { name: 'Beacon Status', enabled: true, priority: 1 },
   'tactical-status': { name: 'Comando & Controle', enabled: true, priority: 1 },
@@ -166,7 +167,7 @@ export const LAYER_TO_SOURCE: Partial<Record<any, DataSourceId[]>> = {
 export const PANEL_CATEGORY_MAP: Record<string, { labelKey: string; panelKeys: string[]; variants?: string[] }> = {
   core: {
     labelKey: 'header.panelCatCore',
-    panelKeys: ['map', 'celesc-status', 'tactical-status', 'engine-health', 'sitrep', 'beacon-status'],
+    panelKeys: ['map', 'defcon', 'celesc-status', 'tactical-status', 'engine-health', 'sitrep', 'beacon-status'],
   },
 };
 

@@ -363,7 +363,7 @@ export class App {
         if (this.state.map) {
            this.state.map.setBeaconAlerts(snapshot.alertas);
         }
-        const setPanel = () => {
+        const setBeaconPanel = () => {
           const beaconPanel = this.state.panels['beacon-status'] as any;
           if (beaconPanel && typeof beaconPanel.setSnapshot === 'function') {
             beaconPanel.setSnapshot(snapshot);
@@ -371,8 +371,22 @@ export class App {
           }
           return false;
         };
-        if (!setPanel()) {
-           const retry = setInterval(() => { if (setPanel()) clearInterval(retry); }, 500);
+        if (!setBeaconPanel()) {
+           const retry = setInterval(() => { if (setBeaconPanel()) clearInterval(retry); }, 500);
+        }
+        // Fanout pro DefconWidget — mesmo snapshot, painel diferente. Dynamic
+        // import roda async, então o painel pode não estar registrado ainda
+        // no primeiro tick; usamos o mesmo padrão de retry do beacon.
+        const setDefconPanel = () => {
+          const defconPanel = this.state.panels['defcon'] as any;
+          if (defconPanel && typeof defconPanel.setSnapshot === 'function') {
+            defconPanel.setSnapshot(snapshot);
+            return true;
+          }
+          return false;
+        };
+        if (!setDefconPanel()) {
+           const retryDefcon = setInterval(() => { if (setDefconPanel()) clearInterval(retryDefcon); }, 500);
         }
       });
       this.modules.push({ destroy: unsubBeacon });

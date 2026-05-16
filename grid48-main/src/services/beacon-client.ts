@@ -2,6 +2,27 @@ import { ConvexClient } from 'convex/browser';
 
 let client: ConvexClient | null = null;
 
+/**
+ * Retorna o singleton ConvexClient. Se ainda não foi criado por
+ * initBeaconClient, cria sob demanda usando VITE_CONVEX_URL.
+ * Retorna null se a URL não estiver configurada (build sem Convex).
+ *
+ * Usado por outros services (ex: celesc.ts) que precisam invocar
+ * mutations sem montar uma segunda conexão WebSocket.
+ */
+export function getOrCreateConvexClient(): ConvexClient | null {
+    if (client) return client;
+    const url = import.meta.env.VITE_CONVEX_URL;
+    if (!url) return null;
+    try {
+        client = new ConvexClient(url);
+        return client;
+    } catch (e) {
+        console.error("[Beacon] Falha ao criar ConvexClient compartilhado:", e);
+        return null;
+    }
+}
+
 // Tipo isolado para garantir consistência Vanilla TS do projeto sem vazamento de types do backend
 export interface BeaconAlert {
     _id: string;
@@ -21,6 +42,33 @@ export interface BeaconHealth {
     itemsFailed: number;
 }
 
+// Espelha shape de convex/defcon/queries.ts:getDefconStatus. Não importa types
+// do backend (mesmo padrão de BeaconAlert).
+export interface DefconStatus {
+    _id: string;
+    nivel_global: number;          // 1..5 (1 = mais crítico)
+    niveis_categoria: {
+        energia: number;
+        clima: number;
+        mobilidade: number;
+    };
+    inputs_hash: string;
+    sinais_disparadores: Array<{
+        categoria: string;
+        regra_id: string;
+        evidencia: string;
+    }>;
+    explicacao?: {
+        texto: string;
+        gerada_em: number;
+        inputs_hash: string;
+        modelo: string;
+    };
+    nivel_anterior?: number;
+    recomputado_em: number;
+    ultima_mudanca_em: number;
+}
+
 export type BeaconConnectionStatus =
     | { kind: 'no-config' }
     | { kind: 'connecting' }
@@ -30,18 +78,20 @@ export type BeaconConnectionStatus =
 export interface BeaconSnapshot {
     alertas: BeaconAlert[];
     health: BeaconHealth | null;
+    defcon: DefconStatus | null;
     connection: BeaconConnectionStatus;
 }
 
 const initialSnapshot: BeaconSnapshot = {
     alertas: [],
     health: null,
+    defcon: null,
     connection: { kind: 'connecting' },
 };
 
 export function initBeaconClient(onUpdate: (snapshot: BeaconSnapshot) => void) {
-    if (client) return;
-
+    // Idempotente: se outro caller (ex: getOrCreateConvexClient) já criou o
+    // socket, reusamos. Subscriptions são adicionadas mesmo assim.
     const url = import.meta.env.VITE_CONVEX_URL;
     if (!url) {
         console.warn("[Beacon] VITE_CONVEX_URL ausente em build. Pub-Sub OSINT desligado.");
@@ -53,8 +103,10 @@ export function initBeaconClient(onUpdate: (snapshot: BeaconSnapshot) => void) {
     const emit = () => onUpdate({ ...snapshot });
 
     try {
-        client = new ConvexClient(url);
-        console.log("[Beacon] Socket reativo TCP ativado em:", url);
+        if (!client) {
+            client = new ConvexClient(url);
+            console.log("[Beacon] Socket reativo TCP ativado em:", url);
+        }
 
         emit();
 
@@ -68,6 +120,13 @@ export function initBeaconClient(onUpdate: (snapshot: BeaconSnapshot) => void) {
 
         c.onUpdate("queries:getOsintHealth", {}, (data: any) => {
             snapshot.health = data || null;
+            emit();
+        });
+
+        // DEFCON — singleton de estado operacional agregado (calculado reativamente
+        // no backend via convex/defcon/mutations.ts:recomputeDefcon).
+        c.onUpdate("defcon/queries:getDefconStatus", {}, (data: any) => {
+            snapshot.defcon = data || null;
             emit();
         });
 

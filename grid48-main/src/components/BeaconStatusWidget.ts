@@ -7,6 +7,7 @@ export class BeaconStatusWidget extends Panel {
   private snapshot: BeaconSnapshot = {
     alertas: [],
     health: null,
+    defcon: null,
     connection: { kind: 'connecting' },
   };
 

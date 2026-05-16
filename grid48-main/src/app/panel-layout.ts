@@ -221,6 +221,18 @@ export class PanelLayoutManager implements AppModule {
       document.getElementById('panelsGrid')?.insertAdjacentElement('afterbegin', el);
     });
 
+    // DEFCON Widget — heads-up display do estado operacional agregado.
+    // Mesmo padrão do beacon: dynamic import + prepend, fica no topo da grid.
+    if (this.shouldCreatePanel('defcon')) {
+      import('@/components/DefconWidget').then(m => {
+        const defconWidget = new m.DefconWidget();
+        this.ctx.panels['defcon'] = defconWidget;
+        const el = defconWidget.getElement();
+        // Insere após o Beacon (que já fez afterbegin), mantendo DEFCON em #2.
+        document.getElementById('panelsGrid')?.insertAdjacentElement('afterbegin', el);
+      });
+    }
+
 
 
 
