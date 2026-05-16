@@ -10,8 +10,9 @@ const FULL_PANELS: Record<string, PanelConfig> = {
   'defcon': { name: 'DEFCON — Estado Operacional', enabled: true, priority: 1 },
   'celesc-status': { name: 'Celesc Status', enabled: true, priority: 1 },
   'beacon-status': { name: 'Beacon Status', enabled: true, priority: 1 },
-  'tactical-status': { name: 'Comando & Controle', enabled: true, priority: 1 },
-  'engine-health': { name: 'Engine — Saúde', enabled: true, priority: 1 },
+  // Consolidado: 'tactical-status' (header MODE) + 'engine-health' (breakdown)
+  // virou um único painel 'engine-health' rotulado como "Comando & Controle".
+  'engine-health': { name: 'Comando & Controle', enabled: true, priority: 1 },
   'sitrep': { name: 'SITREP — Pedido C2', enabled: true, priority: 1 },
 };
 
@@ -167,7 +168,7 @@ export const LAYER_TO_SOURCE: Partial<Record<any, DataSourceId[]>> = {
 export const PANEL_CATEGORY_MAP: Record<string, { labelKey: string; panelKeys: string[]; variants?: string[] }> = {
   core: {
     labelKey: 'header.panelCatCore',
-    panelKeys: ['map', 'defcon', 'celesc-status', 'tactical-status', 'engine-health', 'sitrep', 'beacon-status'],
+    panelKeys: ['map', 'defcon', 'celesc-status', 'engine-health', 'sitrep', 'beacon-status'],
   },
 };
 

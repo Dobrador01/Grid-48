@@ -12,6 +12,5 @@ export * from './MobileWarningModal';
 export * from './RuntimeConfigPanel';
 export * from './UnifiedSettings';
 export { CelescStatusWidget } from './CelescStatusWidget';
-export { TacticalStatusPanel } from './TacticalStatusPanel';
 export { HealthWidget } from './HealthWidget';
 export { SitrepButton } from './SitrepButton';

@@ -5,7 +5,6 @@ import {
   RuntimeConfigPanel,
 } from '@/components';
 import { CelescStatusWidget } from '@/components/CelescStatusWidget';
-import { TacticalStatusPanel } from '@/components/TacticalStatusPanel';
 import { HealthWidget } from '@/components/HealthWidget';
 import { SitrepButton } from '@/components/SitrepButton';
 import { debounce, saveToStorage, loadFromStorage } from '@/utils';
@@ -193,16 +192,8 @@ export class PanelLayoutManager implements AppModule {
       this.ctx.panels['celesc-status'] = widget;
     }
 
-    if (this.shouldCreatePanel('tactical-status')) {
-      console.log('[Grid 48 Debug] Instantiating TacticalStatusPanel...');
-      const widget = new TacticalStatusPanel();
-      widget.mount(); // Starts polling
-      this.ctx.panels['tactical-status'] = widget;
-      console.log('[Grid 48 Debug] TacticalStatusPanel instantiated and added to ctx.panels.');
-    } else {
-      console.error('[Grid 48 Debug] shouldCreatePanel("tactical-status") returned false! It is missing from DEFAULT_PANELS.');
-    }
-
+    // Consolidado: 'tactical-status' foi mergeado em 'engine-health' (HealthWidget
+    // agora renderiza badge MODE + breakdown). Título do painel é "Comando & Controle".
     if (this.shouldCreatePanel('engine-health')) {
       const widget = new HealthWidget();
       this.ctx.panels['engine-health'] = widget;
