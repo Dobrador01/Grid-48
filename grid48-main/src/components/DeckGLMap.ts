@@ -714,7 +714,12 @@ export class DeckGLMap {
         layers: this.buildLayers()
       });
     } else {
-      console.error("[Grid 48] Ã¢ÂÅ’ InstÃƒÂ¢ncia do deckOverlay nÃƒÂ£o encontrada para atualizar camadas.");
+      // Race condition benigna: o primeiro snapshot Celesc chega antes do
+      // maplibreMap.on('load') disparar e criar o overlay. Os dados ficam
+      // em this.celescLookup (acima) e são aplicados naturalmente na
+      // primeira buildLayers() depois do initDeck(). debug em vez de error
+      // porque não há perda de dados — só o frame de render atrasa.
+      console.debug('[DeckGLMap] Snapshot Celesc recebido antes do overlay inicializar — dados em buffer.');
     }
   }
 
