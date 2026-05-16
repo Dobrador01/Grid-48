@@ -3,6 +3,26 @@ import type { BeaconAlert, BeaconSnapshot } from '@/services/beacon-client';
 
 const STALE_THRESHOLD_MS = 20 * 60 * 1000;
 
+// CSS injetado uma única vez por documento — substitui os antigos
+// onmouseenter/onmouseleave inline, que eram bloqueados pelo CSP da Vercel
+// (Cloudflare/Vercel sem 'unsafe-inline' nem 'unsafe-hashes' pra script-src).
+const STYLE_ID = 'beacon-alert-card-style';
+function injectStyles(): void {
+  if (document.getElementById(STYLE_ID)) return;
+  const style = document.createElement('style');
+  style.id = STYLE_ID;
+  style.textContent = `
+    .beacon-alert-card {
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    .beacon-alert-card:hover {
+      transform: translateY(-2px);
+    }
+  `;
+  document.head.appendChild(style);
+}
+
 export class BeaconStatusWidget extends Panel {
   private snapshot: BeaconSnapshot = {
     alertas: [],
@@ -15,6 +35,19 @@ export class BeaconStatusWidget extends Panel {
     super({
       id: 'beacon-status',
       title: 'OSINT — Meteorologia',
+    });
+    injectStyles();
+    // Event delegation: cards têm classe .beacon-alert-card + data-cod-ibge.
+    // Substitui o antigo onclick="..." inline (bloqueado pelo CSP).
+    this.content.addEventListener('click', (e) => {
+      const card = (e.target as HTMLElement).closest<HTMLElement>('.beacon-alert-card');
+      if (!card) return;
+      const ibge = Number(card.dataset.codIbge ?? '0');
+      if (!Number.isFinite(ibge) || ibge === 0) return;
+      window.dispatchEvent(new CustomEvent('CELESC_CITY_SELECTED', {
+        detail: { codIbge: ibge },
+        bubbles: true,
+      }));
     });
     this.render();
     // Re-render passivo a cada minuto para manter "há X min" e flag de stale vivos
@@ -128,10 +161,8 @@ export class BeaconStatusWidget extends Panel {
       const ibgeFoco = al.cidades_afetadas_ibge[0] || 0;
       const ativoHa = al.firstSeenAt ? this.formatRelative(al.firstSeenAt) : '';
 
-      const onclickDispatch = `window.dispatchEvent(new CustomEvent('CELESC_CITY_SELECTED', { detail: { codIbge: ${ibgeFoco} }, bubbles: true }))`;
-
       return `
-        <div style="background: ${bg}; backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid rgba(255,255,255,0.4); border-left: 4px solid ${color}; border-radius: 12px; margin-bottom: 0.85rem; padding: 1rem; box-shadow: 0 4px 15px rgba(0,0,0,0.05), inset 0 2px 4px rgba(255,255,255,0.4); cursor: pointer; transition: transform 0.2s;" onclick="${onclickDispatch}" onmouseenter="this.style.transform='translateY(-2px)'" onmouseleave="this.style.transform='translateY(0)'">
+        <div class="beacon-alert-card" data-cod-ibge="${ibgeFoco}" style="background: ${bg}; backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid rgba(255,255,255,0.4); border-left: 4px solid ${color}; border-radius: 12px; margin-bottom: 0.85rem; padding: 1rem; box-shadow: 0 4px 15px rgba(0,0,0,0.05), inset 0 2px 4px rgba(255,255,255,0.4);">
           <h4 style="margin: 0 0 0.5rem 0; font-size: 0.95rem; font-weight: 700; color: #111827; font-family: ui-sans-serif, system-ui, sans-serif;">${this.escapeHtml(al.titulo)}</h4>
           <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; font-size: 0.75rem; font-family: ui-sans-serif, system-ui, sans-serif;">
             <span style="background: ${color}; color: white; padding: 3px 8px; border-radius: 6px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; box-shadow: 0 2px 4px ${color}40;">${al.nivel_risco}</span>
