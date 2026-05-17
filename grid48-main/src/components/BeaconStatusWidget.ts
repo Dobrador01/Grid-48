@@ -28,6 +28,7 @@ export class BeaconStatusWidget extends Panel {
     alertas: [],
     health: null,
     defcon: null,
+    clima: [],
     connection: { kind: 'connecting' },
   };
 

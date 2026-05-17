@@ -69,6 +69,46 @@ export interface DefconStatus {
     ultima_mudanca_em: number;
 }
 
+// Espelha shape de convex/clima/queries.ts:getMeteorologiaState (uma row por
+// fonte × localidade). Fonte hoje é só "openweather"; "lora_local" entra
+// quando o hardware chegar.
+export interface ClimaLocalidade {
+    _id: string;
+    fonte: "openweather" | "lora_local";
+    localidade_label: string;
+    lat: number;
+    lon: number;
+    ts: number;
+    current: {
+        temperatura_c: number;
+        sensacao_c: number;
+        umidade_pct: number;
+        vento_kmh: number;
+        vento_rajada_kmh?: number;
+        chuva_1h_mm?: number;
+        condicao_id: number;
+        condicao_descricao: string;
+        icone: string;
+    };
+    hourly: Array<{
+        ts: number;
+        temperatura_c: number;
+        chuva_1h_mm?: number;
+        vento_kmh: number;
+        prob_chuva: number;
+        condicao_id: number;
+        icone: string;
+    }>;
+    chuva_24h_mm: number;
+    alertas?: Array<{
+        evento: string;
+        descricao: string;
+        inicio_ts: number;
+        fim_ts: number;
+        severidade?: string;
+    }>;
+}
+
 export type BeaconConnectionStatus =
     | { kind: 'no-config' }
     | { kind: 'connecting' }
@@ -79,6 +119,7 @@ export interface BeaconSnapshot {
     alertas: BeaconAlert[];
     health: BeaconHealth | null;
     defcon: DefconStatus | null;
+    clima: ClimaLocalidade[];
     connection: BeaconConnectionStatus;
 }
 
@@ -86,6 +127,7 @@ const initialSnapshot: BeaconSnapshot = {
     alertas: [],
     health: null,
     defcon: null,
+    clima: [],
     connection: { kind: 'connecting' },
 };
 
@@ -127,6 +169,13 @@ export function initBeaconClient(onUpdate: (snapshot: BeaconSnapshot) => void) {
         // no backend via convex/defcon/mutations.ts:recomputeDefcon).
         c.onUpdate("defcon/queries:getDefconStatus", {}, (data: any) => {
             snapshot.defcon = data || null;
+            emit();
+        });
+
+        // Clima — array de localidades-foco com snapshot OpenWeather atual +
+        // forecast 12h. Populado pelo cron fetch-openweather (15min).
+        c.onUpdate("clima/queries:getMeteorologiaState", {}, (data: any) => {
+            snapshot.clima = Array.isArray(data) ? data : [];
             emit();
         });
 

@@ -388,6 +388,20 @@ export class App {
         if (!setDefconPanel()) {
            const retryDefcon = setInterval(() => { if (setDefconPanel()) clearInterval(retryDefcon); }, 500);
         }
+        // Fanout pro ClimaWidget (snapshot.clima vem populado por
+        // clima/queries:getMeteorologiaState via beacon-client). Mesmo
+        // pattern de retry porque ClimaWidget é dynamic-imported.
+        const setClimaPanel = () => {
+          const climaPanel = this.state.panels['clima'] as any;
+          if (climaPanel && typeof climaPanel.setSnapshot === 'function') {
+            climaPanel.setSnapshot(snapshot);
+            return true;
+          }
+          return false;
+        };
+        if (!setClimaPanel()) {
+           const retryClima = setInterval(() => { if (setClimaPanel()) clearInterval(retryClima); }, 500);
+        }
       });
       this.modules.push({ destroy: unsubBeacon });
 

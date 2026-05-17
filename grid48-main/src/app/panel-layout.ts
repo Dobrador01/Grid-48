@@ -224,6 +224,16 @@ export class PanelLayoutManager implements AppModule {
       });
     }
 
+    // Clima Widget — card compacto com snapshot OpenWeather + sparkline 12h.
+    // Mesmo padrão: dynamic import. Não pré-pendeira (deixa cair na ordem
+    // padrão da grid pra não competir com DEFCON/Beacon pelo topo).
+    if (this.shouldCreatePanel('clima')) {
+      import('@/components/ClimaWidget').then(m => {
+        const climaWidget = new m.ClimaWidget();
+        this.ctx.panels['clima'] = climaWidget;
+      });
+    }
+
 
 
 
