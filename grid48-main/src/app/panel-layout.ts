@@ -5,6 +5,7 @@ import {
   RuntimeConfigPanel,
 } from '@/components';
 import { CelescStatusWidget } from '@/components/CelescStatusWidget';
+import { ClimaWidget } from '@/components/ClimaWidget';
 import { HealthWidget } from '@/components/HealthWidget';
 import { SitrepButton } from '@/components/SitrepButton';
 import { debounce, saveToStorage, loadFromStorage } from '@/utils';
@@ -225,13 +226,12 @@ export class PanelLayoutManager implements AppModule {
     }
 
     // Clima Widget — card compacto com snapshot OpenWeather + sparkline 12h.
-    // Mesmo padrão: dynamic import. Não pré-pendeira (deixa cair na ordem
-    // padrão da grid pra não competir com DEFCON/Beacon pelo topo).
+    // Import ESTÁTICO (não dynamic): o loop de inserção no DOM em
+    // sidebarOrder.forEach roda sincronamente, então o panel precisa estar
+    // registrado em ctx.panels antes — dynamic import perde a janela.
     if (this.shouldCreatePanel('clima')) {
-      import('@/components/ClimaWidget').then(m => {
-        const climaWidget = new m.ClimaWidget();
-        this.ctx.panels['clima'] = climaWidget;
-      });
+      const climaWidget = new ClimaWidget();
+      this.ctx.panels['clima'] = climaWidget;
     }
 
 
