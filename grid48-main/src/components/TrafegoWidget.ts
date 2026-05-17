@@ -286,8 +286,8 @@ export class TrafegoWidget extends Panel {
       `;
     }
     const cor = this.corStatus(r.status_text);
-    const tempoMin = (r.travel_time_sec / 60).toFixed(1);
-    const baseMin = (r.no_traffic_time_sec / 60).toFixed(1);
+    const tempoMin = Math.round(r.travel_time_sec / 60);
+    const baseMin = Math.round(r.no_traffic_time_sec / 60);
     const distKm = (r.distancia_m / 1000).toFixed(1);
     const pctDiff = r.no_traffic_time_sec > 0
       ? Math.round((r.travel_time_sec / r.no_traffic_time_sec - 1) * 100)
@@ -312,7 +312,7 @@ export class TrafegoWidget extends Panel {
 
   private renderRotaParalela(r: TrafegoRota): string {
     const cor = this.corStatus(r.status_text);
-    const tempoMin = (r.travel_time_sec / 60).toFixed(1);
+    const tempoMin = Math.round(r.travel_time_sec / 60);
     const bola = `<span style="display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: ${cor}; box-shadow: 0 0 4px ${cor}80;"></span>`;
     const erroLabel = r.erro ? ' (erro)' : '';
     return `

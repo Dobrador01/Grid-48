@@ -28,6 +28,22 @@ interface LocalidadeFoco {
   label: string;
   ibge_municipio: number;
   bairro_celesc: string;
+  // Fase 1+4: lat/lon usados pelo OpenWeather (clima) e pelo TrafegoWidget
+  // (detecção de "estou em casa/trabalho" via haversine).
+  lat?: number;
+  lon?: number;
+  // Fase 4: define qual rota o widget tráfego mostra contextualmente.
+  tipo?: "casa" | "trabalho" | "outra";
+  endereco_texto?: string;
+}
+
+interface GeocodingResult {
+  lat: number;
+  lon: number;
+  endereco_formatado: string;
+  municipio_nome?: string;
+  ibge_municipio?: number;
+  erro?: string;
 }
 
 interface DefconConfigDoc {
@@ -68,6 +84,15 @@ export function renderDefconSettings(): RenderResult {
         Carregando configuração…
       </div>
       <form id="defconSettingsForm" class="defcon-settings-form" style="display: none; gap: 18px; flex-direction: column;">
+
+        <!-- Endereços (Casa + Trabalho via Google Geocoding) -->
+        <fieldset style="border: 1px solid rgba(0,0,0,0.08); border-radius: 8px; padding: 12px;">
+          <legend style="font-size: 0.78rem; font-weight: 700; padding: 0 6px;">Endereços (Casa + Trabalho)</legend>
+          <p style="font-size: 0.7rem; color: #6b7280; margin: 0 0 10px 0;">
+            Coordenadas usadas pelo widget Clima (OpenWeather) e pelo widget Tráfego (detecção da localização atual). Cole o endereço e clique "Resolver" — a Google Geocoding API devolve lat/lon.
+          </p>
+          <div id="enderecosBlock"></div>
+        </fieldset>
 
         <!-- Localidades-foco (regra 6.2) -->
         <fieldset style="border: 1px solid rgba(0,0,0,0.08); border-radius: 8px; padding: 12px;">
@@ -139,6 +164,7 @@ export function renderDefconSettings(): RenderResult {
     const client = getOrCreateConvexClient();
     const statusEl = root.querySelector<HTMLElement>('#defconSettingsStatus')!;
     const formEl = root.querySelector<HTMLFormElement>('#defconSettingsForm')!;
+    const enderecosBlockEl = root.querySelector<HTMLElement>('#enderecosBlock')!;
     const localidadesListEl = root.querySelector<HTMLElement>('#localidadesList')!;
     const addLocalidadeBtn = root.querySelector<HTMLButtonElement>('#addLocalidadeBtn')!;
     const thresholdBairroUcs = root.querySelector<HTMLInputElement>('#thresholdBairroUcs')!;
@@ -184,6 +210,7 @@ export function renderDefconSettings(): RenderResult {
           ? `Configuração carregada do Convex.`
           : `Usando defaults (singleton ainda não foi salvo). Salve para criar.`;
         formEl.style.display = 'flex';
+        renderEnderecos();
         renderLocalidades();
       },
     );
@@ -197,6 +224,127 @@ export function renderDefconSettings(): RenderResult {
         renderLocalidades();
       },
     );
+
+    /**
+     * Renderiza 2 cards (Casa + Trabalho) usando localidadesDraft. Se ainda
+     * não tem entry com tipo="casa" ou "trabalho", cria placeholder vazio
+     * pra UI exibir os dois cards (user preenche e salva).
+     */
+    function renderEnderecos() {
+      // Garante que existe slot pra casa e trabalho.
+      const idxCasa = localidadesDraft.findIndex(l => l.tipo === 'casa');
+      const idxTrabalho = localidadesDraft.findIndex(l => l.tipo === 'trabalho');
+      if (idxCasa === -1) {
+        localidadesDraft.unshift({
+          label: 'Casa', tipo: 'casa', ibge_municipio: 0, bairro_celesc: '',
+        });
+      }
+      if (idxTrabalho === -1) {
+        localidadesDraft.push({
+          label: 'Trabalho', tipo: 'trabalho', ibge_municipio: 0, bairro_celesc: '',
+        });
+      }
+      const tipos: Array<'casa' | 'trabalho'> = ['casa', 'trabalho'];
+      enderecosBlockEl.innerHTML = tipos.map(tipo => {
+        const idx = localidadesDraft.findIndex(l => l.tipo === tipo);
+        const loc = localidadesDraft[idx]!;
+        const coordTxt = (typeof loc.lat === 'number' && typeof loc.lon === 'number')
+          ? `lat ${loc.lat.toFixed(4)}, lon ${loc.lon.toFixed(4)}`
+          : '— ainda não resolvido —';
+        const icone = tipo === 'casa' ? '🏠' : '💼';
+        return `
+          <div class="endereco-card" style="border: 1px solid rgba(0,0,0,0.06); border-radius: 6px; padding: 10px; margin-bottom: 8px; background: rgba(0,0,0,0.02);" data-tipo="${tipo}">
+            <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px; font-size: 0.75rem; font-weight: 700;">
+              <span>${icone}</span>${escapeHtml(loc.label)}
+            </div>
+            <input type="text" class="endereco-input" placeholder="Rua, número, bairro, cidade" value="${escapeHtml(loc.endereco_texto ?? '')}" style="width: 100%; padding: 4px 6px; font-size: 0.72rem; box-sizing: border-box;">
+            <div style="display: flex; gap: 6px; margin-top: 6px;">
+              <button type="button" class="endereco-resolver" style="font-size: 0.7rem; padding: 4px 10px; cursor: pointer;">📍 Resolver endereço</button>
+              <button type="button" class="endereco-geo" style="font-size: 0.7rem; padding: 4px 10px; cursor: pointer;">📡 Usar minha localização</button>
+              <span class="endereco-status" style="flex: 1; font-size: 0.65rem; color: #6b7280; align-self: center;">${coordTxt}</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    enderecosBlockEl.addEventListener('click', async (e) => {
+      const target = e.target as HTMLElement;
+      const card = target.closest<HTMLElement>('.endereco-card');
+      if (!card) return;
+      const tipo = card.dataset.tipo as 'casa' | 'trabalho';
+      const idx = localidadesDraft.findIndex(l => l.tipo === tipo);
+      const loc = localidadesDraft[idx];
+      if (!loc) return;
+      const input = card.querySelector<HTMLInputElement>('.endereco-input')!;
+      const statusSpan = card.querySelector<HTMLElement>('.endereco-status')!;
+
+      if (target.classList.contains('endereco-resolver')) {
+        const endereco = input.value.trim();
+        if (!endereco) {
+          statusSpan.textContent = 'Digite um endereço primeiro.';
+          statusSpan.style.color = '#ef4444';
+          return;
+        }
+        statusSpan.textContent = 'Resolvendo via Google Geocoding…';
+        statusSpan.style.color = '#6b7280';
+        try {
+          const result: GeocodingResult = await c.action(
+            'defcon/geocoding:geocodificarEndereco',
+            { endereco },
+          );
+          if (result.erro) {
+            statusSpan.textContent = `Erro: ${result.erro}`;
+            statusSpan.style.color = '#ef4444';
+            return;
+          }
+          loc.lat = result.lat;
+          loc.lon = result.lon;
+          loc.endereco_texto = result.endereco_formatado;
+          input.value = result.endereco_formatado;
+          statusSpan.textContent = `✓ lat ${result.lat.toFixed(4)}, lon ${result.lon.toFixed(4)} — ${result.municipio_nome ?? ''}`;
+          statusSpan.style.color = '#16a34a';
+        } catch (err: any) {
+          statusSpan.textContent = `Falha: ${err?.message ?? String(err)}`;
+          statusSpan.style.color = '#ef4444';
+        }
+        return;
+      }
+
+      if (target.classList.contains('endereco-geo')) {
+        if (!('geolocation' in navigator)) {
+          statusSpan.textContent = 'Geolocalização indisponível neste navegador.';
+          statusSpan.style.color = '#ef4444';
+          return;
+        }
+        statusSpan.textContent = 'Solicitando localização…';
+        statusSpan.style.color = '#6b7280';
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            loc.lat = pos.coords.latitude;
+            loc.lon = pos.coords.longitude;
+            statusSpan.textContent = `✓ lat ${loc.lat!.toFixed(4)}, lon ${loc.lon!.toFixed(4)} (via GPS) — clique "Salvar" pra persistir`;
+            statusSpan.style.color = '#16a34a';
+          },
+          (err) => {
+            statusSpan.textContent = `Geo erro: ${err.message}`;
+            statusSpan.style.color = '#ef4444';
+          },
+          { enableHighAccuracy: true, timeout: 10000 },
+        );
+      }
+    });
+    enderecosBlockEl.addEventListener('input', (e) => {
+      const target = e.target as HTMLElement;
+      if (!target.classList.contains('endereco-input')) return;
+      const card = target.closest<HTMLElement>('.endereco-card');
+      if (!card) return;
+      const tipo = card.dataset.tipo as 'casa' | 'trabalho';
+      const idx = localidadesDraft.findIndex(l => l.tipo === tipo);
+      const loc = localidadesDraft[idx];
+      if (!loc) return;
+      loc.endereco_texto = (target as HTMLInputElement).value;
+    });
 
     function renderLocalidades() {
       if (localidadesDraft.length === 0) {
@@ -279,8 +427,21 @@ export function renderDefconSettings(): RenderResult {
       saveStatus.style.color = '#6b7280';
       saveBtn.disabled = true;
       try {
+        // Mantém localidades casa/trabalho mesmo sem bairro_celesc (servem
+        // pro clima/tráfego com lat/lon). Só filtra "outra" sem bairro.
         const payload = {
-          localidades_foco: localidadesDraft.filter(l => l.label && l.bairro_celesc && l.ibge_municipio > 0),
+          localidades_foco: localidadesDraft
+            .filter(l => l.label)
+            .filter(l => l.tipo === 'casa' || l.tipo === 'trabalho' || (l.bairro_celesc && l.ibge_municipio > 0))
+            .map(l => ({
+              label: l.label,
+              ibge_municipio: l.ibge_municipio || 0,
+              bairro_celesc: l.bairro_celesc || '',
+              ...(typeof l.lat === 'number' ? { lat: l.lat } : {}),
+              ...(typeof l.lon === 'number' ? { lon: l.lon } : {}),
+              ...(l.tipo ? { tipo: l.tipo } : {}),
+              ...(l.endereco_texto ? { endereco_texto: l.endereco_texto } : {}),
+            })),
           municipios_secundarios: parseIbgeList(municipiosSecundarios.value),
           grande_florianopolis: parseIbgeList(grandeFlorianopolis.value),
           threshold_bairro_ucs: Math.max(0, parseInt(thresholdBairroUcs.value, 10) || 0),
