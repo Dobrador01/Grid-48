@@ -6,6 +6,7 @@ import { escapeHtml } from '@/utils/sanitize';
 import type { PanelConfig } from '@/types';
 import { renderPreferences } from '@/services/preferences-content';
 import { renderDefconSettings } from './DefconSettings';
+import { renderDefconRulesPanel } from './DefconRulesPanel';
 
 const GEAR_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`;
 
@@ -29,6 +30,7 @@ export class UnifiedSettings {
   private escapeHandler: (e: KeyboardEvent) => void;
   private prefsCleanup: (() => void) | null = null;
   private defconCleanup: (() => void) | null = null;
+  private rulesCleanup: (() => void) | null = null;
   private draftPanelSettings: Record<string, PanelConfig> = {};
   private panelsJustSaved = false;
   private savedTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -145,6 +147,8 @@ export class UnifiedSettings {
     this.prefsCleanup = null;
     this.defconCleanup?.();
     this.defconCleanup = null;
+    this.rulesCleanup?.();
+    this.rulesCleanup = null;
     document.removeEventListener('keydown', this.escapeHandler);
     this.overlay.remove();
   }
@@ -154,6 +158,8 @@ export class UnifiedSettings {
     this.prefsCleanup = null;
     this.defconCleanup?.();
     this.defconCleanup = null;
+    this.rulesCleanup?.();
+    this.rulesCleanup = null;
 
     const tabClass = (id: TabId) => `unified-settings-tab${this.activeTab === id ? ' active' : ''}`;
     const prefs = renderPreferences({
@@ -161,6 +167,7 @@ export class UnifiedSettings {
       onMapProviderChange: this.config.onMapProviderChange,
     });
     const defcon = renderDefconSettings();
+    const rules = renderDefconRulesPanel();
 
     this.overlay.innerHTML = `
       <div class="modal unified-settings-modal">
@@ -192,6 +199,7 @@ export class UnifiedSettings {
         </div>
         <div class="unified-settings-tab-panel${this.activeTab === 'defcon' ? ' active' : ''}" data-panel-id="defcon" id="us-tab-panel-defcon" role="tabpanel" aria-labelledby="us-tab-defcon">
           ${defcon.html}
+          ${rules.html}
         </div>
       </div>
     `;
@@ -204,6 +212,9 @@ export class UnifiedSettings {
     const defconPanel = this.overlay.querySelector('#us-tab-panel-defcon');
     if (defconPanel) {
       this.defconCleanup = defcon.attach(defconPanel as HTMLElement);
+      // O DefconRulesPanel é renderizado dentro da MESMA tab DEFCON, mas o
+      // attach precisa rodar separadamente pra subscrever queries próprias.
+      this.rulesCleanup = rules.attach(defconPanel as HTMLElement);
     }
 
     const closeBtn = this.overlay.querySelector<HTMLButtonElement>('.unified-settings-close');
