@@ -30,7 +30,11 @@ import { haversineDistance } from '@/utils/geo';
 // CSP: sem inline handlers, sem onclick HTML. Tudo via addEventListener.
 // ═══════════════════════════════════════════════════════════════════════════
 
-const RAIO_DETECCAO_M = 300;
+const RAIO_DETECCAO_M = 500;
+// Se a rota adhoc Localização→Casa voltar distância menor que isso, o user
+// está efetivamente em casa mesmo que o haversine tenha falhado por imprecisão
+// do Geolocation (enableHighAccuracy=false pode errar 300-500m fácil).
+const ADHOC_DIST_EM_CASA_M = 200;
 const POLL_PRINCIPAL_MS = 5 * 60 * 1000;
 const POLL_PARALELO_MS = 15 * 60 * 1000;
 const GEO_OPTIONS: PositionOptions = {
@@ -215,8 +219,18 @@ export class TrafegoWidget extends Panel {
       return this.renderState('⚙', 'Tráfego offline', 'VITE_CONVEX_URL ausente no build.');
     }
 
-    const local = this.detectarLocal();
+    const detectado = this.detectarLocal();
     const rotasMap = new Map(this.snapshot.trafego.map((r) => [r.rota_id, r]));
+
+    // Belt-and-suspenders: se a detecção por haversine falhou (geo impreciso)
+    // mas a rota adhoc→Casa voltou ~0km, o user está em casa de fato.
+    let local: LocalDetectado = detectado;
+    if (detectado === 'fora') {
+      const adhoc = rotasMap.get('adhoc_localizacao_atual');
+      if (adhoc && !adhoc.erro && adhoc.distancia_m < ADHOC_DIST_EM_CASA_M) {
+        local = 'casa';
+      }
+    }
 
     // Decidir quais rotas "principais" mostrar baseado no local detectado.
     const rotasPrincipais: TrafegoRota[] = [];
@@ -318,7 +332,7 @@ export class TrafegoWidget extends Panel {
     return `
       <div style="display: flex; justify-content: space-between; align-items: center; padding: 4px 0; font-size: 0.7rem; color: #4b5563; border-bottom: 1px dashed rgba(0,0,0,0.05);">
         <span style="display: flex; align-items: center; gap: 6px;">${bola}${this.escapeHtml(r.origem_label.replace(/ \(continente\)/, '').replace(/ \(São José\)/, ''))}${erroLabel}</span>
-        <span style="font-size: 0.65rem; color: ${cor}; text-transform: uppercase; font-weight: 600;">${this.escapeHtml(r.erro ? '—' : r.status_text)}${r.erro ? '' : ` · ${tempoMin}m`}</span>
+        <span style="font-size: 0.65rem; color: ${cor}; text-transform: uppercase; font-weight: 600;">${this.escapeHtml(r.erro ? '—' : r.status_text)}${r.erro ? '' : ` · ${tempoMin} min`}</span>
       </div>
     `;
   }
