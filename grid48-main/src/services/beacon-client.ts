@@ -56,6 +56,8 @@ export interface DefconStatus {
     sinais_disparadores: Array<{
         categoria: string;
         regra_id: string;
+        /** Nome humano da regra. Opcional pra retro-compat com rows antigas. */
+        regra_nome?: string;
         evidencia: string;
     }>;
     explicacao?: {

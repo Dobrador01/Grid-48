@@ -201,12 +201,23 @@ export class DefconWidget extends Panel {
         ${defcon.sinais_disparadores.length > 0 ? `
           <div style="padding: 0 1.25rem 1rem 1.25rem;">
             <div style="font-size: 0.6rem; color: #6b7280; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; margin-bottom: 0.4rem; position: sticky; top: 0; background: rgba(245, 247, 250, 0.95); padding: 6px 0 4px 0; z-index: 1;">Sinais Disparadores</div>
-            ${defcon.sinais_disparadores.map((s) => `
-              <div style="font-size: 0.72rem; color: #4b5563; padding: 0.3rem 0; border-bottom: 1px dashed rgba(0,0,0,0.06);">
-                <span style="font-weight: 600; color: ${NIVEL_COR[defcon.niveis_categoria[s.categoria as 'energia' | 'clima' | 'mobilidade']] ?? '#6b7280'};">${this.escapeHtml(s.categoria.toUpperCase())}</span>
-                · ${this.escapeHtml(s.evidencia)}
+            ${defcon.sinais_disparadores.map((s) => {
+              const corCat = NIVEL_COR[defcon.niveis_categoria[s.categoria as 'energia' | 'clima' | 'mobilidade']] ?? '#6b7280';
+              const label = s.regra_nome ?? s.evidencia;
+              // Mostra evidencia técnica embaixo só se regra_nome existe
+              // (senão já tá ali em cima como fallback) — operador vê o
+              // detalhe DSL pra debug, mas em fonte menor e cinza.
+              const tecnico = s.regra_nome ? `<div style="font-size: 0.62rem; color: #9ca3af; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; margin-top: 2px; word-break: break-all;">${this.escapeHtml(s.evidencia)}</div>` : '';
+              return `
+              <div style="font-size: 0.72rem; color: #4b5563; padding: 0.4rem 0; border-bottom: 1px dashed rgba(0,0,0,0.06);">
+                <div>
+                  <span style="font-weight: 600; color: ${corCat};">${this.escapeHtml(s.categoria.toUpperCase())}</span>
+                  · ${this.escapeHtml(label)}
+                </div>
+                ${tecnico}
               </div>
-            `).join('')}
+            `;
+            }).join('')}
           </div>
         ` : ''}
       </div>
