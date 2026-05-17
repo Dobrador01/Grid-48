@@ -109,6 +109,28 @@ export interface ClimaLocalidade {
     }>;
 }
 
+// Espelha shape de convex/trafego/queries.ts:getTrafegoState. 1 row por rota_id;
+// rota_tipo determina renderização e prioridade no widget.
+export interface TrafegoRota {
+    _id: string;
+    rota_id: string;
+    rota_tipo: "principal" | "paralela" | "adhoc";
+    origem_label: string;
+    destino_label: string;
+    origem_lat: number;
+    origem_lon: number;
+    destino_lat: number;
+    destino_lon: number;
+    ts: number;
+    travel_time_sec: number;
+    no_traffic_time_sec: number;
+    ratio: number;
+    distancia_m: number;
+    velocidade_media_kmh: number;
+    status_text: string;       // "fluindo" | "lento" | "congestionado" | "parado" | "erro"
+    erro?: string;
+}
+
 export type BeaconConnectionStatus =
     | { kind: 'no-config' }
     | { kind: 'connecting' }
@@ -120,6 +142,7 @@ export interface BeaconSnapshot {
     health: BeaconHealth | null;
     defcon: DefconStatus | null;
     clima: ClimaLocalidade[];
+    trafego: TrafegoRota[];
     connection: BeaconConnectionStatus;
 }
 
@@ -128,6 +151,7 @@ const initialSnapshot: BeaconSnapshot = {
     health: null,
     defcon: null,
     clima: [],
+    trafego: [],
     connection: { kind: 'connecting' },
 };
 
@@ -176,6 +200,13 @@ export function initBeaconClient(onUpdate: (snapshot: BeaconSnapshot) => void) {
         // forecast 12h. Populado pelo cron fetch-openweather (15min).
         c.onUpdate("clima/queries:getMeteorologiaState", {}, (data: any) => {
             snapshot.clima = Array.isArray(data) ? data : [];
+            emit();
+        });
+
+        // Tráfego — array de rotas (principal + paralelas + adhoc). Populado
+        // on-demand pelo TrafegoWidget via mutation trafego/mutations:requestUpdate.
+        c.onUpdate("trafego/queries:getTrafegoState", {}, (data: any) => {
+            snapshot.trafego = Array.isArray(data) ? data : [];
             emit();
         });
 

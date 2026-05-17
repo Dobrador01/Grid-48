@@ -9,6 +9,7 @@ const FULL_PANELS: Record<string, PanelConfig> = {
   map: { name: 'Mapa — Grande Florianópolis', enabled: true, priority: 1 },
   'defcon': { name: 'DEFCON — Estado Operacional', enabled: true, priority: 1 },
   'clima': { name: 'Clima — Previsão', enabled: true, priority: 1 },
+  'trafego': { name: 'Tráfego — Rotas', enabled: true, priority: 1 },
   'celesc-status': { name: 'Celesc Status', enabled: true, priority: 1 },
   'beacon-status': { name: 'Beacon Status', enabled: true, priority: 1 },
   // Consolidado: 'tactical-status' (header MODE) + 'engine-health' (breakdown)
@@ -169,7 +170,7 @@ export const LAYER_TO_SOURCE: Partial<Record<any, DataSourceId[]>> = {
 export const PANEL_CATEGORY_MAP: Record<string, { labelKey: string; panelKeys: string[]; variants?: string[] }> = {
   core: {
     labelKey: 'header.panelCatCore',
-    panelKeys: ['map', 'defcon', 'clima', 'celesc-status', 'engine-health', 'sitrep', 'beacon-status'],
+    panelKeys: ['map', 'defcon', 'clima', 'trafego', 'celesc-status', 'engine-health', 'sitrep', 'beacon-status'],
   },
 };
 

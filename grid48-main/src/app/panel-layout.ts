@@ -6,6 +6,7 @@ import {
 } from '@/components';
 import { CelescStatusWidget } from '@/components/CelescStatusWidget';
 import { ClimaWidget } from '@/components/ClimaWidget';
+import { TrafegoWidget } from '@/components/TrafegoWidget';
 import { HealthWidget } from '@/components/HealthWidget';
 import { SitrepButton } from '@/components/SitrepButton';
 import { debounce, saveToStorage, loadFromStorage } from '@/utils';
@@ -232,6 +233,14 @@ export class PanelLayoutManager implements AppModule {
     if (this.shouldCreatePanel('clima')) {
       const climaWidget = new ClimaWidget();
       this.ctx.panels['clima'] = climaWidget;
+    }
+
+    // Tráfego Widget — geolocalização + lógica casa/trabalho/fora + paralelos.
+    // Import ESTÁTICO pelo mesmo motivo do ClimaWidget. O TrafegoWidget faz
+    // requests on-demand pra Google Routes API enquanto está montado.
+    if (this.shouldCreatePanel('trafego')) {
+      const trafegoWidget = new TrafegoWidget();
+      this.ctx.panels['trafego'] = trafegoWidget;
     }
 
 

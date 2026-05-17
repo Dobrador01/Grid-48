@@ -39,6 +39,7 @@ export class DefconWidget extends Panel {
     health: null,
     defcon: null,
     clima: [],
+    trafego: [],
     connection: { kind: 'connecting' },
   };
 

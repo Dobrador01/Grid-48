@@ -35,6 +35,7 @@ export class ClimaWidget extends Panel {
     health: null,
     defcon: null,
     clima: [],
+    trafego: [],
     connection: { kind: 'connecting' },
   };
 

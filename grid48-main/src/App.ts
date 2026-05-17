@@ -402,6 +402,18 @@ export class App {
         if (!setClimaPanel()) {
            const retryClima = setInterval(() => { if (setClimaPanel()) clearInterval(retryClima); }, 500);
         }
+        // Fanout pro TrafegoWidget (snapshot.trafego de trafego/queries:getTrafegoState).
+        const setTrafegoPanel = () => {
+          const trafegoPanel = this.state.panels['trafego'] as any;
+          if (trafegoPanel && typeof trafegoPanel.setSnapshot === 'function') {
+            trafegoPanel.setSnapshot(snapshot);
+            return true;
+          }
+          return false;
+        };
+        if (!setTrafegoPanel()) {
+           const retryTrafego = setInterval(() => { if (setTrafegoPanel()) clearInterval(retryTrafego); }, 500);
+        }
       });
       this.modules.push({ destroy: unsubBeacon });
 
