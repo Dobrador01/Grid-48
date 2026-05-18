@@ -442,13 +442,6 @@ export class SearchManager implements AppModule {
         }
         break;
 
-      case 'time':
-        this.ctx.map?.setTimeRange(action as import('@/components').TimeRange);
-        break;
-
-
-
-
     }
   }
 

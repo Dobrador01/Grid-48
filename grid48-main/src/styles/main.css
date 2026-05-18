@@ -2427,7 +2427,6 @@ body.live-news-fullscreen-active {
   overflow: hidden;
 }
 
-body.live-news-fullscreen-active .time-slider,
 body.live-news-fullscreen-active .deckgl-layer-toggles,
 body.live-news-fullscreen-active .map-legend,
 body.live-news-fullscreen-active .map-controls,
@@ -3853,55 +3852,6 @@ body.playback-mode .status-dot {
 
 .map-control-btn:hover {
   background: var(--border);
-}
-
-.time-slider {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  z-index: 100;
-  background: var(--bg);
-  padding: 6px 10px;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-}
-
-.time-slider-label {
-  font-size: 9px;
-  color: var(--text-dim);
-  letter-spacing: 1px;
-  font-weight: bold;
-}
-
-.time-slider-buttons {
-  display: flex;
-  gap: 2px;
-}
-
-.time-btn {
-  padding: 3px 6px;
-  background: transparent;
-  border: 1px solid var(--border);
-  color: var(--text-dim);
-  font-family: inherit;
-  font-size: 9px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.time-btn:hover {
-  border-color: var(--primary);
-  color: var(--primary);
-}
-
-.time-btn.active {
-  background: var(--primary);
-  border-color: var(--primary);
-  color: var(--bg);
-  font-weight: bold;
 }
 
 .layer-toggles:not(.deckgl-layer-toggles) {
@@ -10605,7 +10555,6 @@ a.prediction-link:hover {
   .main-content .map-section.collapsed .map-container,
   .main-content .map-section.collapsed .map-resize-handle,
   .main-content .map-section.collapsed .map-controls,
-  .main-content .map-section.collapsed .time-slider,
   .main-content .map-section.collapsed .tv-exit-btn {
     display: none;
   }
@@ -10637,36 +10586,9 @@ a.prediction-link:hover {
     display: none !important;
   }
 
-  /* Simplify time slider on mobile */
   .map-controls {
     top: calc(env(safe-area-inset-top, 0px) + 8px);
     right: calc(env(safe-area-inset-right, 0px) + 8px);
-  }
-
-  .time-slider {
-    top: calc(env(safe-area-inset-top, 0px) + 8px);
-    left: calc(env(safe-area-inset-left, 0px) + 8px);
-    right: calc(env(safe-area-inset-right, 0px) + 56px);
-    max-width: none;
-    overflow-x: auto;
-    overflow-y: hidden;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-    padding: 4px 8px;
-    gap: 6px;
-  }
-
-  .time-slider::-webkit-scrollbar {
-    display: none;
-  }
-
-  .time-slider-label {
-    display: none;
-  }
-
-  .time-slider-buttons {
-    flex-wrap: nowrap;
-    min-width: max-content;
   }
 
   /* Larger map controls */
@@ -10674,13 +10596,6 @@ a.prediction-link:hover {
     width: 44px;
     height: 44px;
     font-size: 20px;
-  }
-
-  /* Time slider buttons */
-  .time-btn {
-    flex: 0 0 auto;
-    padding: 8px 12px;
-    min-height: 36px;
   }
 
   /* Map popup positioning for mobile - ensure it's visible */
@@ -12882,46 +12797,6 @@ a.prediction-link:hover {
 
 .deckgl-controls .view-select:hover {
   border-color: var(--green);
-}
-
-/* deck.gl Time Slider */
-.deckgl-time-slider {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  z-index: 100;
-  background: var(--bg);
-  padding: 8px 12px;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-}
-
-.deckgl-time-slider .time-options {
-  display: flex;
-  gap: 2px;
-}
-
-.deckgl-time-slider .time-btn {
-  padding: 4px 8px;
-  background: transparent;
-  border: 1px solid var(--border);
-  color: var(--text-dim);
-  font-family: inherit;
-  font-size: 10px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.deckgl-time-slider .time-btn:hover {
-  border-color: var(--green);
-  color: var(--green);
-}
-
-.deckgl-time-slider .time-btn.active {
-  background: var(--green);
-  border-color: var(--green);
-  color: var(--bg);
-  font-weight: bold;
 }
 
 /* deck.gl Layer Toggles */

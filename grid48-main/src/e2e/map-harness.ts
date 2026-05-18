@@ -261,8 +261,6 @@ const map = new DeckGLMap(app, {
   pan: { x: 0, y: 0 },
   view: 'global',
   layers: allLayersEnabled,
-  // Keep harness deterministic regardless of wall-clock date.
-  timeRange: 'all',
 });
 
 const DETERMINISTIC_BODY_CLASS = 'e2e-deterministic';
@@ -1140,7 +1138,6 @@ const ensureDeterministicStyles = (): void => {
     }
 
     body.${DETERMINISTIC_BODY_CLASS} .deckgl-controls,
-    body.${DETERMINISTIC_BODY_CLASS} .deckgl-time-slider,
     body.${DETERMINISTIC_BODY_CLASS} .deckgl-layer-toggles,
     body.${DETERMINISTIC_BODY_CLASS} .deckgl-legend,
     body.${DETERMINISTIC_BODY_CLASS} .deckgl-timestamp,

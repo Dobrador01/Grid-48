@@ -86,7 +86,6 @@ import type { FeatureCollection, Geometry } from 'geojson';
 
 import { isAllowedPreviewUrl } from '@/utils/imagery-preview';
 
-export type TimeRange = '1h' | '6h' | '24h' | '48h' | '7d' | 'all';
 export type DeckMapView = 'global' | 'america' | 'mena' | 'eu' | 'asia' | 'latam' | 'africa' | 'oceania' | 'sjf';
 type MapInteractionMode = 'flat' | '3d';
 
@@ -102,7 +101,6 @@ interface DeckMapState {
   pan: { x: number; y: number };
   view: DeckMapView;
   layers: MapLayers;
-  timeRange: TimeRange;
 }
 
 interface HotspotWithBreaking extends Hotspot {
@@ -310,7 +308,6 @@ export class DeckGLMap {
 
   // Callbacks
   private onHotspotClick?: (hotspot: Hotspot) => void;
-  private onTimeRangeChange?: (range: TimeRange) => void;
   private onCountryClick?: (country: CountryClickPayload) => void;
   private onLayerChange?: (layer: keyof MapLayers, enabled: boolean, source: 'user' | 'programmatic') => void;
   private onStateChange?: (state: DeckMapState) => void;
@@ -441,7 +438,6 @@ export class DeckGLMap {
     });
 
     this.createControls();
-    this.createTimeSlider();
     this.createLayerToggles();
     this.createLegend();
 
@@ -887,38 +883,8 @@ export class DeckGLMap {
     return false;
   }
 
-  private getTimeRangeMs(range: TimeRange = this.state.timeRange): number {
-    const ranges: Record<TimeRange, number> = {
-      '1h': 60 * 60 * 1000,
-      '6h': 6 * 60 * 60 * 1000,
-      '24h': 24 * 60 * 60 * 1000,
-      '48h': 48 * 60 * 60 * 1000,
-      '7d': 7 * 24 * 60 * 60 * 1000,
-      'all': Infinity,
-    };
-    return ranges[range];
-  }
-
-  private parseTime(value: Date | string | number | undefined | null): number | null {
-    if (value == null) return null;
-    const ts = value instanceof Date ? value.getTime() : new Date(value).getTime();
-    return Number.isFinite(ts) ? ts : null;
-  }
-
-  private filterByTime<T>(
-    items: T[],
-    getTime: (item: T) => Date | string | number | undefined | null
-  ): T[] {
-    if (this.state.timeRange === 'all') return items;
-    const cutoff = Date.now() - this.getTimeRangeMs();
-    return items.filter((item) => {
-      const ts = this.parseTime(getTime(item));
-      return ts == null ? true : ts >= cutoff;
-    });
-  }
-
   private getFilteredProtests(): SocialUnrestEvent[] {
-    return this.filterByTime((this as any).protests, (event) => event.time);
+    return ((this as any).protests as SocialUnrestEvent[]) ?? [];
   }
 
 
@@ -1094,11 +1060,11 @@ export class DeckGLMap {
     COLORS = getOverlayColors();
     const layers: (Layer | null | false)[] = [];
     const { layers: mapLayers } = this.state;
-    const filteredEarthquakes = mapLayers.natural ? this.filterByTime(this.earthquakes, (eq) => eq.occurredAt) : [];
-    const filteredNaturalEvents = mapLayers.natural ? this.filterByTime(this.naturalEvents, (event) => event.date) : [];
-    const filteredWeatherAlerts = mapLayers.weather ? this.filterByTime(this.weatherAlerts, (alert) => alert.onset) : [];
-    const filteredOutages = mapLayers.outages ? this.filterByTime(this.outages, (outage) => outage.pubDate) : [];
-    const filteredFlightDelays = mapLayers.flights ? this.filterByTime(this.flightDelays, (delay) => delay.updatedAt) : [];
+    const filteredEarthquakes = mapLayers.natural ? this.earthquakes : [];
+    const filteredNaturalEvents = mapLayers.natural ? this.naturalEvents : [];
+    const filteredWeatherAlerts = mapLayers.weather ? this.weatherAlerts : [];
+    const filteredOutages = mapLayers.outages ? this.outages : [];
+    const filteredFlightDelays = mapLayers.flights ? this.flightDelays : [];
 
     // Day/night overlay (rendered first as background)
     if (mapLayers.dayNight) {
@@ -1682,7 +1648,7 @@ export class DeckGLMap {
   private createNewsLocationsLayer(): ScatterplotLayer[] {
     const zoom = this.maplibreMap?.getZoom() || 2;
     const alphaScale = zoom < 2.5 ? 0.4 : zoom < 4 ? 0.7 : 1.0;
-    const filteredNewsLocations = this.filterByTime(this.newsLocations, (location) => location.timestamp);
+    const filteredNewsLocations = this.newsLocations;
     const THREAT_RGB: Record<string, [number, number, number]> = {
       critical: [239, 68, 68],
       high: [249, 115, 22],
@@ -2307,39 +2273,6 @@ export class DeckGLMap {
     });
   }
 
-  private createTimeSlider(): void {
-    const slider = document.createElement('div');
-    slider.className = 'time-slider deckgl-time-slider';
-    slider.innerHTML = `
-      <div class="time-options">
-        <button class="time-btn ${this.state.timeRange === '1h' ? 'active' : ''}" data-range="1h">1h</button>
-        <button class="time-btn ${this.state.timeRange === '6h' ? 'active' : ''}" data-range="6h">6h</button>
-        <button class="time-btn ${this.state.timeRange === '24h' ? 'active' : ''}" data-range="24h">24h</button>
-        <button class="time-btn ${this.state.timeRange === '48h' ? 'active' : ''}" data-range="48h">48h</button>
-        <button class="time-btn ${this.state.timeRange === '7d' ? 'active' : ''}" data-range="7d">7d</button>
-        <button class="time-btn ${this.state.timeRange === 'all' ? 'active' : ''}" data-range="all">${t('components.deckgl.timeAll')}</button>
-      </div>
-    `;
-
-    this.container.appendChild(slider);
-
-    slider.querySelectorAll('.time-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const range = (btn as HTMLElement).dataset.range as TimeRange;
-        this.setTimeRange(range);
-      });
-    });
-  }
-
-  private updateTimeSliderButtons(): void {
-    const slider = this.container.querySelector('.deckgl-time-slider');
-    if (!slider) return;
-    slider.querySelectorAll('.time-btn').forEach((btn) => {
-      const range = (btn as HTMLElement).dataset.range as TimeRange | undefined;
-      btn.classList.toggle('active', range === this.state.timeRange);
-    });
-  }
-
   private createLayerToggles(): void {
     const toggles = document.createElement('div');
     toggles.className = 'layer-toggles deckgl-layer-toggles';
@@ -2783,18 +2716,6 @@ export class DeckGLMap {
     if (!this.maplibreMap) return null;
     const b = this.maplibreMap.getBounds();
     return `${b.getWest().toFixed(4)},${b.getSouth().toFixed(4)},${b.getEast().toFixed(4)},${b.getNorth().toFixed(4)}`;
-  }
-
-  public setTimeRange(range: TimeRange): void {
-    this.state.timeRange = range;
-    this.rebuildProtestSupercluster();
-    this.onTimeRangeChange?.(range);
-    this.updateTimeSliderButtons();
-    this.render(); // Debounced
-  }
-
-  public getTimeRange(): TimeRange {
-    return this.state.timeRange;
   }
 
   public setLayers(layers: MapLayers): void {
@@ -3258,10 +3179,6 @@ export class DeckGLMap {
 
   public setOnHotspotClick(callback: (hotspot: Hotspot) => void): void {
     this.onHotspotClick = callback;
-  }
-
-  public setOnTimeRangeChange(callback: (range: TimeRange) => void): void {
-    this.onTimeRangeChange = callback;
   }
 
   public setOnLayerChange(callback: (layer: keyof MapLayers, enabled: boolean, source: 'user' | 'programmatic') => void): void {

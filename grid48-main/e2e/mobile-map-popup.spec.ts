@@ -214,19 +214,8 @@ test.describe('Mobile SVG popup integration path', () => {
       }, { timeout: 30000 })
       .toBe(true);
 
-    const timeSlider = page.locator('.time-slider');
     const mapControls = page.locator('.map-controls');
-    await expect(timeSlider).toBeVisible();
     await expect(mapControls).toBeVisible();
-    const controlsDoNotOverlap = await page.evaluate(() => {
-      const slider = document.querySelector('.time-slider') as HTMLElement | null;
-      const controls = document.querySelector('.map-controls') as HTMLElement | null;
-      if (!slider || !controls) return false;
-      const sliderRect = slider.getBoundingClientRect();
-      const controlsRect = controls.getBoundingClientRect();
-      return sliderRect.right <= controlsRect.left + 1;
-    });
-    expect(controlsDoNotOverlap).toBe(true);
 
     const hotspot = page.locator('.hotspot').first();
     await expect(hotspot).toBeVisible();

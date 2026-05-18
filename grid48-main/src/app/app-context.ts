@@ -5,7 +5,6 @@ import type { SecurityAdvisory } from '@/services/security-advisories';
 import type { MapContainer, Panel, SignalModal, StatusPanel, SearchModal } from '@/components';
 import type { MarketData, ClusteredEvent } from '@/types';
 import type { PredictionMarket } from '@/services/prediction';
-import type { TimeRange } from '@/components';
 import type { Earthquake } from '@/services/earthquakes';
 
 import type { PlaybackControl } from '@/components';
@@ -77,7 +76,6 @@ export interface AppContext {
   cyberThreatsCache: CyberThreat[] | null;
 
   disabledSources: Set<string>;
-  currentTimeRange: TimeRange;
 
   inFlight: Set<string>;
   seenGeoAlerts: Set<string>;

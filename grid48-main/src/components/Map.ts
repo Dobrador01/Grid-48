@@ -59,7 +59,6 @@ import { getCountryAtCoordinates, getCountryBbox } from '@/services/country-geom
 import type { CountryClickPayload } from './DeckGLMap';
 import { t } from '@/services/i18n';
 
-export type TimeRange = '1h' | '6h' | '24h' | '48h' | '7d' | 'all';
 export type MapView = 'global' | 'america' | 'mena' | 'eu' | 'asia' | 'latam' | 'africa' | 'oceania' | 'sjf';
 
 interface MapState {
@@ -67,7 +66,6 @@ interface MapState {
   pan: { x: number; y: number };
   view: MapView;
   layers: MapLayers;
-  timeRange: TimeRange;
 }
 
 interface HotspotWithBreaking extends Hotspot {
@@ -142,7 +140,6 @@ export class MapComponent {
   private onGeoHubClick?: (hub: GeoHubActivity) => void;
   private popup: MapPopup;
   private onHotspotClick?: (hotspot: Hotspot) => void;
-  private onTimeRangeChange?: (range: TimeRange) => void;
   private onLayerChange?: (layer: keyof MapLayers, enabled: boolean, source: 'user' | 'programmatic') => void;
   private layerZoomOverrides: Partial<Record<keyof MapLayers, boolean>> = {};
   private onStateChange?: (state: MapState) => void;
@@ -188,7 +185,6 @@ export class MapComponent {
 
     container.appendChild(this.wrapper);
     container.appendChild(this.createControls());
-    container.appendChild(this.createTimeSlider());
     container.appendChild(this.createLayerToggles());
     container.appendChild(this.createLegend());
     this.healthCheckLoop = startSmartPollLoop(() => { this.runHealthCheck(); }, {
@@ -290,72 +286,6 @@ export class MapComponent {
     return controls;
   }
 
-  private createTimeSlider(): HTMLElement {
-    const slider = document.createElement('div');
-    slider.className = 'time-slider';
-    slider.id = 'timeSlider';
-
-    const ranges: { value: TimeRange; label: string }[] = [
-      { value: '1h', label: '1H' },
-      { value: '6h', label: '6H' },
-      { value: '24h', label: '24H' },
-      { value: '48h', label: '48H' },
-      { value: '7d', label: '7D' },
-      { value: 'all', label: 'ALL' },
-    ];
-
-    slider.innerHTML = `
-      <span class="time-slider-label">TIME RANGE</span>
-      <div class="time-slider-buttons">
-        ${ranges
-        .map(
-          (r) =>
-            `<button class="time-btn ${this.state.timeRange === r.value ? 'active' : ''}" data-range="${r.value}">${r.label}</button>`
-        )
-        .join('')}
-      </div>
-    `;
-
-    slider.addEventListener('click', (e) => {
-      const target = e.target as HTMLElement;
-      if (target.classList.contains('time-btn')) {
-        const range = target.dataset.range as TimeRange;
-        this.setTimeRange(range);
-        slider.querySelectorAll('.time-btn').forEach((btn) => btn.classList.remove('active'));
-        target.classList.add('active');
-      }
-    });
-
-    return slider;
-  }
-
-  private updateTimeSliderButtons(): void {
-    const slider = this.container.querySelector('#timeSlider');
-    if (!slider) return;
-    slider.querySelectorAll('.time-btn').forEach((btn) => {
-      const range = (btn as HTMLElement).dataset.range as TimeRange | undefined;
-      btn.classList.toggle('active', range === this.state.timeRange);
-    });
-  }
-
-  public setTimeRange(range: TimeRange): void {
-    this.state.timeRange = range;
-    this.onTimeRangeChange?.(range);
-    this.updateTimeSliderButtons();
-    this.render();
-  }
-
-  private getTimeRangeMs(): number {
-    const ranges: Record<TimeRange, number> = {
-      '1h': 60 * 60 * 1000,
-      '6h': 6 * 60 * 60 * 1000,
-      '24h': 24 * 60 * 60 * 1000,
-      '48h': 48 * 60 * 60 * 1000,
-      '7d': 7 * 24 * 60 * 60 * 1000,
-      'all': Infinity,
-    };
-    return ranges[this.state.timeRange];
-  }
 
 
 
@@ -702,7 +632,7 @@ export class MapComponent {
       if (!(target instanceof Element)) return false;
       return Boolean(
         target.closest(
-          '.map-controls, .time-slider, .layer-toggles, .map-legend, .layer-help-popup, .map-popup, button, select, input, textarea, a'
+          '.map-controls, .layer-toggles, .map-legend, .layer-help-popup, .map-popup, button, select, input, textarea, a'
         )
       );
     };
@@ -1585,12 +1515,8 @@ export class MapComponent {
     // Earthquakes (magnitude-based sizing) - part of NATURAL layer
     if ((this.state.layers as any).natural) {
       console.log('[Map] Rendering earthquakes. Total:', this.earthquakes.length, 'Layer enabled:', (this.state.layers as any).natural);
-      const filteredQuakes = this.state.timeRange === 'all'
-        ? this.earthquakes
-        : this.earthquakes.filter((eq) => eq.occurredAt >= Date.now() - this.getTimeRangeMs());
-      console.log('[Map] After time filter:', filteredQuakes.length, 'earthquakes. TimeRange:', this.state.timeRange);
       let rendered = 0;
-      filteredQuakes.forEach((eq) => {
+      this.earthquakes.forEach((eq) => {
         const pos = projection([eq.location?.longitude ?? 0, eq.location?.latitude ?? 0]);
         if (!pos) {
           console.log('[Map] Earthquake position null for:', eq.place, eq.location?.longitude, eq.location?.latitude);
@@ -3507,10 +3433,6 @@ export class MapComponent {
     this.onHotspotClick = callback;
   }
 
-  public onTimeRangeChanged(callback: (range: TimeRange) => void): void {
-    this.onTimeRangeChange = callback;
-  }
-
   public setOnCountryClick(cb: (country: CountryClickPayload) => void): void {
     this.onCountryClick = cb;
   }
@@ -3555,10 +3477,6 @@ export class MapComponent {
     const coords = projection.invert([centerX, centerY]);
     if (!coords) return null;
     return { lon: coords[0], lat: coords[1] };
-  }
-
-  public getTimeRange(): TimeRange {
-    return this.state.timeRange;
   }
 
   public setZoom(zoom: number): void {

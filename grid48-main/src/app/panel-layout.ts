@@ -9,7 +9,7 @@ import { ClimaWidget } from '@/components/ClimaWidget';
 import { TrafegoWidget } from '@/components/TrafegoWidget';
 import { HealthWidget } from '@/components/HealthWidget';
 import { SitrepButton } from '@/components/SitrepButton';
-import { debounce, saveToStorage, loadFromStorage } from '@/utils';
+import { saveToStorage, loadFromStorage } from '@/utils';
 import {
   DEFAULT_PANELS,
   STORAGE_KEYS,
@@ -31,13 +31,10 @@ export class PanelLayoutManager implements AppModule {
   private resolvedPanelOrder: string[] = [];
   private bottomSetMemory: Set<string> = new Set();
   private criticalBannerEl: HTMLElement | null = null;
-  private readonly applyTimeRangeFilterDebounced: (() => void) & { cancel(): void };
 
   constructor(ctx: AppContext, callbacks: PanelLayoutCallbacks) {
     this.ctx = ctx;
     this.callbacks = callbacks;
-    this.applyTimeRangeFilterDebounced = debounce(() => {
-          }, 120);
   }
 
   init(): void {
@@ -46,7 +43,6 @@ export class PanelLayoutManager implements AppModule {
 
   destroy(): void {
     clearAllPendingCalls();
-    this.applyTimeRangeFilterDebounced.cancel();
     this.panelDragCleanupHandlers.forEach((cleanup) => cleanup());
     this.panelDragCleanupHandlers = [];
     if (this.criticalBannerEl) {
@@ -176,11 +172,9 @@ export class PanelLayoutManager implements AppModule {
       pan: { x: 0, y: 0 },
       view: this.ctx.isMobile ? 'sjf' : 'sjf', // Grid 48: sempre inicia em São José/Floripa
       layers: this.ctx.mapLayers,
-      timeRange: '7d',
     }, preferGlobe);
 
     this.ctx.map.initEscalationGetters();
-    this.ctx.currentTimeRange = this.ctx.map.getTimeRange();
 
             
 
@@ -366,11 +360,6 @@ export class PanelLayoutManager implements AppModule {
 
     window.addEventListener('resize', () => this.ensureCorrectZones());
 
-    this.ctx.map.onTimeRangeChanged((range) => {
-      this.ctx.currentTimeRange = range;
-      this.applyTimeRangeFilterDebounced();
-    });
-
     this.applyPanelSettings();
     this.applyInitialUrlState();
 
@@ -387,14 +376,10 @@ export class PanelLayoutManager implements AppModule {
   private applyInitialUrlState(): void {
     if (!this.ctx.initialUrlState || !this.ctx.map) return;
 
-    const { view, zoom, lat, lon, timeRange, layers } = this.ctx.initialUrlState;
+    const { view, zoom, lat, lon, layers } = this.ctx.initialUrlState;
 
     if (view) {
       this.ctx.map.setView(view);
-    }
-
-    if (timeRange) {
-      this.ctx.map.setTimeRange(timeRange);
     }
 
     if (layers) {
