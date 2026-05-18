@@ -202,9 +202,13 @@ export class TrafegoWidget extends Panel {
   private async requestParalelosUpdate(): Promise<void> {
     const client = getOrCreateConvexClient();
     if (!client) return;
+    // Passa local_atual pra backend inverter rotas marcadas (BR-101) conforme
+    // o contexto do user (em casa: A→B, em trabalho: B→A, senão default).
+    const local = this.detectarLocal();
     try {
       await (client as any).mutation('trafego/mutations:requestUpdate', {
         rotas_solicitadas: ['ponte_pedro_ivo', 'ponte_colombo_salles', 'br101_sj_palhoca'],
+        local_atual: local === 'indisponivel' ? undefined : local,
       });
     } catch (e) {
       console.error('[TrafegoWidget] requestParalelosUpdate falhou:', e);
@@ -329,12 +333,28 @@ export class TrafegoWidget extends Panel {
     const tempoMin = Math.round(r.travel_time_sec / 60);
     const bola = `<span style="display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: ${cor}; box-shadow: 0 0 4px ${cor}80;"></span>`;
     const erroLabel = r.erro ? ' (erro)' : '';
+    const label = this.labelParalela(r);
     return `
       <div style="display: flex; justify-content: space-between; align-items: center; padding: 4px 0; font-size: 0.7rem; color: #4b5563; border-bottom: 1px dashed rgba(0,0,0,0.05);">
-        <span style="display: flex; align-items: center; gap: 6px;">${bola}${this.escapeHtml(r.origem_label.replace(/ \(continente\)/, '').replace(/ \(São José\)/, ''))}${erroLabel}</span>
+        <span style="display: flex; align-items: center; gap: 6px;">${bola}${this.escapeHtml(label)}${erroLabel}</span>
         <span style="font-size: 0.65rem; color: ${cor}; text-transform: uppercase; font-weight: 600;">${this.escapeHtml(r.erro ? '—' : r.status_text)}${r.erro ? '' : ` · ${tempoMin} min`}</span>
       </div>
     `;
+  }
+
+  /**
+   * Display name pra rota paralela. Para BR-101 (reversível) deriva o sentido
+   * cardinal a partir das lats (origem mais ao norte = "norte → sul"). Pra
+   * pontes mantém a label limpa removendo qualificadores entre parênteses.
+   */
+  private labelParalela(r: TrafegoRota): string {
+    if (r.rota_id === 'br101_sj_palhoca') {
+      // No SH lat menos negativa = mais ao norte. origem_lat > destino_lat
+      // (mais próxima do equador) significa origem ao norte.
+      const sentido = r.origem_lat > r.destino_lat ? 'norte → sul' : 'sul → norte';
+      return `BR-101 (${sentido})`;
+    }
+    return r.origem_label.replace(/\s*\((continente|ilha|São José|Palhoça)\)/, '');
   }
 
   private renderSemDados(local: LocalDetectado): string {
