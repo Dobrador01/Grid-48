@@ -414,7 +414,6 @@ test.describe('desktop runtime routing guardrails', () => {
           pan: { x: 0, y: 0 },
           view: 'global',
           layers: { ...DEFAULT_MAP_LAYERS },
-          timeRange: '7d',
         });
 
         return {
@@ -484,7 +483,6 @@ test.describe('desktop runtime routing guardrails', () => {
           pan: { x: 0, y: 0 },
           view: 'global',
           layers: { ...DEFAULT_MAP_LAYERS },
-          timeRange: '7d',
         });
 
         return {

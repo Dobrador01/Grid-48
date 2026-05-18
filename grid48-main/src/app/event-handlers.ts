@@ -324,7 +324,6 @@ export class EventHandlerManager implements AppModule {
       view: state.view,
       zoom: state.zoom,
       center,
-      timeRange: state.timeRange,
       layers: state.layers,
     });
   }

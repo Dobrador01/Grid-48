@@ -219,7 +219,6 @@ export class App {
       intelligenceCache: {},
       cyberThreatsCache: null,
       disabledSources,
-      currentTimeRange: '7d',
       inFlight: new Set(),
       seenGeoAlerts: new Set(),
       monitors,

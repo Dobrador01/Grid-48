@@ -145,7 +145,6 @@ const map = new MapComponent(app, {
   pan: { x: 0, y: 0 },
   view: 'global',
   layers,
-  timeRange: 'all',
 });
 
 let ready = false;

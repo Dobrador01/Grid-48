@@ -1,5 +1,5 @@
 import type { MapLayers } from '@/types';
-import type { MapView, TimeRange } from '@/components/Map';
+import type { MapView } from '@/components/Map';
 
 const LAYER_KEYS: (keyof MapLayers)[] = [
   'weather',
@@ -11,7 +11,6 @@ const LAYER_KEYS: (keyof MapLayers)[] = [
   'dayNight',
 ];
 
-const TIME_RANGES: TimeRange[] = ['1h', '6h', '24h', '48h', '7d', 'all'];
 const VIEW_VALUES: MapView[] = ['global', 'america', 'mena', 'eu', 'asia', 'latam', 'africa', 'oceania'];
 
 export interface ParsedMapUrlState {
@@ -19,7 +18,6 @@ export interface ParsedMapUrlState {
   zoom?: number;
   lat?: number;
   lon?: number;
-  timeRange?: TimeRange;
   layers?: MapLayers;
   country?: string;
   expanded?: boolean;
@@ -47,11 +45,6 @@ export function parseMapUrlState(
   const lonValue = lonParam ? Number.parseFloat(lonParam) : NaN;
   const lat = Number.isFinite(latValue) ? clamp(latValue, -90, 90) : undefined;
   const lon = Number.isFinite(lonValue) ? clamp(lonValue, -180, 180) : undefined;
-
-  const timeRangeParam = params.get('timeRange');
-  const timeRange = TIME_RANGES.includes(timeRangeParam as TimeRange)
-    ? (timeRangeParam as TimeRange)
-    : undefined;
 
   const countryParam = params.get('country');
   const country = countryParam && /^[A-Z]{2}$/i.test(countryParam.trim()) ? countryParam.trim().toUpperCase() : undefined;
@@ -86,7 +79,6 @@ export function parseMapUrlState(
     zoom,
     lat,
     lon,
-    timeRange,
     layers,
     country,
     expanded,
@@ -99,7 +91,6 @@ export function buildMapUrl(
     view: MapView;
     zoom: number;
     center?: { lat: number; lon: number } | null;
-    timeRange: TimeRange;
     layers: MapLayers;
     country?: string;
     expanded?: boolean;
@@ -115,7 +106,6 @@ export function buildMapUrl(
 
   params.set('zoom', state.zoom.toFixed(2));
   params.set('view', state.view);
-  params.set('timeRange', state.timeRange);
 
   const activeLayers = LAYER_KEYS.filter((layer) => state.layers[layer]);
   params.set('layers', activeLayers.length > 0 ? activeLayers.join(',') : 'none');

@@ -34,7 +34,7 @@ import type { FeatureCollection, Geometry } from 'geojson';
 import type { MapLayers, Hotspot, MilitaryFlight, MilitaryVessel, NaturalEvent, InternetOutage, CyberThreat, SocialUnrestEvent, UcdpGeoEvent, MilitaryBase, GammaIrradiator, Spaceport, EconomicCenter, StrategicWaterway, CriticalMineralProject, AIDataCenter, UnderseaCable, Pipeline, CableAdvisory, RepairShip, AisDisruptionEvent, AisDensityZone, AisDisruptionType } from '@/types';
 import type { Earthquake } from '@/services/earthquakes';
 import type { AirportDelayAlert } from '@/services/aviation';
-import type { MapContainerState, MapView, TimeRange } from './MapContainer';
+import type { MapContainerState, MapView } from './MapContainer';
 import type { CountryClickPayload } from './DeckGLMap';
 import type { WeatherAlert } from '@/services/weather';
 type IranEvent = any;
@@ -446,7 +446,6 @@ export class GlobeMap {
 
   // Current layers state
   private layers: MapLayers;
-  private timeRange: TimeRange;
   private currentView: MapView = 'global';
 
   // Click callbacks
@@ -467,7 +466,6 @@ export class GlobeMap {
   constructor(container: HTMLElement, initialState: MapContainerState) {
     this.container = container;
     this.layers = { ...initialState.layers };
-    this.timeRange = initialState.timeRange;
     this.currentView = initialState.view;
 
     this.container.classList.add('globe-mode');
@@ -1980,16 +1978,7 @@ export class GlobeMap {
       pan: { x: 0, y: 0 },
       view: this.currentView,
       layers: this.layers,
-      timeRange: this.timeRange,
     };
-  }
-
-  public setTimeRange(range: TimeRange): void {
-    this.timeRange = range;
-  }
-
-  public getTimeRange(): TimeRange {
-    return this.timeRange;
   }
 
   // â”€â”€â”€ Callback setters â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -2056,7 +2045,6 @@ export class GlobeMap {
   public setOnLayerChange(cb: (layer: keyof MapLayers, enabled: boolean, source: 'user' | 'programmatic') => void): void {
     this.onLayerChangeCb = cb;
   }
-  public setOnTimeRangeChange(_cb: any): void {}
   public hideLayerToggle(layer: keyof MapLayers): void {
     this.layerTogglesEl?.querySelector(`.layer-toggle[data-layer="${layer}"]`)?.remove();
   }
@@ -2549,7 +2537,6 @@ export class GlobeMap {
     this.flushMarkers();
   }
   public onHotspotClicked(cb: (h: Hotspot) => void): void { this.onHotspotClickCb = cb; }
-  public onTimeRangeChanged(_cb: (r: TimeRange) => void): void {}
   public onStateChanged(_cb: (s: MapContainerState) => void): void {}
   public setOnCountry(_cb: any): void {}
   public getHotspotLevel(_id: string) { return 'low'; }
