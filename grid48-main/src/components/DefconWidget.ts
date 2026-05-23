@@ -1,5 +1,6 @@
 import { Panel } from './Panel';
 import type { BeaconSnapshot, DefconStatus } from '@/services/beacon-client';
+import { getOrCreateConvexClient } from '@/services/beacon-client';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // DefconWidget — heads-up display do estado operacional agregado
@@ -43,19 +44,64 @@ export class DefconWidget extends Panel {
     connection: { kind: 'connecting' },
   };
 
+  // Estado do botão de refresh manual. `refreshPendingSince` é o timestamp
+  // de quando clicamos — usado pra detectar quando o snapshot reativo trouxe
+  // uma explicação nova (gerada_em > refreshPendingSince) e desligar o spinner.
+  private refreshPendingSince: number | null = null;
+
   constructor() {
     super({
       id: 'defcon',
       title: 'DEFCON — Estado Operacional',
     });
     this.injectPulseStyles();
+    // Click delegation pro botão de refresh (CSP-safe — sem onclick inline).
+    this.content.addEventListener('click', (e) => {
+      const target = (e.target as HTMLElement).closest<HTMLElement>('[data-defcon-refresh]');
+      if (!target) return;
+      e.stopPropagation();
+      this.handleRefreshClick();
+    });
     this.render();
     // Re-render passivo a cada minuto pra manter "há X min" e pulse window vivos.
     window.setInterval(() => this.render(), 60_000);
   }
 
+  private async handleRefreshClick(): Promise<void> {
+    if (this.refreshPendingSince !== null) return; // já em andamento
+    const client = getOrCreateConvexClient();
+    if (!client) {
+      console.warn('[DefconWidget] Convex client indisponível, refresh ignorado');
+      return;
+    }
+    this.refreshPendingSince = Date.now();
+    this.render();
+    try {
+      await (client as any).mutation('defcon/mutations:requestExplanationRefresh', {});
+    } catch (e) {
+      console.error('[DefconWidget] requestExplanationRefresh falhou:', e);
+      this.refreshPendingSince = null;
+      this.render();
+    }
+    // Safety net: timeout de 30s caso explainDefcon não complete (chave Gemini
+    // ausente, erro silencioso, etc.). Sem isso, spinner ficaria pra sempre.
+    window.setTimeout(() => {
+      if (this.refreshPendingSince !== null) {
+        this.refreshPendingSince = null;
+        this.render();
+      }
+    }, 30_000);
+  }
+
   public setSnapshot(snapshot: BeaconSnapshot) {
     this.snapshot = snapshot;
+    // Se estávamos esperando refresh e chegou explicação nova (gerada_em
+    // depois do clique), desliga o spinner.
+    if (this.refreshPendingSince !== null && snapshot.defcon?.explicacao) {
+      if (snapshot.defcon.explicacao.gerada_em > this.refreshPendingSince) {
+        this.refreshPendingSince = null;
+      }
+    }
     this.render();
   }
 
@@ -75,6 +121,41 @@ export class DefconWidget extends Panel {
       }
       .defcon-pulse {
         animation: defcon-pulse 1.6s ease-in-out infinite;
+      }
+      @keyframes defcon-spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+      }
+      .defcon-refresh-btn {
+        background: transparent;
+        border: 1px solid rgba(0,0,0,0.08);
+        border-radius: 999px;
+        padding: 3px 10px 3px 7px;
+        font-size: 0.65rem;
+        color: #6b7280;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-family: inherit;
+        transition: background 0.15s, border-color 0.15s, color 0.15s;
+      }
+      .defcon-refresh-btn:hover {
+        background: rgba(0,0,0,0.04);
+        border-color: rgba(0,0,0,0.18);
+        color: #1f2937;
+      }
+      .defcon-refresh-btn:disabled {
+        cursor: wait;
+        opacity: 0.7;
+      }
+      .defcon-refresh-icon {
+        display: inline-block;
+        font-size: 0.85rem;
+        line-height: 1;
+      }
+      .defcon-refresh-spinning {
+        animation: defcon-spin 1s linear infinite;
       }
     `;
     document.head.appendChild(style);
@@ -161,6 +242,22 @@ export class DefconWidget extends Panel {
 
     const explicacaoTexto = defcon.explicacao?.texto ?? 'Gerando explicação contextual...';
     const explicacaoStaleHash = defcon.explicacao && defcon.explicacao.inputs_hash !== defcon.inputs_hash;
+    const explicacaoIdadeStr = defcon.explicacao
+      ? this.formatRelative(defcon.explicacao.gerada_em)
+      : null;
+    const refreshSpinning = this.refreshPendingSince !== null;
+    const refreshBtn = `
+      <button
+        type="button"
+        data-defcon-refresh
+        class="defcon-refresh-btn"
+        title="Forçar regeneração do texto explicativo (bypass do throttle 30min)"
+        ${refreshSpinning ? 'disabled' : ''}
+      >
+        <span class="defcon-refresh-icon ${refreshSpinning ? 'defcon-refresh-spinning' : ''}">⟳</span>
+        <span>${refreshSpinning ? 'atualizando…' : (explicacaoIdadeStr ?? 'atualizar')}</span>
+      </button>
+    `;
 
     const transicao = typeof defcon.nivel_anterior === 'number' && defcon.nivel_anterior !== defcon.nivel_global
       ? `<span style="color: #6b7280;">• transição de DEFCON ${defcon.nivel_anterior} → ${defcon.nivel_global}</span>`
@@ -194,7 +291,10 @@ export class DefconWidget extends Panel {
         </div>
 
         <div style="margin: 0 1.25rem 0.75rem 1.25rem; padding: 0.75rem 0.85rem; background: rgba(255,255,255,0.65); border: 1px solid rgba(0,0,0,0.06); border-radius: 10px; font-size: 0.78rem; color: #374151; line-height: 1.45; ${explicacaoStaleHash ? 'opacity: 0.6;' : ''}">
-          ${this.escapeHtml(explicacaoTexto)}
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem;">
+            <div style="flex: 1; min-width: 0;">${this.escapeHtml(explicacaoTexto)}</div>
+            <div style="flex-shrink: 0;">${refreshBtn}</div>
+          </div>
           ${explicacaoStaleHash ? `<div style="font-size: 0.6rem; color: #9ca3af; margin-top: 4px; font-style: italic;">(explicação anterior — nova sendo gerada)</div>` : ''}
         </div>
 
