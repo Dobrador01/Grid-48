@@ -7,7 +7,6 @@
   "scripts": {
     "lint:md": "markdownlint-cli2 '**/*.md' '!**/node_modules/**' '!.agent/**' '!.agents/**' '!.claude/**' '!.factory/**' '!.windsurf/**' '!skills/**' '!docs/internal/**' '!docs/Docs_To_Review/**'",
     "dev": "vite",
-    "build:pro": "cd pro-test && npm install && npm run build",
     "build": "vite build",
     "typecheck": "tsc --noEmit",
     "preview": "vite preview",
