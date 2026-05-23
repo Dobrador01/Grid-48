@@ -1,9 +1,6 @@
 import type { AppContext, AppModule } from '@/app/app-context';
 import { clearAllPendingCalls } from '@/app/pending-panel-data';
-import {
-  MapContainer,
-  RuntimeConfigPanel,
-} from '@/components';
+import { MapContainer } from '@/components';
 import { CelescStatusWidget } from '@/components/CelescStatusWidget';
 import { ClimaWidget } from '@/components/ClimaWidget';
 import { TrafegoWidget } from '@/components/TrafegoWidget';
@@ -54,7 +51,6 @@ export class PanelLayoutManager implements AppModule {
 
   renderLayout(): void {
     this.ctx.container.innerHTML = `
-      ${this.ctx.isDesktopApp ? '<div class="tauri-titlebar" data-tauri-drag-region></div>' : ''}
       <div class="header">
         <div class="header-left">
           <span class="logo">GRID 48</span><span class="logo-mobile">GRID 48</span><span class="version">v${__APP_VERSION__}</span>
@@ -69,7 +65,7 @@ export class PanelLayoutManager implements AppModule {
         ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>'
         : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>'}
           </button>
-          ${this.ctx.isDesktopApp ? '' : `<button class="fullscreen-btn" id="fullscreenBtn" title="${t('header.fullscreen')}">⛶</button>`}
+          <button class="fullscreen-btn" id="fullscreenBtn" title="${t('header.fullscreen')}">⛶</button>
           <span id="unifiedSettingsMount"></span>
         </div>
       </div>
@@ -246,11 +242,6 @@ export class PanelLayoutManager implements AppModule {
 
 
 
-    if (this.ctx.isDesktopApp) {
-      const runtimeConfigPanel = new RuntimeConfigPanel({ mode: 'alert' });
-      this.ctx.panels['runtime-config'] = runtimeConfigPanel;
-    }
-
     const defaultOrder = Object.keys(DEFAULT_PANELS).filter(k => k !== 'map');
     const activePanelKeys = Object.keys(this.ctx.panelSettings).filter(k => k !== 'map');
     const bottomSet = this.getSavedBottomSet();
@@ -300,15 +291,6 @@ export class PanelLayoutManager implements AppModule {
 
 
 
-      if (this.ctx.isDesktopApp) {
-        const runtimeIdx = allOrder.indexOf('runtime-config');
-        if (runtimeIdx > 1) {
-          allOrder.splice(runtimeIdx, 1);
-          allOrder.splice(1, 0, 'runtime-config');
-        } else if (runtimeIdx === -1) {
-          allOrder.splice(1, 0, 'runtime-config');
-        }
-      }
     }
 
     this.resolvedPanelOrder = allOrder;

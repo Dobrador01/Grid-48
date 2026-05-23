@@ -9,7 +9,6 @@ export { MapContainer, type MapView, type MapContainerState } from './MapContain
 export * from './StatusPanel';
 export * from './SearchModal';
 export * from './MobileWarningModal';
-export * from './RuntimeConfigPanel';
 export * from './UnifiedSettings';
 export { CelescStatusWidget } from './CelescStatusWidget';
 export { HealthWidget } from './HealthWidget';

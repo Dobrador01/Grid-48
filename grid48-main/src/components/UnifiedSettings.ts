@@ -15,7 +15,6 @@ export interface UnifiedSettingsConfig {
   savePanelSettings: (panels: Record<string, PanelConfig>) => void;
   getLocalizedPanelName: (key: string, fallback: string) => string;
   resetLayout: () => void;
-  isDesktopApp: boolean;
   onMapProviderChange?: (provider: MapProvider) => void;
 }
 
@@ -163,7 +162,6 @@ export class UnifiedSettings {
 
     const tabClass = (id: TabId) => `unified-settings-tab${this.activeTab === id ? ' active' : ''}`;
     const prefs = renderPreferences({
-      isDesktopApp: this.config.isDesktopApp,
       onMapProviderChange: this.config.onMapProviderChange,
     });
     const defcon = renderDefconSettings();
@@ -264,8 +262,10 @@ export class UnifiedSettings {
   private getVisiblePanelEntries(): Array<[string, PanelConfig]> {
     const panelSettings = this.draftPanelSettings;
     const variant = SITE_VARIANT || 'full';
+    // runtime-config panel foi deletado junto com o Tauri desktop runtime;
+    // se sobrar referência no localStorage de usuário, filtra silenciosamente.
     let entries = Object.entries(panelSettings)
-      .filter(([key]) => key !== 'runtime-config' || this.config.isDesktopApp);
+      .filter(([key]) => key !== 'runtime-config');
 
     if (this.activePanelCategory !== 'all') {
       const catDef = PANEL_CATEGORY_MAP[this.activePanelCategory];

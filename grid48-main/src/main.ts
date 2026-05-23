@@ -329,26 +329,16 @@ requestAnimationFrame(() => {
 // Clear stale settings-open flag (survives ungraceful shutdown)
 localStorage.removeItem('grid48-settings-open');
 
-// Standalone windows: ?settings=1 = panel display settings, ?live-channels=1 = channel management
-// Both need i18n initialized so t() does not return undefined.
-const urlParams = new URL(location.href).searchParams;
-if (urlParams.get('settings') === '1') {
-  void Promise.all([import('./services/i18n'), import('./settings-window')]).then(
-    async ([i18n, m]) => {
-      await i18n.initI18n();
-      m.initSettingsWindow();
-    }
-  );
-} else {
-  installUtmInterceptor();
-  const app = new App('app');
-  app
-    .init()
-    .then(() => {
-      clearChunkReloadGuard(chunkReloadStorageKey);
-    })
-    .catch(console.error);
-}
+// ?settings=1 standalone window foi removido junto com settings.html (era
+// Tauri-only). Grid 48 usa UnifiedSettings inline pelo header.
+installUtmInterceptor();
+const app = new App('app');
+app
+  .init()
+  .then(() => {
+    clearChunkReloadGuard(chunkReloadStorageKey);
+  })
+  .catch(console.error);
 
 // Debug helpers for geo-convergence testing (remove in production)
 (window as unknown as Record<string, unknown>).geoDebug = {

@@ -52,7 +52,6 @@ export class App {
     const PANEL_SPANS_KEY = 'grid48-panel-spans';
 
     const isMobile = isMobileDevice();
-    const isDesktopApp = false;
     const monitors = loadFromStorage<Monitor[]>(STORAGE_KEYS.monitors, []);
 
     // Use mobile-specific defaults on first load (no saved layers)
@@ -180,18 +179,6 @@ export class App {
       localStorage.setItem(LAYOUT_RESET_MIGRATION_KEY, 'done');
     }
 
-    // Desktop key management panel must always remain accessible in Tauri.
-    if (isDesktopApp) {
-      if (!panelSettings['runtime-config']) {
-        panelSettings['runtime-config'] = {
-          name: 'Desktop Configuration',
-          enabled: true,
-          priority: 2,
-        };
-        saveToStorage(STORAGE_KEYS.panels, panelSettings);
-      }
-    }
-
     let initialUrlState: ParsedMapUrlState | null = parseMapUrlState(window.location.search, mapLayers);
     if (initialUrlState.layers) {
       mapLayers = sanitizeLayersForVariant(initialUrlState.layers, currentVariant as MapVariant);
@@ -207,7 +194,6 @@ export class App {
     this.state = {
       map: null,
       isMobile,
-      isDesktopApp,
       container: el,
       panels: {},
       panelSettings,

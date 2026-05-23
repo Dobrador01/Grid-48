@@ -53,7 +53,6 @@ export class EventHandlerManager implements AppModule {
   private boundFullscreenHandler: (() => void) | null = null;
   private boundResizeHandler: (() => void) | null = null;
   private boundVisibilityHandler: (() => void) | null = null;
-  private boundDesktopExternalLinkHandler: ((e: MouseEvent) => void) | null = null;
   private boundIdleResetHandler: (() => void) | null = null;
   private boundStorageHandler: ((e: StorageEvent) => void) | null = null;
   private boundFocalPointsReadyHandler: (() => void) | null = null;
@@ -99,10 +98,6 @@ export class EventHandlerManager implements AppModule {
     if (this.boundVisibilityHandler) {
       document.removeEventListener('visibilitychange', this.boundVisibilityHandler);
       this.boundVisibilityHandler = null;
-    }
-    if (this.boundDesktopExternalLinkHandler) {
-      document.removeEventListener('click', this.boundDesktopExternalLinkHandler, true);
-      this.boundDesktopExternalLinkHandler = null;
     }
     if (this.idleTimeoutId) {
       clearTimeout(this.idleTimeoutId);
@@ -198,7 +193,7 @@ export class EventHandlerManager implements AppModule {
     });
 
     const fullscreenBtn = document.getElementById('fullscreenBtn');
-    if (!this.ctx.isDesktopApp && fullscreenBtn) {
+    if (fullscreenBtn) {
       fullscreenBtn.addEventListener('click', () => this.toggleFullscreen());
       this.boundFullscreenHandler = () => {
         fullscreenBtn.textContent = document.fullscreenElement ? '\u26F6' : '\u26F6';
@@ -218,9 +213,6 @@ export class EventHandlerManager implements AppModule {
 
     this.boundVisibilityHandler = () => {
       document.body?.classList.toggle('animations-paused', document.hidden);
-      if (this.ctx.isDesktopApp) {
-        this.ctx.map?.setRenderPaused(document.hidden);
-      }
       if (document.hidden) {
         this.callbacks.setHiddenSince(Date.now());
         // ML worker removed
@@ -241,33 +233,6 @@ export class EventHandlerManager implements AppModule {
       this.updateHeaderThemeIcon();
     };
     window.addEventListener('theme-changed', this.boundThemeChangedHandler);
-
-    if (this.ctx.isDesktopApp) {
-      if (this.boundDesktopExternalLinkHandler) {
-        document.removeEventListener('click', this.boundDesktopExternalLinkHandler, true);
-      }
-      this.boundDesktopExternalLinkHandler = (e: MouseEvent) => {
-        if (!(e.target instanceof Element)) return;
-        const anchor = e.target.closest('a[href]') as HTMLAnchorElement | null;
-        if (!anchor) return;
-        const href = anchor.href;
-        if (!href || href.startsWith('javascript:') || href === '#' || href.startsWith('#')) return;
-        // Only handle valid http(s) URLs
-        let url: URL;
-        try {
-          url = new URL(href, window.location.href);
-        } catch {
-          // Malformed URL, let browser handle
-          return;
-        }
-        if (url.origin === window.location.origin) return;
-        if (!/^https?:$/.test(url.protocol)) return; // Only allow http(s) links
-        e.preventDefault();
-        e.stopPropagation();
-        window.open(url.toString(), '_blank');
-      };
-      document.addEventListener('click', this.boundDesktopExternalLinkHandler, true);
-    }
   }
 
   private setupIdleDetection(): void {
@@ -420,7 +385,6 @@ export class EventHandlerManager implements AppModule {
         localStorage.removeItem('map-height');
         window.location.reload();
       },
-      isDesktopApp: this.ctx.isDesktopApp,
       onMapProviderChange: () => {
         this.ctx.map?.reloadBasemap();
       },

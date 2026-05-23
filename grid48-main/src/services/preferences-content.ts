@@ -7,7 +7,6 @@ import { trackLanguageChange } from '@/services/analytics';
 import { exportSettings, importSettings, type ImportResult } from '@/utils/settings-persistence';
 
 export interface PreferencesHost {
-  isDesktopApp: boolean;
   onMapProviderChange?: (provider: MapProvider) => void;
 }
 
@@ -41,7 +40,6 @@ function renderMapThemeDropdown(container: HTMLElement, provider: MapProvider): 
 }
 
 export function renderPreferences(host: PreferencesHost): PreferencesResult {
-  void host; // host.isDesktopApp e onMapProviderChange usados abaixo
   const settings = getAiFlowSettings();
   const currentLang = getCurrentLanguage();
   let html = '';
