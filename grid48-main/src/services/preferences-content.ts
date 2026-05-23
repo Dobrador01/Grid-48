@@ -1,15 +1,10 @@
 import { LANGUAGES, getCurrentLanguage, changeLanguage, t } from '@/services/i18n';
-import { getAiFlowSettings, setAiFlowSetting, getStreamQuality, setStreamQuality, STREAM_QUALITY_OPTIONS } from '@/services/ai-flow-settings';
+import { getAiFlowSettings, setAiFlowSetting } from '@/services/ai-flow-settings';
 import { getMapProvider, setMapProvider, MAP_PROVIDER_OPTIONS, MAP_THEME_OPTIONS, getMapTheme, setMapTheme, type MapProvider } from '@/config/basemap';
-import { getLiveStreamsAlwaysOn, setLiveStreamsAlwaysOn } from '@/services/live-stream-settings';
-import { getGlobeVisualPreset, setGlobeVisualPreset, GLOBE_VISUAL_PRESET_OPTIONS, type GlobeVisualPreset } from '@/services/globe-render-settings';
-import type { StreamQuality } from '@/services/ai-flow-settings';
 import { getThemePreference, setThemePreference, type ThemePreference } from '@/utils/theme-manager';
 import { escapeHtml } from '@/utils/sanitize';
 import { trackLanguageChange } from '@/services/analytics';
 import { exportSettings, importSettings, type ImportResult } from '@/utils/settings-persistence';
-
-const DESKTOP_RELEASES_URL = 'https://github.com/koala73/worldmonitor/releases';
 
 export interface PreferencesHost {
   isDesktopApp: boolean;
@@ -45,29 +40,8 @@ function renderMapThemeDropdown(container: HTMLElement, provider: MapProvider): 
     .join('');
 }
 
-function updateAiStatus(container: HTMLElement): void {
-  const settings = getAiFlowSettings();
-  const dot = container.querySelector('#usStatusDot');
-  const text = container.querySelector('#usStatusText');
-  if (!dot || !text) return;
-
-  dot.className = 'ai-flow-status-dot';
-  if (settings.cloudLlm && settings.browserModel) {
-    dot.classList.add('active');
-    text.textContent = t('components.insights.aiFlowStatusCloudAndBrowser');
-  } else if (settings.cloudLlm) {
-    dot.classList.add('active');
-    text.textContent = t('components.insights.aiFlowStatusActive');
-  } else if (settings.browserModel) {
-    dot.classList.add('browser-only');
-    text.textContent = t('components.insights.aiFlowStatusBrowserOnly');
-  } else {
-    dot.classList.add('disabled');
-    text.textContent = t('components.insights.aiFlowStatusDisabled');
-  }
-}
-
 export function renderPreferences(host: PreferencesHost): PreferencesResult {
+  void host; // host.isDesktopApp e onMapProviderChange usados abaixo
   const settings = getAiFlowSettings();
   const currentLang = getCurrentLanguage();
   let html = '';
@@ -126,23 +100,6 @@ export function renderPreferences(host: PreferencesHost): PreferencesResult {
   }
   html += `</select>`;
 
-  html += toggleRowHtml('us-map-flash', t('components.insights.mapFlashLabel'), t('components.insights.mapFlashDesc'), settings.mapNewsFlash);
-
-  // 3D Globe Visual Preset
-  const currentPreset = getGlobeVisualPreset();
-  html += `<div class="ai-flow-toggle-row">
-    <div class="ai-flow-toggle-label-wrap">
-      <div class="ai-flow-toggle-label">${t('preferences.globePreset')}</div>
-      <div class="ai-flow-toggle-desc">${t('preferences.globePresetDesc')}</div>
-    </div>
-  </div>`;
-  html += `<select class="unified-settings-select" id="us-globe-visual-preset">`;
-  for (const opt of GLOBE_VISUAL_PRESET_OPTIONS) {
-    const selected = opt.value === currentPreset ? ' selected' : '';
-    html += `<option value="${opt.value}"${selected}>${escapeHtml(opt.label)}</option>`;
-  }
-  html += `</select>`;
-
   // Language
   html += `<div class="ai-flow-section-label">${t('header.languageLabel')}</div>`;
   html += `<select class="unified-settings-lang-select" id="us-language">`;
@@ -157,56 +114,6 @@ export function renderPreferences(host: PreferencesHost): PreferencesResult {
 
   html += `</div></details>`;
 
-  // ── Intelligence group ──
-  html += `<details class="wm-pref-group">`;
-  html += `<summary>${t('preferences.intelligence')}</summary>`;
-  html += `<div class="wm-pref-group-content">`;
-
-  if (!host.isDesktopApp) {
-    html += toggleRowHtml('us-cloud', t('components.insights.aiFlowCloudLabel'), t('components.insights.aiFlowCloudDesc'), settings.cloudLlm);
-    html += toggleRowHtml('us-browser', t('components.insights.aiFlowBrowserLabel'), t('components.insights.aiFlowBrowserDesc'), settings.browserModel);
-    html += `<div class="ai-flow-toggle-warn" style="display:${settings.browserModel ? 'block' : 'none'}">${t('components.insights.aiFlowBrowserWarn')}</div>`;
-    html += `
-      <div class="ai-flow-cta">
-        <div class="ai-flow-cta-title">${t('components.insights.aiFlowOllamaCta')}</div>
-        <div class="ai-flow-cta-desc">${t('components.insights.aiFlowOllamaCtaDesc')}</div>
-        <a href="${DESKTOP_RELEASES_URL}" target="_blank" rel="noopener noreferrer" class="ai-flow-cta-link">${t('components.insights.aiFlowDownloadDesktop')}</a>
-      </div>
-    `;
-  }
-
-  html += toggleRowHtml('us-headline-memory', t('components.insights.headlineMemoryLabel'), t('components.insights.headlineMemoryDesc'), settings.headlineMemory);
-
-  html += `</div></details>`;
-
-  // ── Media group ──
-  html += `<details class="wm-pref-group">`;
-  html += `<summary>${t('preferences.media')}</summary>`;
-  html += `<div class="wm-pref-group-content">`;
-
-  const currentQuality = getStreamQuality();
-  html += `<div class="ai-flow-toggle-row">
-    <div class="ai-flow-toggle-label-wrap">
-      <div class="ai-flow-toggle-label">${t('components.insights.streamQualityLabel')}</div>
-      <div class="ai-flow-toggle-desc">${t('components.insights.streamQualityDesc')}</div>
-    </div>
-  </div>`;
-  html += `<select class="unified-settings-select" id="us-stream-quality">`;
-  for (const opt of STREAM_QUALITY_OPTIONS) {
-    const selected = opt.value === currentQuality ? ' selected' : '';
-    html += `<option value="${opt.value}"${selected}>${escapeHtml(opt.label)}</option>`;
-  }
-  html += `</select>`;
-
-  html += toggleRowHtml(
-    'us-live-streams-always-on',
-    t('components.insights.streamAlwaysOnLabel'),
-    t('components.insights.streamAlwaysOnDesc'),
-    getLiveStreamsAlwaysOn(),
-  );
-
-  html += `</div></details>`;
-
   // ── Panels group ──
   html += `<details class="wm-pref-group">`;
   html += `<summary>${t('preferences.panels')}</summary>`;
@@ -214,7 +121,7 @@ export function renderPreferences(host: PreferencesHost): PreferencesResult {
   html += toggleRowHtml('us-badge-anim', t('components.insights.badgeAnimLabel'), t('components.insights.badgeAnimDesc'), settings.badgeAnimation);
   html += `</div></details>`;
 
-  // ── Data & Community group ──
+  // ── Data group (export/import) ──
   html += `<details class="wm-pref-group">`;
   html += `<summary>${t('preferences.dataAndCommunity')}</summary>`;
   html += `<div class="wm-pref-group-content">`;
@@ -226,16 +133,7 @@ export function renderPreferences(host: PreferencesHost): PreferencesResult {
     </div>
     <div class="us-data-mgmt-toast" id="usDataMgmtToast"></div>
   `;
-  html += `<a href="https://github.com/koala73/worldmonitor/discussions/94" target="_blank" rel="noopener noreferrer" class="us-discussion-link">
-    <span class="us-discussion-dot"></span>
-    <span>${t('components.community.joinDiscussion')}</span>
-  </a>`;
   html += `</div></details>`;
-
-  // AI status footer (web-only)
-  if (!host.isDesktopApp) {
-    html += `<div class="ai-flow-popup-footer"><span class="ai-flow-status-dot" id="usStatusDot"></span><span class="ai-flow-status-text" id="usStatusText"></span></div>`;
-  }
 
   return {
     html,
@@ -258,14 +156,6 @@ export function renderPreferences(host: PreferencesHost): PreferencesResult {
           return;
         }
 
-        if (target.id === 'us-stream-quality') {
-          setStreamQuality(target.value as StreamQuality);
-          return;
-        }
-        if (target.id === 'us-globe-visual-preset') {
-          setGlobeVisualPreset(target.value as GlobeVisualPreset);
-          return;
-        }
         if (target.id === 'us-theme') {
           setThemePreference(target.value as ThemePreference);
           return;
@@ -284,28 +174,12 @@ export function renderPreferences(host: PreferencesHost): PreferencesResult {
           window.dispatchEvent(new CustomEvent('map-theme-changed'));
           return;
         }
-        if (target.id === 'us-live-streams-always-on') {
-          setLiveStreamsAlwaysOn(target.checked);
-          return;
-        }
         if (target.id === 'us-language') {
           trackLanguageChange(target.value);
           void changeLanguage(target.value);
           return;
         }
-        if (target.id === 'us-cloud') {
-          setAiFlowSetting('cloudLlm', target.checked);
-          updateAiStatus(container);
-        } else if (target.id === 'us-browser') {
-          setAiFlowSetting('browserModel', target.checked);
-          const warn = container.querySelector('.ai-flow-toggle-warn') as HTMLElement;
-          if (warn) warn.style.display = target.checked ? 'block' : 'none';
-          updateAiStatus(container);
-        } else if (target.id === 'us-map-flash') {
-          setAiFlowSetting('mapNewsFlash', target.checked);
-        } else if (target.id === 'us-headline-memory') {
-          setAiFlowSetting('headlineMemory', target.checked);
-        } else if (target.id === 'us-badge-anim') {
+        if (target.id === 'us-badge-anim') {
           setAiFlowSetting('badgeAnimation', target.checked);
         }
       }, { signal });
@@ -326,8 +200,6 @@ export function renderPreferences(host: PreferencesHost): PreferencesResult {
           return;
         }
       }, { signal });
-
-      if (!host.isDesktopApp) updateAiStatus(container);
 
       return () => ac.abort();
     },
