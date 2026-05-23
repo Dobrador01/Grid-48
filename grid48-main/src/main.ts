@@ -16,7 +16,7 @@ Sentry.init({
   environment: location.hostname === 'grid48.app' ? 'production'
     : location.hostname.includes('vercel.app') ? 'preview'
     : 'development',
-  enabled: Boolean(sentryDsn) && !location.hostname.startsWith('localhost') && !('__TAURI_INTERNALS__' in window),
+  enabled: Boolean(sentryDsn) && !location.hostname.startsWith('localhost'),
   sendDefaultPii: true,
   tracesSampleRate: 0.1,
   ignoreErrors: [
@@ -370,17 +370,7 @@ Object.defineProperty(window, 'beta', {
   },
 });
 
-// Suppress native WKWebView context menu in Tauri — allows custom JS context menus
-if ('__TAURI_INTERNALS__' in window || '__TAURI__' in window) {
-  document.addEventListener('contextmenu', (e) => {
-    const target = e.target as HTMLElement;
-    // Allow native menu on text inputs/textareas for copy/paste
-    if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return;
-    e.preventDefault();
-  });
-}
-
-if (!('__TAURI_INTERNALS__' in window) && !('__TAURI__' in window) && 'serviceWorker' in navigator) {
+if ('serviceWorker' in navigator) {
   // One-time nuke: clear stale SWs and caches from old deploys, then re-register fresh.
   // Safe to remove after 2026-03-20 when all users have cycled through.
   const nukeKey = 'wm-sw-nuked-v2';

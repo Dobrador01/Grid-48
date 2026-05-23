@@ -4,9 +4,7 @@ import { layers, namedFlavor } from '@protomaps/basemaps';
 import type { StyleSpecification } from 'maplibre-gl';
 
 const R2_PROXY = import.meta.env.VITE_PMTILES_URL ?? '';
-const R2_PUBLIC = import.meta.env.VITE_PMTILES_URL_PUBLIC ?? '';
-const isTauri = typeof window !== 'undefined' && '__TAURI__' in window;
-const R2_BASE = isTauri && R2_PUBLIC ? R2_PUBLIC : R2_PROXY;
+const R2_BASE = R2_PROXY;
 
 const hasTilesUrl = !!R2_BASE;
 

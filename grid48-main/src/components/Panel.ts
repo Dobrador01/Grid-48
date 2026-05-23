@@ -1,10 +1,7 @@
-import { isDesktopRuntime } from '../services/runtime';
-import { invokeTauri } from '../services/tauri-bridge';
 import { t } from '../services/i18n';
 import { h, replaceChildren, safeHtml } from '../utils/dom-utils';
 import { trackPanelResized } from '@/services/analytics';
 import { getAiFlowSettings } from '@/services/ai-flow-settings';
-import { getSecretState } from '@/services/runtime-config';
 
 export interface PanelOptions {
   id: string;
@@ -247,11 +244,6 @@ export class Panel {
       this.newBadgeEl.className = 'panel-new-badge';
       this.newBadgeEl.style.display = 'none';
       headerLeft.appendChild(this.newBadgeEl);
-    }
-
-    if (isDesktopRuntime() && options.premium === 'enhanced' && !getSecretState('WORLDMONITOR_API_KEY').present) {
-      const proBadge = h('span', { className: 'panel-pro-badge' }, t('premium.pro'));
-      headerLeft.appendChild(proBadge);
     }
 
     this.header.appendChild(headerLeft);
@@ -749,11 +741,7 @@ export class Panel {
     }
 
     const ctaBtn = h('button', { type: 'button', className: 'panel-locked-cta' }, t('premium.joinWaitlist'));
-    if (isDesktopRuntime()) {
-      ctaBtn.addEventListener('click', () => void invokeTauri<void>('open_settings_window_command').catch(() => {}));
-    } else {
-      ctaBtn.addEventListener('click', () => window.open('https://worldmonitor.app/pro', '_blank'));
-    }
+    ctaBtn.addEventListener('click', () => window.open('https://worldmonitor.app/pro', '_blank'));
     lockedChildren.push(ctaBtn);
 
     replaceChildren(this.content, h('div', { className: 'panel-locked-state' }, ...lockedChildren));
@@ -817,15 +805,6 @@ export class Panel {
 
   public showConfigError(message: string): void {
     const msgEl = h('div', { className: 'config-error-message' }, message);
-    if (isDesktopRuntime()) {
-      msgEl.appendChild(
-        h('button', {
-          type: 'button',
-          className: 'config-error-settings-btn',
-          onClick: () => void invokeTauri<void>('open_settings_window_command').catch(() => { }),
-        }, t('components.panel.openSettings')),
-      );
-    }
     replaceChildren(this.content, msgEl);
   }
 

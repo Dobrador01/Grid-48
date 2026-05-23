@@ -15,14 +15,15 @@ import {
   type RuntimeFeatureId,
   type RuntimeSecretKey,
 } from '@/services/runtime-config';
-import { invokeTauri } from '@/services/tauri-bridge';
 import { escapeHtml } from '@/utils/sanitize';
-import { isDesktopRuntime } from '@/services/runtime';
 import { t } from '@/services/i18n';
 import { trackFeatureToggle } from '@/services/analytics';
 import { SIGNUP_URLS, PLAINTEXT_KEYS, MASKED_SENTINEL } from '@/services/settings-constants';
 
 interface RuntimeConfigPanelOptions {
+  /** Modo 'alert' era exclusivo do desktop runtime (Tauri, removido).
+   *  Mantido na assinatura pra retro-compat com callsites em dead code,
+   *  mas ignorado em runtime — sempre 'full'. */
   mode?: 'full' | 'alert';
   buffered?: boolean;
   featureFilter?: RuntimeFeatureId[];
@@ -30,7 +31,6 @@ interface RuntimeConfigPanelOptions {
 
 export class RuntimeConfigPanel extends Panel {
   private unsubscribe: (() => void) | null = null;
-  private readonly mode: 'full' | 'alert';
   private readonly buffered: boolean;
   private readonly featureFilter?: RuntimeFeatureId[];
   private pendingSecrets = new Map<RuntimeSecretKey, string>();
@@ -39,7 +39,7 @@ export class RuntimeConfigPanel extends Panel {
 
   constructor(options: RuntimeConfigPanelOptions = {}) {
     super({ id: 'runtime-config', title: t('modals.runtimeConfig.title'), showCount: false });
-    this.mode = options.mode ?? (isDesktopRuntime() ? 'alert' : 'full');
+    void options.mode; // silenciar opção obsoleta (ver comentário no tipo)
     this.buffered = options.buffered ?? false;
     this.featureFilter = options.featureFilter;
     this.unsubscribe = subscribeRuntimeConfig(() => this.render());
@@ -187,47 +187,14 @@ export class RuntimeConfigPanel extends Panel {
 
   protected render(): void {
     this.captureUnsavedInputs();
-    const snapshot = getRuntimeConfigSnapshot();
-    const desktop = isDesktopRuntime();
-
+    void getRuntimeConfigSnapshot(); // mantém side-effect (assina updates)
     const features = this.getFilteredFeatures();
 
-    if (desktop && this.mode === 'alert') {
-      const totalFeatures = RUNTIME_FEATURES.length;
-      const availableFeatures = RUNTIME_FEATURES.filter((feature) => isFeatureAvailable(feature.id)).length;
-      const missingFeatures = Math.max(0, totalFeatures - availableFeatures);
-      const configuredCount = Object.keys(snapshot.secrets).length;
-
-      if (missingFeatures === 0 && configuredCount >= totalFeatures) {
-        this.hide();
-        return;
-      }
-
-      const alertTitle = configuredCount > 0
-        ? (missingFeatures > 0 ? t('modals.runtimeConfig.alertTitle.some') : t('modals.runtimeConfig.alertTitle.configured'))
-        : t('modals.runtimeConfig.alertTitle.needsKeys');
-      const alertClass = missingFeatures > 0 ? 'warn' : 'ok';
-
-      this.show();
-      this.content.innerHTML = `
-        <section class="runtime-alert runtime-alert-${alertClass}">
-          <h3>${alertTitle}</h3>
-          <p>
-            ${availableFeatures}/${totalFeatures} ${t('modals.runtimeConfig.summary.available')}${configuredCount > 0 ? ` · ${configuredCount} ${t('modals.runtimeConfig.summary.secrets')}` : ''}.
-          </p>
-          <p class="runtime-alert-skip">${t('modals.runtimeConfig.skipSetup')}</p>
-          <button type="button" class="runtime-open-settings-btn" data-open-settings>
-            ${t('modals.runtimeConfig.openSettings')}
-          </button>
-        </section>
-      `;
-      this.attachListeners();
-      return;
-    }
-
+    // Modo 'alert' era exclusivo do desktop runtime (Tauri) — removido.
+    // Sempre renderiza o modo 'full' (lista web-mode).
     this.content.innerHTML = `
       <div class="runtime-config-summary">
-        ${desktop ? t('modals.runtimeConfig.summary.desktop') : t('modals.runtimeConfig.summary.web')} · ${features.filter(f => isFeatureAvailable(f.id)).length}/${features.length} ${t('modals.runtimeConfig.summary.available')}
+        ${t('modals.runtimeConfig.summary.web')} · ${features.filter(f => isFeatureAvailable(f.id)).length}/${features.length} ${t('modals.runtimeConfig.summary.available')}
       </div>
       <div class="runtime-config-list">
         ${features.map(feature => this.renderFeature(feature)).join('')}
@@ -247,14 +214,13 @@ export class RuntimeConfigPanel extends Panel {
     const pillClass = available ? 'ok' : allStaged ? 'staged' : 'warn';
     const pillLabel = available ? t('modals.runtimeConfig.status.ready') : allStaged ? t('modals.runtimeConfig.status.staged') : t('modals.runtimeConfig.status.needsKeys');
     const secrets = effectiveSecrets.map((key) => this.renderSecretRow(key)).join('');
-    const desktop = isDesktopRuntime();
     const fallbackHtml = available || allStaged ? '' : `<p class="runtime-feature-fallback fallback">${escapeHtml(feature.fallback)}</p>`;
 
     return `
       <section class="runtime-feature ${available ? 'available' : allStaged ? 'staged' : 'degraded'}">
         <header class="runtime-feature-header">
           <label>
-            <input type="checkbox" data-toggle="${feature.id}" ${enabled ? 'checked' : ''} ${desktop ? '' : 'disabled'}>
+            <input type="checkbox" data-toggle="${feature.id}" ${enabled ? 'checked' : ''} disabled>
             <span>${escapeHtml(feature.name)}</span>
           </label>
           <span class="runtime-pill ${pillClass}">${pillLabel}</span>
@@ -297,10 +263,10 @@ export class RuntimeConfigPanel extends Panel {
           <span class="runtime-secret-status ${statusClass}">${escapeHtml(status)}</span>
           <span class="runtime-secret-check ${checkClass}">&#x2713;</span>
           ${helpText ? `<div class="runtime-secret-meta">${escapeHtml(helpText)}</div>` : ''}
-          <select data-model-select class="${inputClass}" ${isDesktopRuntime() ? '' : 'disabled'}>
+          <select data-model-select class="${inputClass}" disabled>
             ${storedModel ? `<option value="${escapeHtml(storedModel)}" selected>${escapeHtml(storedModel)}</option>` : '<option value="" selected disabled>Loading models...</option>'}
           </select>
-          <input type="text" data-model-manual class="${inputClass} hidden-input" placeholder="Or type model name" autocomplete="off" ${isDesktopRuntime() ? '' : 'disabled'} ${storedModel ? `value="${escapeHtml(storedModel)}"` : ''}>
+          <input type="text" data-model-manual class="${inputClass} hidden-input" placeholder="Or type model name" autocomplete="off" disabled ${storedModel ? `value="${escapeHtml(storedModel)}"` : ''}>
           ${hintText ? `<span class="runtime-secret-hint">${escapeHtml(hintText)}</span>` : ''}
         </div>
       `;
@@ -317,7 +283,7 @@ export class RuntimeConfigPanel extends Panel {
         <span class="runtime-secret-check ${checkClass}">&#x2713;</span>
         ${helpText ? `<div class="runtime-secret-meta">${escapeHtml(helpText)}</div>` : ''}
         <div class="runtime-input-wrapper${showGetKey ? ' has-suffix' : ''}">
-          <input type="${PLAINTEXT_KEYS.has(key) ? 'text' : 'password'}" data-secret="${key}" placeholder="${pending ? t('modals.runtimeConfig.placeholder.staged') : t('modals.runtimeConfig.placeholder.setSecret')}" autocomplete="off" ${isDesktopRuntime() ? '' : 'disabled'} class="${inputClass}" ${pending ? `value="${PLAINTEXT_KEYS.has(key) ? escapeHtml(this.pendingSecrets.get(key) || '') : MASKED_SENTINEL}"` : (PLAINTEXT_KEYS.has(key) && state.present ? `value="${escapeHtml(getRuntimeConfigSnapshot().secrets[key]?.value || '')}"` : '')}>
+          <input type="${PLAINTEXT_KEYS.has(key) ? 'text' : 'password'}" data-secret="${key}" placeholder="${pending ? t('modals.runtimeConfig.placeholder.staged') : t('modals.runtimeConfig.placeholder.setSecret')}" autocomplete="off" disabled class="${inputClass}" ${pending ? `value="${PLAINTEXT_KEYS.has(key) ? escapeHtml(this.pendingSecrets.get(key) || '') : MASKED_SENTINEL}"` : (PLAINTEXT_KEYS.has(key) && state.present ? `value="${escapeHtml(getRuntimeConfigSnapshot().secrets[key]?.value || '')}"` : '')}>
           ${getKeyHtml}
         </div>
         ${hintText ? `<span class="runtime-secret-hint">${escapeHtml(hintText)}</span>` : ''}
@@ -331,26 +297,14 @@ export class RuntimeConfigPanel extends Panel {
         e.preventDefault();
         const url = link.dataset.signupUrl;
         if (!url) return;
-        if (isDesktopRuntime()) {
-          void invokeTauri<void>('open_url', { url }).catch(() => window.open(url, '_blank'));
-        } else {
-          window.open(url, '_blank');
-        }
+        window.open(url, '_blank');
       });
     });
 
-    if (!isDesktopRuntime()) return;
-
-    if (this.mode === 'alert') {
-      this.content.querySelector<HTMLButtonElement>('[data-open-settings]')?.addEventListener('click', () => {
-        void invokeTauri<void>('open_settings_window_command').catch((error) => {
-          console.warn('[runtime-config] Failed to open settings window', error);
-        });
-      });
-      return;
-    }
-
-    // Ollama model dropdown: fetch models and handle selection
+    // NOTA: o bloco abaixo só executava em desktop runtime (Tauri). Agora
+    // que Tauri foi removido, esses listeners atendem inputs `disabled` —
+    // não-op em todos eles. Painel inteiro é candidato a remoção numa
+    // próxima fase de limpeza.
     const modelSelect = this.content.querySelector<HTMLSelectElement>('select[data-model-select]');
     if (modelSelect) {
       modelSelect.addEventListener('change', () => {

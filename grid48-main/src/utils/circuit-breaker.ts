@@ -34,10 +34,10 @@ const DEFAULT_CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
 const PERSISTENT_STALE_CEILING_MS = 24 * 60 * 60 * 1000; // 24h — discard persistent entries older than this
 
 
+// Desktop runtime foi removido — sem mais detecção de offline-via-Tauri.
+// Mantemos a função pra não tocar nos callers; sempre retorna false.
 function isDesktopOfflineMode(): boolean {
-  if (typeof window === 'undefined') return false;
-  const hasTauri = Boolean((window as unknown as { __TAURI__?: unknown }).__TAURI__);
-  return hasTauri && typeof navigator !== 'undefined' && navigator.onLine === false;
+  return false;
 }
 
 export class CircuitBreaker<T> {

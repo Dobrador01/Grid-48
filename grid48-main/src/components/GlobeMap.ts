@@ -15,7 +15,6 @@
  */
 
 import Globe from 'globe.gl';
-import { isDesktopRuntime } from '@/services/runtime';
 import type { GlobeInstance, ConfigOptions } from 'globe.gl';
 import { INTEL_HOTSPOTS, CONFLICT_ZONES, MILITARY_BASES, NUCLEAR_FACILITIES, SPACEPORTS, ECONOMIC_CENTERS, STRATEGIC_WATERWAYS, CRITICAL_MINERALS, UNDERSEA_CABLES } from '@/config/geo';
 import { PIPELINES } from '@/config/pipelines';
@@ -479,18 +478,13 @@ export class GlobeMap {
   private async initGlobe(): Promise<void> {
     if (this.destroyed) return;
 
-    const desktop = isDesktopRuntime();
     const initialScale = getGlobeRenderScale();
-    const initialPixelRatio = desktop
-      ? Math.min(resolveGlobePixelRatio(initialScale), 1.25)
-      : resolveGlobePixelRatio(initialScale);
+    const initialPixelRatio = resolveGlobePixelRatio(initialScale);
     const config: ConfigOptions = {
       animateIn: false,
       rendererConfig: {
-        // Desktop (Tauri/WebView2) can fall back to software rendering on some machines.
-        // Keep defaults conservative to avoid 1fps reports (see #930).
-        powerPreference: desktop ? 'high-performance' : 'default',
-        logarithmicDepthBuffer: !desktop,
+        powerPreference: 'default',
+        logarithmicDepthBuffer: true,
         antialias: initialPixelRatio > 1,
       },
     };
@@ -537,7 +531,7 @@ export class GlobeMap {
     controls.zoomSpeed = 1.4;
     controls.minDistance = 101;
     controls.maxDistance = 600;
-    controls.enableDamping = !desktop;
+    controls.enableDamping = true;
 
     this.controlsEndHandler = () => {
       if (!(this.layers as any)['satellites' as any]) return;
@@ -2655,10 +2649,7 @@ export class GlobeMap {
   private applyRenderQuality(scale?: GlobeRenderScale, width?: number, height?: number): void {
     if (!this.globe) return;
     try {
-      const desktop = isDesktopRuntime();
-      const pr = desktop
-        ? Math.min(resolveGlobePixelRatio(scale ?? getGlobeRenderScale()), 1.25)
-        : resolveGlobePixelRatio(scale ?? getGlobeRenderScale());
+      const pr = resolveGlobePixelRatio(scale ?? getGlobeRenderScale());
       const renderer = this.globe.renderer();
       renderer.setPixelRatio(pr);
       const w = (width ?? this.container.clientWidth) || window.innerWidth;

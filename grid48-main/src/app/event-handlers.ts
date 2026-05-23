@@ -29,7 +29,6 @@ import {
   trackMapLayerToggle,
   trackPanelToggled,
 } from '@/services/analytics';
-import { invokeTauri } from '@/services/tauri-bridge';
 import { dataFreshness } from '@/services/data-freshness';
 
 import { UnifiedSettings } from '@/components/UnifiedSettings';
@@ -265,9 +264,7 @@ export class EventHandlerManager implements AppModule {
         if (!/^https?:$/.test(url.protocol)) return; // Only allow http(s) links
         e.preventDefault();
         e.stopPropagation();
-        void invokeTauri<void>('open_url', { url: url.toString() }).catch(() => {
-          window.open(url.toString(), '_blank');
-        });
+        window.open(url.toString(), '_blank');
       };
       document.addEventListener('click', this.boundDesktopExternalLinkHandler, true);
     }

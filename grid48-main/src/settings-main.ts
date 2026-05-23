@@ -27,7 +27,6 @@ import {
   type RuntimeSecretKey,
 } from '@/services/runtime-config';
 import { startSmartPollLoop, type SmartPollLoopHandle } from '@/services/runtime';
-import { tryInvokeTauri } from '@/services/tauri-bridge';
 import { escapeHtml } from '@/utils/sanitize';
 import { initI18n, t } from '@/services/i18n';
 import { applyStoredTheme } from '@/utils/theme-manager';
@@ -45,34 +44,26 @@ function setActionStatus(message: string, tone: 'ok' | 'error' = 'ok'): void {
   statusEl.classList.add(tone);
 }
 
-async function invokeDesktopAction(command: string, successLabel: string): Promise<void> {
-  const result = await tryInvokeTauri<string>(command);
-  if (result) {
-    setActionStatus(`${successLabel}: ${result}`, 'ok');
-    return;
-  }
+// Desktop runtime foi removido. invokeDesktopAction sempre cai no fallback de
+// erro — registramos isso e seguimos. Mantemos a função pra não tocar nos
+// callers; futuramente serão removidos junto com a janela de diagnóstico
+// desktop-only.
+async function invokeDesktopAction(command: string, _successLabel: string): Promise<void> {
   setActionStatus(t('modals.settingsWindow.invokeFail', { command }), 'error');
 }
 
 function closeSettingsWindow(): void {
-  void tryInvokeTauri<void>('close_settings_window').then(() => { }, () => window.close());
+  window.close();
 }
 
 function getSidecarBase(): string {
   return '';
 }
 
-let _diagToken: string | null = null;
-
 async function diagFetch(path: string, init?: RequestInit): Promise<Response> {
-  if (!_diagToken) {
-    try {
-      _diagToken = await tryInvokeTauri<string>('get_local_api_token');
-    } catch { /* token unavailable */ }
-  }
-  const headers = new Headers(init?.headers);
-  if (_diagToken) headers.set('Authorization', `Bearer ${_diagToken}`);
-  return fetch(`${getSidecarBase()}${path}`, { ...init, headers });
+  // Sem sidecar Tauri — fetch direto. Em produção web, esses paths
+  // simplesmente não existem; resposta 404 vira mensagem de erro na UI.
+  return fetch(`${getSidecarBase()}${path}`, init);
 }
 
 // ── Sidebar icons ──

@@ -10,16 +10,7 @@ const DEFAULT_REMOTE_HOSTS: Record<string, string> = {
   happy: WS_API_URL,
 };
 
-function normalizeBaseUrl(baseUrl: string): string {
-  return baseUrl.replace(/\/$/, '');
-}
-
 export function getRemoteApiBaseUrl(): string {
-  const configuredRemoteBase = import.meta.env.VITE_TAURI_REMOTE_API_BASE_URL;
-  if (configuredRemoteBase) {
-    return normalizeBaseUrl(configuredRemoteBase);
-  }
-
   const fromHosts = DEFAULT_REMOTE_HOSTS[SITE_VARIANT] ?? DEFAULT_REMOTE_HOSTS.full ?? '';
   return fromHosts;
 }
@@ -328,18 +319,3 @@ export function installWebApiRedirect(): void {
   (window as unknown as Record<string, unknown>).__wmWebRedirectPatched = true;
 }
 
-// ── Stub exports for removed desktop runtime ──
-// These are kept as no-op stubs so that callers across the codebase
-// don't need to be individually rewritten. Always returns web-mode defaults.
-
-/** Always false — desktop runtime has been removed. */
-export function isDesktopRuntime(): boolean { return false; }
-
-/** Returns empty string — use relative URLs for web fat client. */
-export function getApiBaseUrl(): string { return ''; }
-
-/** No-op — sidecar no longer exists. */
-export async function waitForSidecarReady(): Promise<void> {}
-
-/** Returns 0 — no local API port in web mode. */
-export function resolveLocalApiPort(): number { return 0; }
