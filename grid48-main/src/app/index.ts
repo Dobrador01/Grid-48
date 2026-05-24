@@ -1,4 +1,4 @@
-export type { AppContext, AppModule, CountryBriefSignals, IntelligenceCache } from './app-context';
+export type { AppContext, AppModule } from './app-context';
 
 export { SearchManager } from './search-manager';
 export { RefreshScheduler } from './refresh-scheduler';

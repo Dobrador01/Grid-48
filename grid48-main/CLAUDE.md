@@ -99,12 +99,23 @@ worldmonitor. Detalhes completos em `docs/CLEANUP_PLAN.md` (seção 11).
 | 3 | Settings UI WorldMonitor (Inteligência, Mídia, etc.) | `bb60214` |
 | 4 | `isDesktopApp` dead code + settings.html standalone | `aec56b3` |
 | 5 | 60+ services órfãos + 12 subdirs + workers/ + stubs | `384a18f` |
+| 6 | Rebuild do mapa: 13.7k linhas → `Map.ts` único de ~640 linhas | (próximo commit) |
 
-**Pendência principal**: `Map.ts` / `DeckGLMap.ts` / `MapContainer.ts`
-ainda têm 100+ refs cada a tipos/services worldmonitor. Layers ficam
-off-by-default em `FULL_MAP_LAYERS` (dead code at runtime), mas
-compile-time precisam de refactor camada-por-camada (~6-10h sessão).
-Ver `docs/CLEANUP_PLAN.md` seções 10-11.
+**Rebuild Map (Fase 6 — 2026-05-24)**: deletados `Map.ts` (3.5k) +
+`DeckGLMap.ts` (3.5k) + `MapContainer.ts` (949) + `GlobeMap.ts` (2.8k) +
+`MapPopup.ts` (2.9k) = ~13.7k linhas substituídas por um único
+`src/components/Map.ts` (~640 linhas) Grid 48-native:
+- deck.gl + maplibre direto, sem fallback SVG/Globe
+- Layer Celesc (GeoJsonLayer com cores por %UCs offline)
+- Layer Weather Alerts (ScatterplotLayer com markers Defesa Civil)
+- Tooltip central + hover tooltips
+- Fly-to ao clicar widget Celesc/Beacon (event `CELESC_CITY_SELECTED`)
+- Sync de tema automático com dashboard (`theme-changed` event)
+
+Cascata desbloqueou deleção de: 25+ services worldmonitor restantes,
+20 configs, components SearchModal/SignalModal/PlaybackControl/StatusPanel,
+e2e harnesses, `src/workers/`. Bundle main: **2.292 MB → 168 KB
+(-92.6%)**, PWA precache **7.218 KiB → 4.440 KiB**, build **30s → 13s**.
 
 ### Fases concluídas
 
@@ -384,4 +395,4 @@ Quando começar nova sessão:
 
 ---
 
-**Última atualização**: 2026-05-24 (sessão de limpeza pós-WorldMonitor — Fases 1-5 do `docs/CLEANUP_PLAN.md` + fix do throttle Gemini DEFCON + fix do expiresAt da Defesa Civil em `beacon/`).
+**Última atualização**: 2026-05-24 (sessão de limpeza pós-WorldMonitor — Fases 1-6 do `docs/CLEANUP_PLAN.md`, incluindo o rebuild final do mapa Grid 48-native + fix do throttle Gemini DEFCON + fix do expiresAt da Defesa Civil em `beacon/`).

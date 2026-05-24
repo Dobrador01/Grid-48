@@ -509,16 +509,22 @@ export interface PanelConfig {
   premium?: 'locked' | 'enhanced';
 }
 
+/**
+ * Toggles de layers do mapa Grid 48. Reduzido pra duas layers efetivamente
+ * renderizadas após cleanup WorldMonitor (fase final):
+ *   - celescOutages: polígonos municipais coloridos por %UCs offline
+ *   - weatherAlerts: marcadores Defesa Civil (eventos meteorológicos)
+ *
+ * `weatherAlerts` é o rename do antigo `weather: true` (vestígio de naming
+ * worldmonitor que na verdade controlava o layer Beacon). App.ts migra a
+ * chave automaticamente no load do localStorage.
+ */
 export interface MapLayers {
-  // Regional layers kept for Grande Florianópolis
-  weather: boolean;
-  natural: boolean;
-  fires: boolean;
-  climate: boolean;
-  outages: boolean;
-  flights: boolean;
-  dayNight: boolean;
   celescOutages: boolean;
+  weatherAlerts: boolean;
+  // Index signature pra compat com callers que iteram dinamicamente
+  // (event-handlers, data-loader) — sempre boolean pra layers Grid 48.
+  [key: string]: boolean;
 }
 
 export interface AIDataCenter {
@@ -1023,8 +1029,9 @@ export interface CascadeResult {
   }[];
 }
 
-// Re-export port types
-export type { Port, PortType } from '@/config/ports';
+// Re-export port types (config/ports deletado na limpeza WorldMonitor)
+export type Port = unknown;
+export type PortType = unknown;
 
 // AI Regulation Types
 export type RegulationType = 'comprehensive' | 'sectoral' | 'voluntary' | 'proposed';
@@ -1269,7 +1276,7 @@ export interface MapTechHQCluster {
   lat: number;
   lon: number;
   count: number;
-  items: import('@/config/tech-geo').TechHQ[];
+  items: unknown[]; // ex-TechHQ[] (config/tech-geo deletado)
   city: string;
   country: string;
   primaryType: 'faang' | 'unicorn' | 'public';

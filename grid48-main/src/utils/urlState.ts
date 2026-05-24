@@ -1,17 +1,9 @@
 import type { MapLayers } from '@/types';
 import type { MapView } from '@/components/Map';
 
-const LAYER_KEYS: (keyof MapLayers)[] = [
-  'weather',
-  'natural',
-  'fires',
-  'climate',
-  'outages',
-  'flights',
-  'dayNight',
-];
+const LAYER_KEYS: (keyof MapLayers)[] = ['celescOutages', 'weatherAlerts'];
 
-const VIEW_VALUES: MapView[] = ['global', 'america', 'mena', 'eu', 'asia', 'latam', 'africa', 'oceania'];
+const VIEW_VALUES: MapView[] = ['sjf', 'global'];
 
 export interface ParsedMapUrlState {
   view?: MapView;
@@ -65,7 +57,7 @@ export function parseMapUrlState(
           .filter(Boolean)
       );
       LAYER_KEYS.forEach((key) => {
-        layers![key] = requested.has(key);
+        layers![key] = requested.has(String(key));
       });
     } else {
       LAYER_KEYS.forEach((key) => {

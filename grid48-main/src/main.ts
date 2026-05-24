@@ -282,8 +282,6 @@ window.addEventListener('unhandledrejection', (e) => {
   if (e.reason?.name === 'NotAllowedError') e.preventDefault();
 });
 
-import { debugGetCells, getCellCount } from '@/services/geo-convergence';
-import { initMetaTags } from '@/services/meta-tags';
 import { installWebApiRedirect } from '@/services/runtime';
 import { loadDesktopSecrets } from '@/services/runtime-config';
 import { applyStoredTheme } from '@/utils/theme-manager';
@@ -297,10 +295,8 @@ const chunkReloadStorageKey = installChunkReloadGuard(__APP_VERSION__);
 inject();
 injectSpeedInsights();
 
-// Initialize dynamic meta tags for sharing
-initMetaTags();
-
-// In desktop mode, route /api/* calls to the local Tauri sidecar backend.
+// Meta tags dinâmicas eram WorldMonitor (compartilhamento social com snapshot
+// de dados). Grid 48 usa meta tags estáticas no index.html.
 
 // In web production, route RPC calls through api.grid48.app (Cloudflare edge).
 installWebApiRedirect();
@@ -339,12 +335,6 @@ app
     clearChunkReloadGuard(chunkReloadStorageKey);
   })
   .catch(console.error);
-
-// Debug helpers for geo-convergence testing (remove in production)
-(window as unknown as Record<string, unknown>).geoDebug = {
-  cells: debugGetCells,
-  count: getCellCount,
-};
 
 // Beta mode toggle: type `beta=true` / `beta=false` in console
 Object.defineProperty(window, 'beta', {

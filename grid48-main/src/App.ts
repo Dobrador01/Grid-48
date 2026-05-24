@@ -30,7 +30,6 @@ import { resolveUserRegion, resolvePreciseUserCoordinates, type PreciseCoordinat
 
 
 
-export type { CountryBriefSignals } from '@/app/app-context';
 
 export class App {
   private state: AppContext;
@@ -198,25 +197,12 @@ export class App {
       panels: {},
       panelSettings,
       mapLayers,
-      allNews: [],
-      latestMarkets: [],
-      latestPredictions: [],
-      latestClusters: [],
-      intelligenceCache: {},
-      cyberThreatsCache: null,
       disabledSources,
       inFlight: new Set(),
       seenGeoAlerts: new Set(),
       monitors,
-      signalModal: null,
-      statusPanel: null,
-      searchModal: null,
-      findingsBadge: null,
-      breakingBanner: null,
-      playbackControl: null,
       exportPanel: null,
       unifiedSettings: null,
-
 
       isDestroyed: false,
       isPlaybackMode: false,
@@ -245,19 +231,16 @@ export class App {
     });
 
     this.eventHandlers = new EventHandlerManager(this.state, {
-      updateSearchIndex: () => this.searchManager.updateSearchIndex(),
+      updateSearchIndex: () => {}, // Grid 48 sem busca global
       loadAllData: () => this.dataLoader.loadAllData(),
       flushStaleRefreshes: () => this.refreshScheduler.flushStaleRefreshes(),
       setHiddenSince: (ts) => this.refreshScheduler.setHiddenSince(ts),
-      loadDataForLayer: (layer) => { void this.dataLoader.loadDataForLayer(layer as keyof MapLayers); },
+      loadDataForLayer: (layer) => { void this.dataLoader.loadDataForLayer(layer); },
       syncDataFreshnessWithLayers: () => this.dataLoader.syncDataFreshnessWithLayers(),
       ensureCorrectZones: () => this.panelLayout.ensureCorrectZones(),
       refreshOpenCountryBrief: () => {},
       stopLayerActivity: (layer) => this.dataLoader.stopLayerActivity(layer),
     });
-
-    // Wire cross-module callback: DataLoader → SearchManager
-    this.dataLoader.updateSearchIndex = () => this.searchManager.updateSearchIndex();
 
     // Track destroy order (reverse of init)
     this.modules = [
@@ -308,15 +291,12 @@ export class App {
 
     // Phase 2: Shared UI components
 
-    // Phase 3: UI setup methods
+    // Phase 3: UI setup methods (Grid 48 — sem PlaybackControl/StatusPanel/
+    // ExportPanel que eram componentes worldmonitor)
     this.eventHandlers.startHeaderClock();
-    this.eventHandlers.setupPlaybackControl();
-    this.eventHandlers.setupStatusPanel();
-
-    this.eventHandlers.setupExportPanel();
     this.eventHandlers.setupUnifiedSettings();
 
-    // Phase 4: SearchManager, MapLayerHandlers, CountryIntel
+    // Phase 4: SearchManager, MapLayerHandlers
     this.searchManager.init();
     this.eventHandlers.setupMapLayerHandlers();
 
@@ -425,9 +405,8 @@ export class App {
 
 
 
-    // Phase 7: Refresh scheduling
+    // Phase 7: Refresh scheduling (snapshot saving era worldmonitor — drop)
     this.setupRefreshIntervals();
-    this.eventHandlers.setupSnapshotSaving();
     cleanOldSnapshots().catch((e) => console.warn('[Storage] Snapshot cleanup failed:', e));
 
 
@@ -448,11 +427,9 @@ export class App {
       this.modules[i]!.destroy();
     }
 
-    // Clean up subscriptions, map, AIS, and breaking news
+    // Clean up subscriptions, map (BreakingBanner era worldmonitor — removido)
     this.unsubAiFlow?.();
-    (this.state.breakingBanner as any)?.destroy();
     this.state.map?.destroy();
-    // AIS stream disconnected (fat-client DCE - removed call)
   }
 
   private handleDeepLinks(): void {
@@ -460,10 +437,8 @@ export class App {
   }
 
   private setupRefreshIntervals(): void {
-    // Refresh FIRMS fire data and civil flights (Grid 48 Keep List)
-    this.refreshScheduler.registerAll([
-      { name: 'firms', fn: () => this.dataLoader.loadFirmsData(), intervalMs: 30 * 60 * 1000 },
-      { name: 'flights', fn: () => this.dataLoader.loadFlightDelays(), intervalMs: 2 * 60 * 60 * 1000, condition: () => this.state.mapLayers.flights },
-    ]);
+    // Grid 48: dados vêm via DataProvider (Convex). Sem refresh intervals
+    // client-side (FIRMS/flights eram worldmonitor — removidos).
+    this.refreshScheduler.registerAll([]);
   }
 }

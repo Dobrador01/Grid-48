@@ -1,6 +1,10 @@
 import type { NewsItem, ClusteredEvent, MarketData } from '@/types';
-import type { PredictionMarket } from '@/services/prediction';
 import { t } from '@/services/i18n';
+
+// PredictionMarket era worldmonitor (Polymarket data) — services/prediction
+// deletado. Stub local pra retro-compat com ExportPanel (também worldmonitor;
+// a UI ExportPanel não está mais ativada em Grid 48).
+type PredictionMarket = unknown;
 
 type ExportFormat = 'json' | 'csv';
 
@@ -59,7 +63,7 @@ export function exportToCSV(data: ExportData, filename = 'worldmonitor-export'):
   if (data.predictions && data.predictions.length > 0) {
     lines.push('=== PREDICTIONS ===');
     lines.push('Title,Yes Price,Volume');
-    data.predictions.forEach(p => {
+    data.predictions.forEach((p: any) => {
       lines.push(csvRow([p.title, String(p.yesPrice), String(p.volume ?? '')]));
     });
     lines.push('');

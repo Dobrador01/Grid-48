@@ -1,17 +1,10 @@
 import type { AppContext, AppModule } from '@/app/app-context';
 
 import type { PanelConfig, MapLayers } from '@/types';
-import type { ClusteredEvent } from '@/types';
-import type { DashboardSnapshot } from '@/services/storage';
-import {
-  PlaybackControl,
-  StatusPanel,
-} from '@/components';
 import {
   buildMapUrl,
   debounce,
   saveToStorage,
-  ExportPanel,
   getCurrentTheme,
   setTheme,
 } from '@/utils';
@@ -20,9 +13,6 @@ import {
   STORAGE_KEYS,
   LAYER_TO_SOURCE,
 } from '@/config';
-import {
-  saveSnapshot,
-} from '@/services';
 import {
   trackPanelView,
   trackThemeChanged,
@@ -63,7 +53,6 @@ export class EventHandlerManager implements AppModule {
   private boundMapFullscreenEscHandler: ((e: KeyboardEvent) => void) | null = null;
   private boundPanelCloseHandler: ((e: Event) => void) | null = null;
   private idleTimeoutId: ReturnType<typeof setTimeout> | null = null;
-  private snapshotIntervalId: ReturnType<typeof setInterval> | null = null;
   private clockIntervalId: ReturnType<typeof setInterval> | null = null;
 
   private readonly idlePauseMs = IDLE_PAUSE_MS;
@@ -109,10 +98,6 @@ export class EventHandlerManager implements AppModule {
       });
       this.boundIdleResetHandler = null;
     }
-    if (this.snapshotIntervalId) {
-      clearInterval(this.snapshotIntervalId);
-      this.snapshotIntervalId = null;
-    }
     if (this.clockIntervalId) {
       clearInterval(this.clockIntervalId);
       this.clockIntervalId = null;
@@ -155,11 +140,11 @@ export class EventHandlerManager implements AppModule {
   }
 
   private setupEventListeners(): void {
-    const openSearch = () => {
+    // SearchModal era worldmonitor — Grid 48 não tem busca global.
+    // FAB ainda existe no DOM mas o callback agora é no-op.
+    document.getElementById('searchMobileFab')?.addEventListener('click', () => {
       this.callbacks.updateSearchIndex();
-      this.ctx.searchModal?.open();
-    };
-    document.getElementById('searchMobileFab')?.addEventListener('click', openSearch);
+    });
 
     this.boundStorageHandler = (e: StorageEvent) => {
       if (e.key === STORAGE_KEYS.panels && e.newValue) {
@@ -338,24 +323,6 @@ export class EventHandlerManager implements AppModule {
     this.clockIntervalId = setInterval(tick, 1000);
   }
 
-  setupStatusPanel(): void {
-    this.ctx.statusPanel = new StatusPanel();
-  }
-
-  setupExportPanel(): void {
-    this.ctx.exportPanel = new ExportPanel(() => ({
-      news: this.ctx.latestClusters.length > 0 ? this.ctx.latestClusters : this.ctx.allNews,
-      markets: this.ctx.latestMarkets,
-      predictions: this.ctx.latestPredictions,
-      timestamp: Date.now(),
-    }));
-
-    const headerRight = this.ctx.container.querySelector('.header-right');
-    if (headerRight) {
-      headerRight.insertBefore(this.ctx.exportPanel.getElement(), headerRight.firstChild);
-    }
-  }
-
   setupUnifiedSettings(): void {
     this.ctx.unifiedSettings = new UnifiedSettings({
       getPanelSettings: () => this.ctx.panelSettings,
@@ -401,92 +368,26 @@ export class EventHandlerManager implements AppModule {
     }
   }
 
-  setupPlaybackControl(): void {
-    this.ctx.playbackControl = new PlaybackControl();
-    this.ctx.playbackControl.onSnapshot((snapshot: any) => {
-      if (snapshot) {
-        this.ctx.isPlaybackMode = true;
-        this.restoreSnapshot(snapshot);
-      } else {
-        this.ctx.isPlaybackMode = false;
-        this.callbacks.loadAllData();
-      }
-    });
-
-    const headerRight = this.ctx.container.querySelector('.header-right');
-    if (headerRight) {
-      headerRight.insertBefore(this.ctx.playbackControl.getElement(), headerRight.firstChild);
-    }
-  }
-
-  setupSnapshotSaving(): void {
-    const saveCurrentSnapshot = async () => {
-      if (this.ctx.isPlaybackMode || this.ctx.isDestroyed) return;
-
-      const marketPrices: Record<string, number> = {};
-      this.ctx.latestMarkets.forEach(m => {
-        if (m.price !== null) marketPrices[m.symbol] = m.price;
-      });
-
-      await saveSnapshot({
-        timestamp: Date.now(),
-        events: this.ctx.latestClusters,
-        marketPrices,
-        predictions: this.ctx.latestPredictions.map(p => ({
-          title: p.title,
-          yesPrice: p.yesPrice
-        })),
-        hotspotLevels: this.ctx.map?.getHotspotLevels() ?? {}
-      });
-    };
-
-    void saveCurrentSnapshot().catch((e) => console.warn('[Snapshot] save failed:', e));
-    this.snapshotIntervalId = setInterval(() => void saveCurrentSnapshot().catch((e) => console.warn('[Snapshot] save failed:', e)), 15 * 60 * 1000);
-  }
-
-  restoreSnapshot(snapshot: DashboardSnapshot): void {
-    const events = snapshot.events as ClusteredEvent[];
-    this.ctx.latestClusters = events;
-
-    const predictions = snapshot.predictions.map((p, i) => ({
-      id: `snap-${i}`,
-      title: p.title,
-      yesPrice: p.yesPrice,
-      noPrice: 100 - p.yesPrice,
-      volume24h: 0,
-      liquidity: 0,
-    }));
-    this.ctx.latestPredictions = predictions;
-
-    this.ctx.map?.setHotspotLevels(snapshot.hotspotLevels);
-  }
-
   setupMapLayerHandlers(): void {
     this.ctx.map?.setOnLayerChange((layer, enabled, source) => {
-      console.log(`[App.onLayerChange] ${layer}: ${enabled} (${source})`);
-      trackMapLayerToggle(layer, enabled, source);
-      this.ctx.mapLayers[layer] = enabled;
+      console.log(`[App.onLayerChange] ${String(layer)}: ${enabled} (${source})`);
+      trackMapLayerToggle(String(layer), enabled, source);
+      (this.ctx.mapLayers as Record<string, boolean>)[String(layer)] = enabled;
       saveToStorage(STORAGE_KEYS.mapLayers, this.ctx.mapLayers);
       this.syncUrlState();
 
-      const sourceIds = LAYER_TO_SOURCE[layer];
+      const sourceIds = (LAYER_TO_SOURCE as Record<string, string[] | undefined>)[String(layer)];
       if (sourceIds) {
         for (const sourceId of sourceIds) {
-          dataFreshness.setEnabled(sourceId, enabled);
+          dataFreshness.setEnabled(sourceId as Parameters<typeof dataFreshness.setEnabled>[0], enabled);
         }
       }
 
-
-
       if (enabled) {
-        this.callbacks.loadDataForLayer(layer);
+        this.callbacks.loadDataForLayer(String(layer));
       } else {
-        this.callbacks.stopLayerActivity?.(layer as keyof MapLayers);
+        this.callbacks.stopLayerActivity?.(String(layer) as keyof MapLayers);
       }
-    });
-
-    this.ctx.map?.setOnAircraftPositionsUpdate((positions) => {
-      this.ctx.intelligenceCache.aircraftPositions = positions;
     });
   }
 
@@ -672,25 +573,10 @@ export class EventHandlerManager implements AppModule {
   }
 
   private setupMapDimensionToggle(): void {
+    // Toggle 2D/3D era worldmonitor (3D = GlobeMap deletado). Grid 48 é
+    // sempre 2D — esconde o toggle se ainda estiver no DOM.
     const toggle = document.getElementById('mapDimensionToggle');
-    if (!toggle) return;
-    toggle.querySelectorAll<HTMLButtonElement>('.map-dim-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const mode = btn.dataset.mode;
-        if (!mode) return;
-        const isGlobe = mode === 'globe';
-        const alreadyGlobe = this.ctx.map?.isGlobeMode() ?? false;
-        if (isGlobe === alreadyGlobe) return;
-        toggle.querySelectorAll('.map-dim-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        saveToStorage(STORAGE_KEYS.mapMode, isGlobe ? 'globe' : 'flat');
-        if (isGlobe) {
-          this.ctx.map?.switchToGlobe();
-        } else {
-          this.ctx.map?.switchToFlat();
-        }
-      });
-    });
+    if (toggle) toggle.style.display = 'none';
   }
 
   private setupMapFullscreen(mapSection: HTMLElement): void {

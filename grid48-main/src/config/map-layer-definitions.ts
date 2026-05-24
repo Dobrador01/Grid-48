@@ -1,6 +1,10 @@
 import type { MapLayers } from '@/types';
 
 export type MapRenderer = 'flat' | 'globe';
+
+// WorldMonitor tinha múltiplas variantes (tech/finance/happy/commodity).
+// Grid 48 só tem 'full'. Mantemos o type pra retro-compat com callsites
+// que ainda passam o valor — será removido em sweep futuro.
 export type MapVariant = 'full' | 'tech' | 'finance' | 'happy' | 'commodity';
 
 export interface LayerDefinition {
@@ -9,7 +13,6 @@ export interface LayerDefinition {
   i18nSuffix: string;
   fallbackLabel: string;
   renderers: MapRenderer[];
-  premium?: 'locked' | 'enhanced';
 }
 
 const def = (
@@ -17,85 +20,59 @@ const def = (
   icon: string,
   i18nSuffix: string,
   fallbackLabel: string,
-  renderers: MapRenderer[] = ['flat', 'globe'],
-  premium?: 'locked' | 'enhanced',
-): LayerDefinition => ({ key, icon, i18nSuffix, fallbackLabel, renderers, ...(premium && { premium }) });
+  renderers: MapRenderer[] = ['flat'],
+): LayerDefinition => ({ key, icon, i18nSuffix, fallbackLabel, renderers });
 
-// Only layers relevant to Grande Florianópolis / Brazil
+// Layers do Grid 48 — apenas Celesc + Weather Alerts (Defesa Civil).
 export const LAYER_REGISTRY: Record<keyof MapLayers, LayerDefinition> = {
-  weather:                  def('weather',                  '⛈',   'weatherAlerts',            'Alertas Meteorológicos'),
-  natural:                  def('natural',                  '🌍',   'naturalEvents',            'Eventos Naturais'),
-  fires:                    def('fires',                    '🔥',   'fires',                    'Incêndios'),
-  climate:                  def('climate',                  '🌫',   'climateAnomalies',         'Anomalias Climáticas'),
-  outages:                  def('outages',                  '📡',   'internetOutages',          'Quedas de Internet'),
-  flights:                  def('flights',                  '✈',   'flightDelays',             'Aviação'),
-  dayNight:                 def('dayNight',                 '🌓',   'dayNight',                 'Dia/Noite', ['flat']),
-  celescOutages:            def('celescOutages',            '⚡',   'celescOutages',            'Celesc (Rede Elétrica)'),
+  celescOutages: def('celescOutages', '⚡', 'celescOutages',  'Celesc (Rede Elétrica)'),
+  weatherAlerts: def('weatherAlerts', '⛈',  'weatherAlerts',  'Alertas Meteorológicos'),
 };
 
-const KEPT_LAYERS: Array<keyof MapLayers> = [
-  'weather', 'natural', 'fires', 'climate', 'outages', 'flights', 'dayNight', 'celescOutages',
-];
+const KEPT_LAYERS: Array<keyof MapLayers> = ['celescOutages', 'weatherAlerts'];
 
-const VARIANT_LAYER_ORDER: Record<MapVariant, Array<keyof MapLayers>> = {
-  full:      KEPT_LAYERS,
-  tech:      KEPT_LAYERS,
-  finance:   KEPT_LAYERS,
-  happy:     KEPT_LAYERS,
-  commodity: KEPT_LAYERS,
-};
-
-const I18N_PREFIX = 'components.deckgl.layers.';
-
-export function getLayersForVariant(variant: MapVariant, renderer: MapRenderer): LayerDefinition[] {
-  const keys = VARIANT_LAYER_ORDER[variant] ?? VARIANT_LAYER_ORDER.full;
-  return keys
-    .map(k => LAYER_REGISTRY[k])
-    .filter(d => d && d.renderers.includes(renderer));
+export function getLayersForVariant(_variant: MapVariant, renderer: MapRenderer): LayerDefinition[] {
+  return KEPT_LAYERS
+    .map((k) => LAYER_REGISTRY[k])
+    .filter((d): d is LayerDefinition => Boolean(d && d.renderers.includes(renderer)));
 }
 
-export function getAllowedLayerKeys(variant: MapVariant): Set<keyof MapLayers> {
-  return new Set(VARIANT_LAYER_ORDER[variant] ?? VARIANT_LAYER_ORDER.full);
+export function getAllowedLayerKeys(_variant: MapVariant): Set<keyof MapLayers> {
+  return new Set(KEPT_LAYERS);
 }
 
-export function sanitizeLayersForVariant(layers: MapLayers, variant: MapVariant): MapLayers {
-  const allowed = getAllowedLayerKeys(variant);
-  const sanitized = { ...layers };
-  for (const key of Object.keys(sanitized) as Array<keyof MapLayers>) {
-    if (!allowed.has(key)) sanitized[key] = false;
+export function sanitizeLayersForVariant(layers: Partial<MapLayers> & Record<string, unknown>, _variant: MapVariant): MapLayers {
+  // Migration: chave antiga `weather` virou `weatherAlerts` (rename pós-cleanup).
+  const migrated: Record<string, unknown> = { ...layers };
+  if ('weather' in migrated && !('weatherAlerts' in migrated)) {
+    migrated.weatherAlerts = migrated.weather;
   }
-  return sanitized;
+  // Migration: chave antiga `outages` (InternetOutage worldmonitor) era distinta de celescOutages.
+  // Grid 48 só liga ao Celesc; descartamos `outages` legado.
+
+  return {
+    celescOutages: typeof migrated.celescOutages === 'boolean' ? migrated.celescOutages : true,
+    weatherAlerts: typeof migrated.weatherAlerts === 'boolean' ? migrated.weatherAlerts : true,
+  };
 }
 
+// Sinônimos pra search de layers (futuro recurso de busca).
 export const LAYER_SYNONYMS: Record<string, Array<keyof MapLayers>> = {
-  storm: ['weather', 'natural'],
-  hurricane: ['weather', 'natural'],
-  typhoon: ['weather', 'natural'],
-  cyclone: ['weather', 'natural'],
-  flood: ['weather', 'natural'],
-  earthquake: ['natural'],
-  volcano: ['natural'],
-  tsunami: ['natural'],
-  wildfire: ['fires'],
-  forest: ['fires'],
-  night: ['dayNight'],
-  sun: ['dayNight'],
-  internet: ['outages'],
-  aviation: ['flights'],
-  flight: ['flights'],
-  airplane: ['flights'],
-  plane: ['flights'],
-  clima: ['climate', 'weather'],
-  tempo: ['weather'],
-  chuva: ['weather'],
-  vento: ['weather'],
-  incendio: ['fires'],
   celesc: ['celescOutages'],
   energia: ['celescOutages'],
   eletrica: ['celescOutages'],
   luz: ['celescOutages'],
   apagao: ['celescOutages'],
+  clima: ['weatherAlerts'],
+  tempo: ['weatherAlerts'],
+  chuva: ['weatherAlerts'],
+  vento: ['weatherAlerts'],
+  alerta: ['weatherAlerts'],
+  storm: ['weatherAlerts'],
+  flood: ['weatherAlerts'],
 };
+
+const I18N_PREFIX = 'components.deckgl.layers.';
 
 export function resolveLayerLabel(def: LayerDefinition, tFn?: (key: string) => string): string {
   if (tFn) {
@@ -113,10 +90,10 @@ export function bindLayerSearch(container: HTMLElement): void {
     const synonymHits = new Set<string>();
     if (q) {
       for (const [alias, keys] of Object.entries(LAYER_SYNONYMS)) {
-        if (alias.includes(q)) keys.forEach(k => synonymHits.add(k));
+        if (alias.includes(q)) keys.forEach((k) => synonymHits.add(String(k)));
       }
     }
-    container.querySelectorAll('.layer-toggle').forEach(label => {
+    container.querySelectorAll('.layer-toggle').forEach((label) => {
       const el = label as HTMLElement;
       if (el.hasAttribute('data-layer-hidden')) return;
       if (!q) { el.style.display = ''; return; }

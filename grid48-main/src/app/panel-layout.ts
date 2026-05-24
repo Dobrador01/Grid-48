@@ -1,6 +1,6 @@
 import type { AppContext, AppModule } from '@/app/app-context';
 import { clearAllPendingCalls } from '@/app/pending-panel-data';
-import { MapContainer } from '@/components';
+import { MapComponent } from '@/components';
 import { CelescStatusWidget } from '@/components/CelescStatusWidget';
 import { ClimaWidget } from '@/components/ClimaWidget';
 import { TrafegoWidget } from '@/components/TrafegoWidget';
@@ -162,15 +162,12 @@ export class PanelLayoutManager implements AppModule {
     const panelsGrid = document.getElementById('panelsGrid')!;
 
     const mapContainer = document.getElementById('mapContainer') as HTMLElement;
-    const preferGlobe = loadFromStorage<string>(STORAGE_KEYS.mapMode, 'flat') === 'globe';
-    this.ctx.map = new MapContainer(mapContainer, {
+    this.ctx.map = new MapComponent(mapContainer, {
       zoom: this.ctx.isMobile ? 2.5 : 1.0,
       pan: { x: 0, y: 0 },
-      view: this.ctx.isMobile ? 'sjf' : 'sjf', // Grid 48: sempre inicia em São José/Floripa
+      view: 'sjf', // Grid 48: sempre inicia em São José/Floripa (2D only)
       layers: this.ctx.mapLayers,
-    }, preferGlobe);
-
-    this.ctx.map.initEscalationGetters();
+    });
 
             
 

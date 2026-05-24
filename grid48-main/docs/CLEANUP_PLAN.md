@@ -687,45 +687,85 @@ automático Vercel + validação CI.
 - `services/index.ts` barrel reduzido a re-exports do que sobrou
 - **63 arquivos, deletou ~2500 linhas, stubou ~30 linhas**
 
-### O que ainda está pendente (próximas sessões)
+### Fase 6 — Rebuild do mapa (commit pendente)
 
-**Bloqueio principal**: `Map.ts`, `DeckGLMap.ts`, `MapContainer.ts` têm
-100+ refs cada para tipos/services worldmonitor (climate, aviation,
-earthquakes, weather, eonet, country-instability, etc.). Esses 3 arquivos
-juntos somam ~10.000 linhas. Cada layer worldmonitor tem ~30-50 linhas
-espalhadas pelo arquivo (import + fetch + layer construction + click
-handlers + render).
+Em vez de aparar layer-por-layer dos 13.724 linhas legacy (Map.ts SVG
+fallback + DeckGLMap + MapContainer + GlobeMap 3D + MapPopup), reescrita
+do zero com a estratégia híbrida (archive + rebuild + cascata).
 
-Cleanup desbloqueia se atacar **layer por layer** em cada arquivo, por
-exemplo:
-1. `aviation` (flights, airport-delays): remover layers + remover services
-   relacionados + dispense imports
-2. `climate` (anomalies, weather alerts): idem
-3. `earthquakes` (USGS scatter): idem
-4. ... e assim por diante pra cada layer em `FULL_MAP_LAYERS`
+**Auditoria prévia** entregou inventário do que Grid 48 realmente usa do
+mapa (~12 métodos públicos, 2 layers ativas, 1 padrão de evento custom).
 
-Após Map.ts/DeckGLMap.ts/MapContainer.ts limparem refs ao worldmonitor,
-cascata libera deleção de:
-- Os ~20 services restantes em `src/services/`
-- Subdirs `aviation/`, `climate/`, `economic/`, `prediction/` (com
-  importadores externos hoje)
-- `src/generated/` inteiro (proto bindings ainda referenciados)
-- `proto/` (schemas .proto worldmonitor)
-- Components: `GlobeMap.ts`, `SearchModal.ts`, `SignalModal.ts`,
-  `PlaybackControl.ts`, `StatusPanel.ts`, `VerificationChecklist.ts`,
-  `MobileWarningModal.ts`
-- Configs em `src/config/`: ai-datacenters, ai-regulations,
-  ai-research-labs, finance-geo, gulf-fdi, etc.
-- Locales (`src/locales/*.json` ~6000 chaves cada — grande parte órfã)
+**Novo `src/components/Map.ts`** (~640 linhas, vs 13.724 legacy):
+- maplibre-gl + @deck.gl direto (sem fallback SVG, sem GlobeMap 3D)
+- Layer Celesc (`GeoJsonLayer` com cores por %UCs offline — escala
+  preservada do legacy: 50%=vermelho, 20%=laranja, 5%=amarelo, >0=verde)
+- Layer Weather Alerts (`ScatterplotLayer` com markers Defesa Civil —
+  centroide do município afetado, raio por nivel_risco)
+- Tooltip central pós-flyTo (lista de bairros UCs)
+- Hover tooltip pra Beacon markers
+- Listener `CELESC_CITY_SELECTED` (disparado por
+  CelescStatusWidget + BeaconStatusWidget) → flyTo + tooltip
+- Sync automático tema dashboard ↔ mapa (`theme-changed` event)
+- Stubs no-op pra métodos legacy ainda chamados (setClimateAnomalies,
+  setCIIScores, etc.) — futuro: remover callsites + stubs
 
-**Estimativa**: 6-10h de sessão dedicada pra terminar 100%.
+**Cascata desbloqueada após rebuild**:
+- Deletados 5 arquivos legacy (`src/components/_legacy/` archive
+  temporário, depois apagado)
+- Deletados 20 services worldmonitor restantes (earthquakes, weather,
+  eonet, country-instability, kindness-data, oref-alerts, etc.)
+- Deletados 4 subdirs de services (aviation/, climate/, economic/,
+  prediction/)
+- Deletados 4 services em cascata (cross-module-integration,
+  correlation, geo-convergence, trending-keywords)
+- Deletados 20 configs worldmonitor (ai-datacenters, finance-geo,
+  gulf-fdi, tech-companies, pipelines, irradiators, military, etc.)
+- Deletado `src/config/geo.ts` (3.3k linhas — hotspots globais,
+  conflict zones, bases, cables, etc.)
+- Deletados `src/components/SearchModal.ts`, `SignalModal.ts`
+- Deletado `src/e2e/` (harnesses worldmonitor)
+- Reescritos: `services/index.ts`, `components/index.ts`, `config/index.ts`,
+  `config/variants/full.ts`, `config/variants/base.ts`,
+  `config/map-layer-definitions.ts`, `config/commands.ts`,
+  `services/search-manager.ts` (no-op stub), `services/data-loader.ts`
+  (no-op stub), `app/app-context.ts` (campos worldmonitor removidos),
+  `types/index.ts` (MapLayers simplificado pra `celescOutages` +
+  `weatherAlerts`, com index signature pra retro-compat)
+- `event-handlers.ts`: removidos setupStatusPanel, setupExportPanel,
+  setupPlaybackControl, setupSnapshotSaving, restoreSnapshot,
+  setupMapDimensionToggle (2D/3D), boundDesktopExternalLinkHandler,
+  setOnAircraftPositionsUpdate callsite
+- `App.ts`: removidos campos worldmonitor do state (allNews,
+  latestMarkets, latestPredictions, latestClusters, intelligenceCache,
+  cyberThreatsCache, signalModal, statusPanel, searchModal, findingsBadge,
+  breakingBanner, playbackControl), callsites setupPlayback/Status/Export/
+  Snapshot, refresh intervals worldmonitor
+- `src/generated/` e `proto/` ainda EXISTEM no repo (nenhum import vivo
+  porém — podem ser deletados no próximo commit puramente cosmético)
+- `src-tauri/`, `engine/` não tocados
 
-### Métricas cumulativas (Fases 1-5)
+### Ainda pendente
 
-- ~247 arquivos deletados
-- ~52.000 linhas removidas
-- PWA precache: 35 → 30 entries (-313 KiB)
-- Main bundle: 2.327 MB → 2.292 MB (-35 KB, gzipped -3 KB)
-- Build: ~30s consistente
+- `src/generated/` (proto bindings) + `proto/` — sem importers vivos,
+  prontos pra `rm -rf`
+- `src/locales/*.json` — ~6000 chaves cada; grande parte órfã pós-cleanup
+- CSS `src/styles/main.css` (~2200 linhas) — provavelmente metade morto
+  agora (seletores de painéis worldmonitor deletados)
+- `src-tauri/` — confirmado pelo usuário que Grid 48 é web-only, mas
+  diretório ainda existe (workflows + sidecar binary stubs)
+- `engine/` — backend Pi Node.js. Mantido (Grid 48 usa em modo local).
+- Cleanup do `aviation/`, `climate/`, `economic/`, `prediction/` subdirs
+  já feito acima.
+
+### Métricas cumulativas (Fases 1-6)
+
+- **~430+ arquivos deletados** (de 247 cumulativos antes da Fase 6)
+- **~65.000+ linhas removidas**
+- **Main bundle: 2.292 MB → 168 KB (-92.6%)**
+- **Gzipped main: 623 KB → 52 KB (-91.6%)**
+- **PWA precache: 7.218 KiB → 4.440 KiB (-38.5%)**
+- **Build time: ~30s → ~13s (-57%)**
 - Typecheck: zero erros após cada fase
+- CI verde em todos os deploys
 

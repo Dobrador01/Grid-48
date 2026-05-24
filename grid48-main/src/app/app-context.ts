@@ -1,56 +1,8 @@
-import type { NewsItem, Monitor, PanelConfig, MapLayers, InternetOutage, SocialUnrestEvent, MilitaryFlight, MilitaryFlightCluster, MilitaryVessel, MilitaryVesselCluster, CyberThreat, USNIFleetReport } from '@/types';
-import type { AirportDelayAlert, PositionSample } from '@/services/aviation';
-import type { IranEvent } from '@/generated/client/worldmonitor/conflict/v1/service_client';
-import type { SecurityAdvisory } from '@/services/security-advisories';
-import type { MapContainer, Panel, SignalModal, StatusPanel, SearchModal } from '@/components';
-import type { MarketData, ClusteredEvent } from '@/types';
-import type { PredictionMarket } from '@/services/prediction';
-import type { Earthquake } from '@/services/earthquakes';
-
-import type { PlaybackControl } from '@/components';
+import type { Monitor, PanelConfig, MapLayers } from '@/types';
+import type { MapContainer, Panel } from '@/components';
 import type { ExportPanel } from '@/utils';
 import type { UnifiedSettings } from '@/components/UnifiedSettings';
-
 import type { ParsedMapUrlState } from '@/utils';
-
-
-export interface CountryBriefSignals {
-  criticalNews: number;
-  protests: number;
-  militaryFlights: number;
-  militaryVessels: number;
-  outages: number;
-  aisDisruptions: number;
-  satelliteFires: number;
-  temporalAnomalies: number;
-  cyberThreats: number;
-  earthquakes: number;
-  displacementOutflow: number;
-  climateStress: number;
-  conflictEvents: number;
-  activeStrikes: number;
-  orefSirens: number;
-  orefHistory24h: number;
-  aviationDisruptions: number;
-  travelAdvisories: number;
-  travelAdvisoryMaxLevel: string | null;
-  gpsJammingHexes: number;
-  isTier1: boolean;
-}
-
-export interface IntelligenceCache {
-  flightDelays?: AirportDelayAlert[];
-  aircraftPositions?: PositionSample[];
-  outages?: InternetOutage[];
-  protests?: { events: SocialUnrestEvent[]; sources: { acled: number; gdelt: number } };
-  military?: { flights: MilitaryFlight[]; flightClusters: MilitaryFlightCluster[]; vessels: MilitaryVessel[]; vesselClusters: MilitaryVesselCluster[] };
-  earthquakes?: Earthquake[];
-  usniFleet?: USNIFleetReport;
-  iranEvents?: IranEvent[];
-  orefAlerts?: { alertCount: number; historyCount24h: number };
-  advisories?: SecurityAdvisory[];
-  imageryScenes?: Array<{ id: string; satellite: string; datetime: string; resolutionM: number; mode: string; geometryGeojson: string; previewUrl: string; assetUrl: string }>;
-}
 
 export interface AppModule {
   init(): void | Promise<void>;
@@ -63,16 +15,9 @@ export interface AppContext {
   readonly container: HTMLElement;
 
   panels: Record<string, Panel>;
-    panelSettings: Record<string, PanelConfig>;
+  panelSettings: Record<string, PanelConfig>;
 
   mapLayers: MapLayers;
-
-  allNews: NewsItem[];
-    latestMarkets: MarketData[];
-  latestPredictions: PredictionMarket[];
-  latestClusters: ClusteredEvent[];
-  intelligenceCache: IntelligenceCache;
-  cyberThreatsCache: CyberThreat[] | null;
 
   disabledSources: Set<string>;
 
@@ -80,16 +25,8 @@ export interface AppContext {
   seenGeoAlerts: Set<string>;
   monitors: Monitor[];
 
-  signalModal: SignalModal | null;
-  statusPanel: StatusPanel | null;
-  searchModal: SearchModal | null;
-  findingsBadge: null;
-  breakingBanner: null;
-  playbackControl: PlaybackControl | null;
   exportPanel: ExportPanel | null;
   unifiedSettings: UnifiedSettings | null;
-
-
 
   isDestroyed: boolean;
   isPlaybackMode: boolean;
