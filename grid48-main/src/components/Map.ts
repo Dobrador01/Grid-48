@@ -169,12 +169,9 @@ export class MapComponent {
     // Bootstrap layers
     this.map.on('load', () => this.rebuildLayers());
 
-    // UI overlays: legenda + toggles de layers (CSS dos toggles vem do
-    // main.css legacy `.deckgl-layer-toggles`; legenda usa CSS inline
-    // Grid 48-specific injetado abaixo)
-    MapComponent.injectGrid48Styles();
+    // UI overlay: toggles de layers (CSS vem do main.css legacy
+    // `.deckgl-layer-toggles`).
     this.createLayerTogglesPanel();
-    this.createLegend();
 
     // Resize observer pra ResizeObserver de container
     if (typeof ResizeObserver !== 'undefined') {
@@ -307,89 +304,7 @@ export class MapComponent {
   public onCountryClicked(_cb: CountryClickHandler): void { /* no-op */ }
   public onHotspotClicked(_cb: HotspotClickHandler): void { /* no-op */ }
 
-  // ── UI overlays: toggles de layers + legenda ────────────────────────────
-
-  /**
-   * CSS Grid 48-specific pros overlays. Idempotente — injeta uma vez por
-   * documento. Mantém `.grid48-legend` independente do `.map-legend` legacy
-   * (que era horizontal e estilizado pra outra função).
-   */
-  private static stylesInjected = false;
-  private static injectGrid48Styles(): void {
-    if (MapComponent.stylesInjected) return;
-    MapComponent.stylesInjected = true;
-    const style = document.createElement('style');
-    style.id = 'grid48-map-styles';
-    style.textContent = `
-      .grid48-legend {
-        position: absolute;
-        bottom: 10px;
-        right: 10px;
-        z-index: 100;
-        background: rgba(15, 18, 24, 0.92);
-        border: 1px solid rgba(255, 255, 255, 0.12);
-        border-radius: 6px;
-        padding: 8px 10px;
-        font-family: ui-sans-serif, system-ui, sans-serif;
-        font-size: 10px;
-        color: #d1d5db;
-        line-height: 1.4;
-        backdrop-filter: blur(8px);
-        -webkit-backdrop-filter: blur(8px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-        max-width: 180px;
-      }
-      .grid48-legend .legend-section + .legend-section {
-        margin-top: 6px;
-        padding-top: 6px;
-        border-top: 1px solid rgba(255, 255, 255, 0.08);
-      }
-      .grid48-legend .legend-title {
-        font-size: 9px;
-        text-transform: uppercase;
-        letter-spacing: 0.06em;
-        font-weight: 700;
-        color: #9ca3af;
-        margin-bottom: 3px;
-      }
-      .grid48-legend .legend-row {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        padding: 1px 0;
-      }
-      .grid48-legend .legend-swatch {
-        display: inline-block;
-        width: 14px;
-        height: 10px;
-        border-radius: 2px;
-        border: 1px solid rgba(255, 255, 255, 0.15);
-        flex-shrink: 0;
-      }
-      .grid48-legend .legend-dot {
-        display: inline-block;
-        width: 10px;
-        height: 10px;
-        border-radius: 50%;
-        border: 1px solid rgba(255, 255, 255, 0.4);
-        flex-shrink: 0;
-      }
-      /* Light mode da dashboard */
-      html[data-theme="light"] .grid48-legend {
-        background: rgba(255, 255, 255, 0.95);
-        border-color: rgba(0, 0, 0, 0.1);
-        color: #374151;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-      }
-      html[data-theme="light"] .grid48-legend .legend-title {
-        color: #6b7280;
-      }
-      html[data-theme="light"] .grid48-legend .legend-section + .legend-section {
-        border-top-color: rgba(0, 0, 0, 0.08);
-      }
-    `;
-    document.head.appendChild(style);
-  }
+  // ── UI overlay: toggles de layers ───────────────────────────────────────
 
 
   /**
@@ -444,32 +359,6 @@ export class MapComponent {
       const collapsed = list.classList.toggle('collapsed');
       if (collapseBtn) collapseBtn.textContent = collapsed ? '▶' : '▼';
     });
-  }
-
-  /**
-   * Legenda compacta (bottom-left) com escala de cores Celesc. Tem mesma
-   * paleta usada em celescColorForFeature pra operador entender o que está
-   * vendo no mapa.
-   */
-  private createLegend(): void {
-    const legend = document.createElement('div');
-    legend.className = 'map-legend deckgl-legend grid48-legend';
-    legend.innerHTML = `
-      <div class="legend-section">
-        <div class="legend-title">Celesc (% UCs offline)</div>
-        <div class="legend-row"><span class="legend-swatch" style="background:rgb(255,0,0);"></span>≥ 50%</div>
-        <div class="legend-row"><span class="legend-swatch" style="background:rgb(255,140,0);"></span>20–50%</div>
-        <div class="legend-row"><span class="legend-swatch" style="background:rgb(255,204,0);"></span>5–20%</div>
-        <div class="legend-row"><span class="legend-swatch" style="background:rgb(0,200,0);"></span>&lt; 5%</div>
-      </div>
-      <div class="legend-section">
-        <div class="legend-title">Alertas Defesa Civil</div>
-        <div class="legend-row"><span class="legend-dot" style="background:rgb(255,0,0);"></span>Alto</div>
-        <div class="legend-row"><span class="legend-dot" style="background:rgb(255,165,0);"></span>Médio</div>
-        <div class="legend-row"><span class="legend-dot" style="background:rgb(255,255,0);"></span>Baixo</div>
-      </div>
-    `;
-    this.container.appendChild(legend);
   }
 
   // ── Internos ─────────────────────────────────────────────────────────────
