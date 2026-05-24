@@ -1,5 +1,9 @@
 import type { ClusteredEvent } from '@/types';
-import { inferGeoHubsFromTitle, type GeoHubLocation } from './geo-hub-index';
+
+// Stub pra dep WorldMonitor deletada (geo-hub-index). `any` pra silenciar
+// typecheck no dead-code path (layers off em FULL_MAP_LAYERS).
+type GeoHubLocation = any;
+function inferGeoHubsFromTitle(_title: string): GeoHubLocation[] { return []; }
 
 export interface GeoHubActivity {
   hubId: string;

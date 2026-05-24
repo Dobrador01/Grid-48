@@ -38,8 +38,9 @@ export interface NewsItem {
   lon?: number;
   locationName?: string;
   lang?: string;
-  // Happy variant: positive content category
-  happyCategory?: import('@/services/positive-classifier').HappyContentCategory;
+  // Happy variant: positive content category (positive-classifier deletado
+  // junto com a limpeza WorldMonitor — type alias mantido pra retro-compat)
+  happyCategory?: string;
   // Image URL extracted from RSS media/enclosure tags
   imageUrl?: string;
 }

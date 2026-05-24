@@ -1,5 +1,8 @@
 import type { ClusteredEvent } from '@/types';
-import { inferHubsFromTitle, type TechHubLocation } from './tech-hub-index';
+
+// Stub pra dep WorldMonitor deletada (tech-hub-index). `any` em dead-code.
+type TechHubLocation = any;
+function inferHubsFromTitle(_title: string): TechHubLocation[] { return []; }
 
 export interface TechHubActivity {
   hubId: string;

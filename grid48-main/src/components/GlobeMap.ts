@@ -2152,15 +2152,13 @@ export class GlobeMap {
     const north = Math.min(90, center.lat + R);
     const west = Math.max(-180, center.lon - R);
     const east = Math.min(180, center.lon + R);
-    const bbox = `${west.toFixed(4)},${south.toFixed(4)},${east.toFixed(4)},${north.toFixed(4)}`;
-    const thisVersion = ++this.imageryFetchVersion;
-    try {
-      const { fetchImageryScenes } = await import('@/services/imagery');
-      const scenes = await fetchImageryScenes({ bbox, limit: 20 });
-      if (thisVersion !== this.imageryFetchVersion) return;
-      this.setImageryScenes(scenes);
-      this.lastImageryCenter = { lat: center.lat, lon: center.lon };
-    } catch { /* imagery is best-effort */ }
+    // imagery service deletado na limpeza WorldMonitor — Grid 48 não usa
+    // imagery layer. Stubbed pra no-op preservando assinatura.
+    void west; void south; void east; void north;
+    const _bbox = '';
+    void _bbox;
+    ++this.imageryFetchVersion;
+    void center;
   }
 
   public setOutages(outages: InternetOutage[]): void {

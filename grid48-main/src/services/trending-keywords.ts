@@ -9,7 +9,8 @@ interface CorrelationSignal {
   data: Record<string, unknown>;
 }
 
-import { generateSummary } from './summarization';
+// Stub pra dep WorldMonitor deletada (summarization).
+async function generateSummary(..._args: unknown[]): Promise<{ summary: string }> { return { summary: '' }; }
 import { SUPPRESSED_TRENDING_TERMS, escapeRegex, generateSignalId, tokenize } from '@/utils/analysis-constants';
 import { t } from '@/services/i18n';
 

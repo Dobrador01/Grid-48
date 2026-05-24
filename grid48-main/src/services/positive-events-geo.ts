@@ -4,10 +4,15 @@
  * and geocodes curated RSS items via inferGeoHubsFromTitle.
  */
 
-import type { HappyContentCategory } from './positive-classifier';
-import { PositiveEventsServiceClient } from '@/generated/client/worldmonitor/positive_events/v1/service_client';
-import { inferGeoHubsFromTitle } from './geo-hub-index';
 import { createCircuitBreaker } from '@/utils';
+
+// Stubs pra deps WorldMonitor deletadas. `any` em dead-code path.
+type HappyContentCategory = string;
+const PositiveEventsServiceClient: any = class {
+  constructor(..._args: unknown[]) {}
+  async listPositiveGeoEvents(..._args: unknown[]): Promise<any> { return { events: [] }; }
+};
+function inferGeoHubsFromTitle(_t: string): any[] { return []; }
 
 export interface PositiveGeoEvent {
   lat: number;
@@ -35,7 +40,7 @@ const breaker = createCircuitBreaker<PositiveGeoEvent[]>({
 export async function fetchPositiveGeoEvents(): Promise<PositiveGeoEvent[]> {
   return breaker.execute(async () => {
     const response = await client.listPositiveGeoEvents({});
-    return response.events.map(event => ({
+    return response.events.map((event: any) => ({
       lat: event.latitude,
       lon: event.longitude,
       name: event.name,

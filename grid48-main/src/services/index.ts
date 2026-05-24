@@ -1,34 +1,32 @@
-export * from './trending-keywords';
-export * from './market';
-export * from './prediction';
-export * from './earthquakes';
+// Services barrel — apenas re-exports ainda em uso pelo Grid 48.
+//
+// Histórico: era um grande catch-all que re-exportava ~30 services
+// WorldMonitor (market, prediction, earthquakes, etc.). Fase 5 da limpeza
+// (2026-05) deletou tudo que era worldmonitor-only.
+//
+// Re-exports atuais cobrem o que App.ts e event-handlers.ts consomem via
+// `from '@/services'` (initDB, saveSnapshot, cleanOldSnapshots, etc.).
+// Demais services (beacon-client, celesc, i18n, runtime, runtime-config,
+// settings-manager, persistent-cache, etc.) são importados por path direto
+// pelos seus consumidores — mais explícito e tree-shake friendly.
 
-export * from './related-assets';
-export * from './velocity';
 export * from './storage';
 
+// Services worldmonitor remanescentes (earthquakes, weather, eonet,
+// country-instability, etc.) ainda têm callsites em Map.ts/DeckGLMap.ts/
+// MapContainer.ts pra layers que NUNCA são renderizadas em Grid 48 (todos
+// `false` em FULL_MAP_LAYERS). Continuam re-exportados aqui pra evitar
+// quebra ampla até a refatoração de Map/DeckGLMap (Fase 5+, ver
+// docs/CLEANUP_PLAN.md).
+export * from './earthquakes';
 export * from './weather';
-export * from './economic';
-export * from './infrastructure';
-export * from './cyber';
-export * from './maritime';
-export * from './research';
-export * from './wildfires';
-export * from './climate';
-export * from './unrest';
-export * from './aviation';
 export * from './eonet';
-
-export { activityTracker } from './activity-tracker';
-export * from './geo-convergence';
 export * from './country-instability';
+export * from './country-geometry';
+export * from './geo-convergence';
 export * from './cross-module-integration';
 export * from './data-freshness';
-export * from './usa-spending';
-export { generateSummary, translateText } from './summarization';
-export * from './trade';
-export * from './supply-chain';
-export * from './daily-market-brief';
-export * from './stock-analysis-history';
-export * from './stock-backtest';
-export * from './imagery';
+export * from './aviation';
+export * from './climate';
+export * from './economic';
+export * from './prediction';

@@ -1,7 +1,9 @@
 import type { SocialUnrestEvent, MilitaryFlight, MilitaryVessel } from '@/types';
 import type { Earthquake } from '@/services/earthquakes';
 import { generateSignalId } from '@/utils/analysis-constants';
-import type { CorrelationSignalCore } from './analysis-core';
+
+// Stub pra dep WorldMonitor deletada (analysis-core).
+type CorrelationSignalCore = any;
 import { INTEL_HOTSPOTS, CONFLICT_ZONES, STRATEGIC_WATERWAYS } from '@/config/geo';
 
 export type GeoEventType = 'protest' | 'military_flight' | 'military_vessel' | 'earthquake';

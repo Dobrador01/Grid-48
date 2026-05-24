@@ -1,11 +1,21 @@
 import type { SocialUnrestEvent, MilitaryFlight, MilitaryVessel, ClusteredEvent, InternetOutage, AisDisruptionEvent, CyberThreat } from '@/types';
 import type { AirportDelayAlert } from '@/services/aviation';
 import type { SecurityAdvisory } from '@/services/security-advisories';
-import type { TemporalAnomaly } from '@/services/temporal-baseline';
 import { tokenizeForMatch, matchKeyword } from '@/utils/keyword-match';
 import { INTEL_HOTSPOTS, CONFLICT_ZONES, STRATEGIC_WATERWAYS } from '@/config/geo';
 import { CURATED_COUNTRIES, DEFAULT_BASELINE_RISK, DEFAULT_EVENT_MULTIPLIER, getHotspotCountries } from '@/config/countries';
-import { focalPointDetector } from './focal-point-detector';
+
+// Stubs pra deps WorldMonitor deletadas (temporal-baseline, focal-point-detector).
+// Dead-code em runtime (layers off em FULL_MAP_LAYERS); usamos `any` pra
+// silenciar typecheck sem refactor profundo. TODO: deletar este arquivo
+// inteiro quando Map/DeckGLMap forem reescritos sem worldmonitor layers.
+type TemporalAnomaly = any;
+const focalPointDetector: any = {
+  getFocalPoints: () => [],
+  resetForCountry: (_code: string) => {},
+  getCountryUrgencyMap: () => new Map<string, number>(),
+  getCountryUrgency: (_code: string) => 0,
+};
 import type { ClimateAnomaly } from '@/services/climate';
 import type { GpsJamHex } from '@/services/gps-interference';
 import { getCountryAtCoordinates, iso3ToIso2Code, nameToCountryCode, getCountryNameByCode, matchCountryNamesInText, ME_STRIKE_BOUNDS, resolveCountryFromBounds } from './country-geometry';

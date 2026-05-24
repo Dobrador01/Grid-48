@@ -1,5 +1,9 @@
 import { startSmartPollLoop, type SmartPollLoopHandle } from '@/services/runtime';
-import { translateText } from '@/services/summarization';
+
+// Stubs pra deps WorldMonitor deletadas (summarization + oref-locations).
+// OREF (alertas Israel) é candidato a deleção completa quando data-loader
+// for refatorado. Pelo enquanto mantemos o módulo funcional com no-ops.
+async function translateText(text: string, _opts?: unknown): Promise<string> { return text; }
 
 export interface OrefAlert {
   id: string;
@@ -44,9 +48,10 @@ let locationMapPromise: Promise<void> | null = null;
 async function ensureLocationMapLoaded(): Promise<void> {
   if (locationTranslator) return;
   if (locationMapPromise) { await locationMapPromise; return; }
-  locationMapPromise = import('./oref-locations').then(m => {
-    locationTranslator = m.translateLocation;
-  }).catch(() => { locationMapPromise = null; console.warn('[OREF] Failed to load location translations, will retry'); });
+  // oref-locations deletado junto com a limpeza WorldMonitor — usa identity.
+  locationMapPromise = Promise.resolve().then(() => {
+    locationTranslator = (s: string) => s;
+  });
   await locationMapPromise;
 }
 

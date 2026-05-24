@@ -1,7 +1,8 @@
 // Kindness data pipeline: real kindness events from curated news
 // Green labeled dots on the happy map from actual humanity-kindness articles
 
-import { inferGeoHubsFromTitle } from './geo-hub-index';
+// Stub pra dep WorldMonitor deletada (geo-hub-index). `any` em dead-code.
+function inferGeoHubsFromTitle(_title: string): any[] { return []; }
 
 export interface KindnessPoint {
   lat: number;
