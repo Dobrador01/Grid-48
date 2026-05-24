@@ -620,3 +620,112 @@ fica liberada pra delete em massa.
 
 Ganho esperado de Camada D: provavelmente +5-10% redução de bundle, dezenas
 de arquivos órfãos a menos, repo significativamente mais navegável.
+
+---
+
+## 11. Status — Sessão Maio 2026 (Fases 1-5)
+
+Sessão executada por agente Claude (2026-05-23 → 2026-05-24) cobrindo
+parte significativa de Camadas C+D. Cada fase = commit separado, deploy
+automático Vercel + validação CI.
+
+### Fase 1 — Assets/docs zero-risk (commit `9fd371a`)
+- Deletados: `public/pro/` (1.2MB PWA worldmonitor standalone), `pro-test/`
+  (924KB source React), `public/llms*.txt`, `CHANGELOG.md` (worldmonitor),
+  23 docs em `docs/` (AI_INTELLIGENCE, ALGORITHMS, ARCHITECTURE, etc.),
+  `docs/api/` (44 OpenAPI schemas), `docs/Docs_To_Review/`, 3 arquivos
+  `*-DESKTOP-J4QOLCM.ts` (lixo OneDrive sync)
+- Editado: `vercel.json` (rota `/pro` removida), `package.json`
+  (script `build:pro` removido)
+- **152 arquivos, -46k linhas**
+
+### Fase 2 — Tauri desktop runtime (commit `2f0e6f4`)
+- Deletados: `src/services/tauri-bridge.ts`, `scripts/desktop-package.mjs`
+- Limpas branches `__TAURI__`/`isDesktopRuntime` em: `main.ts`, `basemap.ts`,
+  `variant.ts`, `circuit-breaker.ts`, `event-handlers.ts`, `Panel.ts`,
+  `GlobeMap.ts`, `RuntimeConfigPanel.ts`, `settings-main.ts`, `runtime.ts`
+- Stubs no-op de `isDesktopRuntime`/`getApiBaseUrl` removidos
+- **12 arquivos, -328 linhas**
+
+### Fase 3 — Settings UI (commit `bb60214`)
+- Refatorado: `preferences-content.ts` removendo grupo Inteligência
+  (Groq/OpenRouter/Ollama/Memória de manchetes), grupo Mídia (Qualidade
+  vídeo/Live streams), AI status footer, link Discord, extras do Display
+  (mapNewsFlash, globeVisualPreset)
+- Trim: `ai-flow-settings.ts` reduzido a só `badgeAnimation`
+- Deletados: `live-stream-settings.ts`, `desktop-readiness.ts`,
+  `ai-classify-queue.ts`, `DownloadBanner.ts`
+- **5 arquivos, -432 linhas**
+
+### Fase 4 — isDesktopApp dead code + settings standalone (commit `aec56b3`)
+- Deletados: `RuntimeConfigPanel.ts` (537 linhas), `settings.html`,
+  `src/settings-main.ts` (968 linhas), `src/settings-window.ts`,
+  `src/styles/settings-window.css` (1121 linhas), `ollama-models.ts`,
+  vite input entry `settings`
+- Limpo: `isDesktopApp` field em `App.ts`, `app-context.ts`,
+  `panel-layout.ts`, `event-handlers.ts`, `UnifiedSettings.ts`,
+  `preferences-content.ts`. Removido `?settings=1` URL handler em main.ts
+- **15 arquivos, -2880 linhas**
+
+### Fase 5 — Services worldmonitor + stubs (commit `384a18f`)
+- Deletados 39 arquivos isolados em `src/services/`: ML pipeline
+  (analysis-core, analysis-worker, ml-worker, clustering, entity-*,
+  threat-classifier, focal-point-detector, signal-aggregator), finance
+  (tech-hub-index, daily-market-brief, stock-*, market-watchlist,
+  related-assets, usa-spending), happy variant (happy-share-renderer,
+  positive-classifier, story-*, humanity-counters, celebration),
+  intel (pizzint, telegram-intel, summarization), geo-hub-index, etc.
+- Deletados 12 subdirs completos: `giving/`, `research/`, `supply-chain/`,
+  `trade/`, `unrest/`, `news/`, `intelligence/`, `cyber/`, `wildfires/`,
+  `maritime/`, `infrastructure/`, `market/`
+- Deletado: `src/workers/` (analysis.worker, ml.worker, vector-db)
+- Stubs `any`-tipados em services mantidos que tinham deps deletadas:
+  `country-instability`, `geo-activity`, `kindness-data`,
+  `positive-events-geo`, `tech-activity`, `oref-alerts`, `trending-keywords`,
+  `geo-convergence`. Esses arquivos continuam vivos pq core (Map/DeckGLMap/
+  MapContainer/data-loader) importa tipos deles
+- `services/index.ts` barrel reduzido a re-exports do que sobrou
+- **63 arquivos, deletou ~2500 linhas, stubou ~30 linhas**
+
+### O que ainda está pendente (próximas sessões)
+
+**Bloqueio principal**: `Map.ts`, `DeckGLMap.ts`, `MapContainer.ts` têm
+100+ refs cada para tipos/services worldmonitor (climate, aviation,
+earthquakes, weather, eonet, country-instability, etc.). Esses 3 arquivos
+juntos somam ~10.000 linhas. Cada layer worldmonitor tem ~30-50 linhas
+espalhadas pelo arquivo (import + fetch + layer construction + click
+handlers + render).
+
+Cleanup desbloqueia se atacar **layer por layer** em cada arquivo, por
+exemplo:
+1. `aviation` (flights, airport-delays): remover layers + remover services
+   relacionados + dispense imports
+2. `climate` (anomalies, weather alerts): idem
+3. `earthquakes` (USGS scatter): idem
+4. ... e assim por diante pra cada layer em `FULL_MAP_LAYERS`
+
+Após Map.ts/DeckGLMap.ts/MapContainer.ts limparem refs ao worldmonitor,
+cascata libera deleção de:
+- Os ~20 services restantes em `src/services/`
+- Subdirs `aviation/`, `climate/`, `economic/`, `prediction/` (com
+  importadores externos hoje)
+- `src/generated/` inteiro (proto bindings ainda referenciados)
+- `proto/` (schemas .proto worldmonitor)
+- Components: `GlobeMap.ts`, `SearchModal.ts`, `SignalModal.ts`,
+  `PlaybackControl.ts`, `StatusPanel.ts`, `VerificationChecklist.ts`,
+  `MobileWarningModal.ts`
+- Configs em `src/config/`: ai-datacenters, ai-regulations,
+  ai-research-labs, finance-geo, gulf-fdi, etc.
+- Locales (`src/locales/*.json` ~6000 chaves cada — grande parte órfã)
+
+**Estimativa**: 6-10h de sessão dedicada pra terminar 100%.
+
+### Métricas cumulativas (Fases 1-5)
+
+- ~247 arquivos deletados
+- ~52.000 linhas removidas
+- PWA precache: 35 → 30 entries (-313 KiB)
+- Main bundle: 2.327 MB → 2.292 MB (-35 KB, gzipped -3 KB)
+- Build: ~30s consistente
+- Typecheck: zero erros após cada fase
+

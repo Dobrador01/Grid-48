@@ -86,6 +86,26 @@ pnpm build        # build pra prod
 
 ## 4. Estado do roadmap (Maio 2026)
 
+### Limpeza pós-WorldMonitor (Maio 2026)
+
+Grid 48 nasceu como fork do WorldMonitor. Sessão 2026-05-23/24 executou
+5 fases de cleanup deletando ~247 arquivos / ~52k linhas de cruft
+worldmonitor. Detalhes completos em `docs/CLEANUP_PLAN.md` (seção 11).
+
+| Fase | Escopo | Commit |
+|--|--|--|
+| 1 | Assets/docs zero-risk (public/pro, docs/, CHANGELOG, etc.) | `9fd371a` |
+| 2 | Tauri desktop runtime + bridges | `2f0e6f4` |
+| 3 | Settings UI WorldMonitor (Inteligência, Mídia, etc.) | `bb60214` |
+| 4 | `isDesktopApp` dead code + settings.html standalone | `aec56b3` |
+| 5 | 60+ services órfãos + 12 subdirs + workers/ + stubs | `384a18f` |
+
+**Pendência principal**: `Map.ts` / `DeckGLMap.ts` / `MapContainer.ts`
+ainda têm 100+ refs cada a tipos/services worldmonitor. Layers ficam
+off-by-default em `FULL_MAP_LAYERS` (dead code at runtime), mas
+compile-time precisam de refactor camada-por-camada (~6-10h sessão).
+Ver `docs/CLEANUP_PLAN.md` seções 10-11.
+
 ### Fases concluídas
 
 | Fase | Escopo | Status |
@@ -334,11 +354,12 @@ cd "C:\Users\Enio Jr\OneDrive\Documentos\Grid 48\grid48-main"
 Quando começar nova sessão:
 1. Leia este CLAUDE.md primeiro (vai pra `beacon/CLAUDE.md` e `Grid 48/grid48-main/CLAUDE.md`)
 2. Leia `convex/_generated/ai/guidelines.md` no beacon (regras Convex obrigatórias)
-3. Execute `git status` em ambos os repos pra ver onde paramos
-4. Confira o último plan file em `~/.claude/plans/` se houver
+3. Se vai mexer em limpeza WorldMonitor → leia `docs/CLEANUP_PLAN.md` (seção 11 tem o status da última sessão)
+4. Execute `git status` em ambos os repos pra ver onde paramos
+5. Confira o último plan file em `~/.claude/plans/` se houver
 
 ### Localização dos plan files anteriores
-`C:\Users\Enio Jr\.claude\plans\c-users-enio-jr-onedrive-documentos-gri-mellow-knuth.md` contém o roadmap detalhado da sessão de Maio 2026 — referência boa pra decisões e trade-offs históricos.
+`C:\Users\Enio Jr\.claude\plans\c-users-enio-jr-onedrive-documentos-gri-mellow-knuth.md` contém o roadmap detalhado da sessão de Maio 2026 (Fases 1-5 originais Grid 48) — referência boa pra decisões e trade-offs históricos.
 
 ### Padrões de trabalho
 - **NUNCA** crie `.md` sem ser pedido (exceto este CLAUDE.md que foi explicitamente pedido)
@@ -363,4 +384,4 @@ Quando começar nova sessão:
 
 ---
 
-**Última atualização**: 2026-05-17 (fim da sessão que entregou Fases 1-5).
+**Última atualização**: 2026-05-24 (sessão de limpeza pós-WorldMonitor — Fases 1-5 do `docs/CLEANUP_PLAN.md` + fix do throttle Gemini DEFCON + fix do expiresAt da Defesa Civil em `beacon/`).
