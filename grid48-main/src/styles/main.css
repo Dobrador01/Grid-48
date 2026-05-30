@@ -57,10 +57,6 @@
   --font-body: var(--font-mono);
 }
 
-[dir="rtl"] {
-  --font-body: 'Tajawal', 'Geeza Pro', 'SF Arabic', 'Tahoma', system-ui, sans-serif;
-}
-
 :lang(zh-CN),
 :lang(zh) {
   --font-body: 'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', system-ui, sans-serif;
