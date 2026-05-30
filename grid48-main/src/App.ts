@@ -201,7 +201,6 @@ export class App {
       inFlight: new Set(),
       seenGeoAlerts: new Set(),
       monitors,
-      exportPanel: null,
       unifiedSettings: null,
 
       isDestroyed: false,

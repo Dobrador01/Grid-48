@@ -1,6 +1,5 @@
 import type { Monitor, PanelConfig, MapLayers } from '@/types';
 import type { MapContainer, Panel } from '@/components';
-import type { ExportPanel } from '@/utils';
 import type { UnifiedSettings } from '@/components/UnifiedSettings';
 import type { ParsedMapUrlState } from '@/utils';
 
@@ -25,7 +24,6 @@ export interface AppContext {
   seenGeoAlerts: Set<string>;
   monitors: Monitor[];
 
-  exportPanel: ExportPanel | null;
   unifiedSettings: UnifiedSettings | null;
 
   isDestroyed: boolean;
