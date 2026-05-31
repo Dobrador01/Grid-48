@@ -11,13 +11,9 @@ export interface VariantMeta {
   features: string[];
 }
 
-// Single variant after the WorldMonitor purge. The map is kept on the schema
-// for back-compat with the htmlVariantPlugin (which looks up by key), but only
-// `full` is referenced by build scripts now.
-//
-// TODO: when the production domain is known, update `url` and the matching
-// hreflang / canonical lines in index.html (htmlVariantPlugin only rewrites
-// a subset of meta tags — others are still hard-coded to worldmonitor.app).
+// Grid 48 tem uma única variante. Indexado por chave (`full`) pra compat
+// com o htmlVariantPlugin do vite.config, que injeta as meta tags no HTML
+// durante o build.
 export const VARIANT_META: { full: VariantMeta; [k: string]: VariantMeta } = {
   full: {
     title: 'Grid 48 — Comando & Controle Grande Florianópolis',

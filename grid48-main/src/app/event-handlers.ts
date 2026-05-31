@@ -11,7 +11,6 @@ import {
 import {
   IDLE_PAUSE_MS,
   STORAGE_KEYS,
-  LAYER_TO_SOURCE,
 } from '@/config';
 import {
   trackPanelView,
@@ -19,7 +18,6 @@ import {
   trackMapLayerToggle,
   trackPanelToggled,
 } from '@/services/analytics';
-import { dataFreshness } from '@/services/data-freshness';
 
 import { UnifiedSettings } from '@/components/UnifiedSettings';
 import { t } from '@/services/i18n';
@@ -30,7 +28,6 @@ export interface EventHandlerCallbacks {
   flushStaleRefreshes: () => void;
   setHiddenSince: (ts: number) => void;
   loadDataForLayer: (layer: string) => void;
-  syncDataFreshnessWithLayers: () => void;
   ensureCorrectZones: () => void;
   refreshOpenCountryBrief?: () => void;
   stopLayerActivity?: (layer: keyof MapLayers) => void;
@@ -132,7 +129,7 @@ export class EventHandlerManager implements AppModule {
       this.boundMapFullscreenEscHandler = null;
     }
     if (this.boundPanelCloseHandler) {
-      this.ctx.container.removeEventListener('wm:panel-close', this.boundPanelCloseHandler);
+      this.ctx.container.removeEventListener('grid48:panel-close', this.boundPanelCloseHandler);
       this.boundPanelCloseHandler = null;
     }
     this.ctx.unifiedSettings?.destroy();
@@ -140,7 +137,7 @@ export class EventHandlerManager implements AppModule {
   }
 
   private setupEventListeners(): void {
-    // SearchModal era worldmonitor — Grid 48 não tem busca global.
+    // Grid 48 não tem busca global — FAB é no-op.
     // FAB ainda existe no DOM mas o callback agora é no-op.
     document.getElementById('searchMobileFab')?.addEventListener('click', () => {
       this.callbacks.updateSearchIndex();
@@ -168,7 +165,7 @@ export class EventHandlerManager implements AppModule {
       this.applyPanelSettings();
       this.ctx.unifiedSettings?.refreshPanelToggles();
     }) as EventListener;
-    this.ctx.container.addEventListener('wm:panel-close', this.boundPanelCloseHandler);
+    this.ctx.container.addEventListener('grid48:panel-close', this.boundPanelCloseHandler);
 
     document.getElementById('headerThemeToggle')?.addEventListener('click', () => {
       const next = getCurrentTheme() === 'dark' ? 'light' : 'dark';
@@ -345,7 +342,7 @@ export class EventHandlerManager implements AppModule {
       getLocalizedPanelName: (key: string, fallback: string) => this.getLocalizedPanelName(key, fallback),
       resetLayout: () => {
         localStorage.removeItem(this.ctx.PANEL_SPANS_KEY);
-        localStorage.removeItem('worldmonitor-panel-col-spans');
+        localStorage.removeItem('grid48-panel-col-spans');
         localStorage.removeItem(this.ctx.PANEL_ORDER_KEY);
         localStorage.removeItem(this.ctx.PANEL_ORDER_KEY + '-bottom');
         localStorage.removeItem(this.ctx.PANEL_ORDER_KEY + '-bottom-set');
@@ -375,13 +372,6 @@ export class EventHandlerManager implements AppModule {
       (this.ctx.mapLayers as Record<string, boolean>)[String(layer)] = enabled;
       saveToStorage(STORAGE_KEYS.mapLayers, this.ctx.mapLayers);
       this.syncUrlState();
-
-      const sourceIds = (LAYER_TO_SOURCE as Record<string, string[] | undefined>)[String(layer)];
-      if (sourceIds) {
-        for (const sourceId of sourceIds) {
-          dataFreshness.setEnabled(sourceId as Parameters<typeof dataFreshness.setEnabled>[0], enabled);
-        }
-      }
 
       if (enabled) {
         this.callbacks.loadDataForLayer(String(layer));
@@ -573,7 +563,7 @@ export class EventHandlerManager implements AppModule {
   }
 
   private setupMapDimensionToggle(): void {
-    // Toggle 2D/3D era worldmonitor (3D = GlobeMap deletado). Grid 48 é
+    // Grid 48 é 2D only — esconde o toggle 2D/3D se ainda estiver no DOM.
     // sempre 2D — esconde o toggle se ainda estiver no DOM.
     const toggle = document.getElementById('mapDimensionToggle');
     if (toggle) toggle.style.display = 'none';

@@ -2,9 +2,9 @@
 // Map — renderer único do mapa Grid 48 (deck.gl + maplibre)
 // ═══════════════════════════════════════════════════════════════════════════
 //
-// Reescrito do zero em 2026-05-24 pra substituir os 13.724 linhas legacy do
-// WorldMonitor (Map.ts SVG fallback + DeckGLMap + MapContainer + GlobeMap +
-// MapPopup). Tudo que Grid 48 USA está aqui em ~500 linhas.
+// Reescrito do zero em 2026-05-24 pra substituir os 13.724 linhas legacy
+// (SVG fallback + DeckGLMap + MapContainer + GlobeMap + MapPopup).
+// Tudo que Grid 48 USA está aqui em ~500 linhas.
 //
 // Renderiza:
 //   1. Basemap (PMTiles via maplibre, com fallback OpenFreeMap/CARTO)
@@ -25,11 +25,6 @@
 //   setCelescOutages, setBeaconAlerts, setView, setCenter, setZoom,
 //   setLayers, setLayerLoading, setIsResizing, onStateChanged,
 //   setOnLayerChange, reloadBasemap, destroy
-//
-// Stubs no-op pra retro-compat (chamadas remanescentes de data-loader que
-// será limpo em fase próxima): setClimateAnomalies, setCIIScores,
-// setFlightDelays, setHotspotLevels, setOnAircraftPositionsUpdate,
-// initEscalationGetters
 // ═══════════════════════════════════════════════════════════════════════════
 
 import maplibregl from 'maplibre-gl';
@@ -86,17 +81,6 @@ interface BeaconMarker {
   titulo: string;
   risco: string;
 }
-
-// ── Stub legacy types (callers ainda existem em data-loader/event-handlers,
-//    serão removidos em fase próxima) ──
-type ClimateAnomaly = unknown;
-type AirportDelayAlert = unknown;
-type CIIScoreLite = unknown;
-type HotspotLevels = unknown;
-type AircraftPositionHandler = (positions: unknown) => void;
-type CountryClickPayload = unknown;
-type CountryClickHandler = (payload: CountryClickPayload) => void;
-type HotspotClickHandler = (payload: unknown) => void;
 
 export class MapComponent {
   private map: maplibregl.Map;
@@ -290,20 +274,6 @@ export class MapComponent {
     this.renderPaused = paused;
   }
 
-  // ── Stubs no-op (callers worldmonitor remanescentes) ───────────────────
-  // Esses métodos eram da MapContainer legacy. Mantemos como no-ops pra
-  // não quebrar callers (data-loader, event-handlers) durante a migração.
-  // Próxima fase limpa esses callers e remove os stubs.
-
-  public setClimateAnomalies(_anomalies: ClimateAnomaly[]): void { /* no-op */ }
-  public setCIIScores(_scores: CIIScoreLite[]): void { /* no-op */ }
-  public setFlightDelays(_delays: AirportDelayAlert[]): void { /* no-op */ }
-  public setHotspotLevels(_levels: HotspotLevels): void { /* no-op */ }
-  public setOnAircraftPositionsUpdate(_cb: AircraftPositionHandler): void { /* no-op */ }
-  public initEscalationGetters(): void { /* no-op */ }
-  public onCountryClicked(_cb: CountryClickHandler): void { /* no-op */ }
-  public onHotspotClicked(_cb: HotspotClickHandler): void { /* no-op */ }
-
   // ── UI overlay: toggles de layers ───────────────────────────────────────
 
 
@@ -369,7 +339,7 @@ export class MapComponent {
    * algo explicitamente (gravado em localStorage via setMapTheme).
    */
   private themeMatchingDashboard(provider: MapProvider): string {
-    const stored = localStorage.getItem(`wm-map-theme:${provider}`);
+    const stored = localStorage.getItem(`grid48-map-theme:${provider}`);
     if (stored) return stored; // user override
 
     const dashboardDark = getCurrentTheme() === 'dark';

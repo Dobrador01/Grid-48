@@ -84,9 +84,5 @@
     "themeDark": "Dark",
     "themeDesc": "Auto follows your system preference.",
     "themeLight": "Light"
-  },
-  "premium": {
-    "joinWaitlist": "Join Waitlist",
-    "lockedDesc": "Requires a World Monitor license key"
   }
 }

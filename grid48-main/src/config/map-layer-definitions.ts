@@ -2,10 +2,9 @@ import type { MapLayers } from '@/types';
 
 export type MapRenderer = 'flat' | 'globe';
 
-// WorldMonitor tinha múltiplas variantes (tech/finance/happy/commodity).
-// Grid 48 só tem 'full'. Mantemos o type pra retro-compat com callsites
-// que ainda passam o valor — será removido em sweep futuro.
-export type MapVariant = 'full' | 'tech' | 'finance' | 'happy' | 'commodity';
+// Grid 48 tem uma única variante. Type mantido pra retro-compat com
+// callsites (getLayersForVariant etc.) que recebem o valor mas o ignoram.
+export type MapVariant = 'full';
 
 export interface LayerDefinition {
   key: keyof MapLayers;
@@ -47,9 +46,6 @@ export function sanitizeLayersForVariant(layers: Partial<MapLayers> & Record<str
   if ('weather' in migrated && !('weatherAlerts' in migrated)) {
     migrated.weatherAlerts = migrated.weather;
   }
-  // Migration: chave antiga `outages` (InternetOutage worldmonitor) era distinta de celescOutages.
-  // Grid 48 só liga ao Celesc; descartamos `outages` legado.
-
   return {
     celescOutages: typeof migrated.celescOutages === 'boolean' ? migrated.celescOutages : true,
     weatherAlerts: typeof migrated.weatherAlerts === 'boolean' ? migrated.weatherAlerts : true,

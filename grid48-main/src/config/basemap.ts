@@ -44,8 +44,8 @@ export const FALLBACK_LIGHT_STYLE = 'https://tiles.openfreemap.org/styles/positr
 
 export type MapProvider = 'auto' | 'pmtiles' | 'openfreemap' | 'carto';
 
-const STORAGE_KEY = 'wm-map-provider';
-const THEME_STORAGE_PREFIX = 'wm-map-theme:';
+const STORAGE_KEY = 'grid48-map-provider';
+const THEME_STORAGE_PREFIX = 'grid48-map-theme:';
 
 export { hasTilesUrl as hasPMTilesUrl };
 

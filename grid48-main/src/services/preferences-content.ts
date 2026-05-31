@@ -45,9 +45,9 @@ export function renderPreferences(host: PreferencesHost): PreferencesResult {
   let html = '';
 
   // ── Display group ──
-  html += `<details class="wm-pref-group" open>`;
+  html += `<details class="grid48-pref-group" open>`;
   html += `<summary>${t('preferences.display')}</summary>`;
-  html += `<div class="wm-pref-group-content">`;
+  html += `<div class="grid48-pref-group-content">`;
 
   // Appearance
   const currentThemePref = getThemePreference();
@@ -113,16 +113,16 @@ export function renderPreferences(host: PreferencesHost): PreferencesResult {
   html += `</div></details>`;
 
   // ── Panels group ──
-  html += `<details class="wm-pref-group">`;
+  html += `<details class="grid48-pref-group">`;
   html += `<summary>${t('preferences.panels')}</summary>`;
-  html += `<div class="wm-pref-group-content">`;
+  html += `<div class="grid48-pref-group-content">`;
   html += toggleRowHtml('us-badge-anim', t('components.insights.badgeAnimLabel'), t('components.insights.badgeAnimDesc'), settings.badgeAnimation);
   html += `</div></details>`;
 
   // ── Data group (export/import) ──
-  html += `<details class="wm-pref-group">`;
+  html += `<details class="grid48-pref-group">`;
   html += `<summary>${t('preferences.dataAndCommunity')}</summary>`;
-  html += `<div class="wm-pref-group-content">`;
+  html += `<div class="grid48-pref-group-content">`;
   html += `
     <div class="us-data-mgmt">
       <button type="button" class="settings-btn settings-btn-secondary" id="usExportBtn">${t('components.settings.exportSettings')}</button>

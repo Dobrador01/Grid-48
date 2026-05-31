@@ -6,8 +6,8 @@ type CacheEnvelope<T> = {
   data: T;
 };
 
-const CACHE_PREFIX = 'worldmonitor-persistent-cache:';
-const CACHE_DB_NAME = 'worldmonitor_persistent_cache';
+const CACHE_PREFIX = 'grid48-persistent-cache:';
+const CACHE_DB_NAME = 'grid48_persistent_cache';
 const CACHE_DB_VERSION = 1;
 const CACHE_STORE = 'entries';
 

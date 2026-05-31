@@ -282,8 +282,6 @@ window.addEventListener('unhandledrejection', (e) => {
   if (e.reason?.name === 'NotAllowedError') e.preventDefault();
 });
 
-import { installWebApiRedirect } from '@/services/runtime';
-import { loadDesktopSecrets } from '@/services/runtime-config';
 import { applyStoredTheme } from '@/utils/theme-manager';
 import { SITE_VARIANT } from '@/config/variant';
 import { clearChunkReloadGuard, installChunkReloadGuard } from '@/bootstrap/chunk-reload';
@@ -294,13 +292,6 @@ const chunkReloadStorageKey = installChunkReloadGuard(__APP_VERSION__);
 // Initialize Vercel Analytics & Speed Insights
 inject();
 injectSpeedInsights();
-
-// Meta tags dinâmicas eram WorldMonitor (compartilhamento social com snapshot
-// de dados). Grid 48 usa meta tags estáticas no index.html.
-
-// In web production, route RPC calls through api.grid48.app (Cloudflare edge).
-installWebApiRedirect();
-loadDesktopSecrets().catch(() => {});
 
 // Apply stored theme preference before app initialization (safety net for inline script)
 applyStoredTheme();
@@ -339,13 +330,13 @@ app
 // Beta mode toggle: type `beta=true` / `beta=false` in console
 Object.defineProperty(window, 'beta', {
   get() {
-    const on = localStorage.getItem('worldmonitor-beta-mode') === 'true';
+    const on = localStorage.getItem('grid48-beta-mode') === 'true';
     console.log(`[Beta] ${on ? 'ON' : 'OFF'}`);
     return on;
   },
   set(v: boolean) {
-    if (v) localStorage.setItem('worldmonitor-beta-mode', 'true');
-    else localStorage.removeItem('worldmonitor-beta-mode');
+    if (v) localStorage.setItem('grid48-beta-mode', 'true');
+    else localStorage.removeItem('grid48-beta-mode');
     location.reload();
   },
 });
@@ -353,7 +344,7 @@ Object.defineProperty(window, 'beta', {
 if ('serviceWorker' in navigator) {
   // One-time nuke: clear stale SWs and caches from old deploys, then re-register fresh.
   // Safe to remove after 2026-03-20 when all users have cycled through.
-  const nukeKey = 'wm-sw-nuked-v2';
+  const nukeKey = 'grid48-sw-nuked-v2';
   let alreadyNuked = false;
   try { alreadyNuked = !!localStorage.getItem(nukeKey); } catch { /* private browsing */ }
   if (!alreadyNuked) {

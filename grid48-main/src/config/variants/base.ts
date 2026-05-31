@@ -29,15 +29,15 @@ export const MONITOR_COLORS = [
   '#88ffff',
 ];
 
-// LocalStorage keys — mantidos com prefixo "worldmonitor-" pra retro-compat
+// LocalStorage keys — mantidos com prefixo "grid48-" pra retro-compat
 // com saved state de usuários existentes.
 export const STORAGE_KEYS = {
-  panels: 'worldmonitor-panels',
-  monitors: 'worldmonitor-monitors',
-  mapLayers: 'worldmonitor-layers',
-  disabledFeeds: 'worldmonitor-disabled-feeds',
-  liveChannels: 'worldmonitor-live-channels',
-  mapMode: 'worldmonitor-map-mode',          // 'flat' | 'globe' (Grid 48 só usa 'flat')
+  panels: 'grid48-panels',
+  monitors: 'grid48-monitors',
+  mapLayers: 'grid48-layers',
+  disabledFeeds: 'grid48-disabled-feeds',
+  liveChannels: 'grid48-live-channels',
+  mapMode: 'grid48-map-mode',          // 'flat' | 'globe' (Grid 48 só usa 'flat')
 } as const;
 
 export interface VariantConfig {

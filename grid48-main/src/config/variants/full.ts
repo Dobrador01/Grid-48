@@ -1,4 +1,4 @@
-// Grid 48 — variant config (única variante após cleanup pós-WorldMonitor)
+// Grid 48 — variant config (única variante)
 import type { PanelConfig } from '@/types';
 import type { VariantConfig } from './base';
 

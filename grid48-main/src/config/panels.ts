@@ -1,5 +1,4 @@
 import type { PanelConfig } from '@/types';
-import type { DataSourceId } from '@/services/data-freshness';
 // ============================================
 // FULL VARIANT (Geopolitical)
 // ============================================
@@ -146,20 +145,6 @@ export const DEFAULT_PANELS = FULL_PANELS;
 export const DEFAULT_MAP_LAYERS = FULL_MAP_LAYERS;
 export const MOBILE_DEFAULT_MAP_LAYERS = FULL_MOBILE_MAP_LAYERS;
 
-/** Maps map-layer toggle keys to their data-freshness source IDs (single source of truth). */
-export const LAYER_TO_SOURCE: Partial<Record<any, DataSourceId[]>> = {
-  military: ['opensky', 'wingbits'],
-  ais: ['ais'],
-  natural: ['usgs'],
-  weather: ['weather'],
-  outages: ['outages'],
-  cyberThreats: ['cyber_threats'],
-  protests: ['acled', 'gdelt_doc'],
-  ucdpEvents: ['ucdp'],
-  displacement: ['unhcr'],
-  climate: ['climate'],
-};
-
 // ============================================
 // PANEL CATEGORY MAP (variant-aware)
 // ============================================
@@ -188,9 +173,3 @@ export const MONITOR_COLORS = [
   '#88ffff',
 ];
 
-export const STORAGE_KEYS = {
-  panels: 'worldmonitor-panels',
-  monitors: 'worldmonitor-monitors',
-  mapLayers: 'worldmonitor-layers',
-  disabledFeeds: 'worldmonitor-disabled-feeds',
-} as const;

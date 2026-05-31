@@ -10,11 +10,10 @@ export interface PanelOptions {
   className?: string;
   trackActivity?: boolean;
   infoTooltip?: string;
-  premium?: 'locked' | 'enhanced';
   closable?: boolean;
 }
 
-const PANEL_SPANS_KEY = 'worldmonitor-panel-spans';
+const PANEL_SPANS_KEY = 'grid48-panel-spans';
 
 function loadPanelSpans(): Record<string, number> {
   try {
@@ -31,7 +30,7 @@ function savePanelSpan(panelId: string, span: number): void {
   localStorage.setItem(PANEL_SPANS_KEY, JSON.stringify(spans));
 }
 
-const PANEL_COL_SPANS_KEY = 'worldmonitor-panel-col-spans';
+const PANEL_COL_SPANS_KEY = 'grid48-panel-col-spans';
 const ROW_RESIZE_STEP_PX = 80;
 const COL_RESIZE_STEP_PX = 80;
 const PANELS_GRID_MIN_TRACK_PX = 280;
@@ -198,7 +197,6 @@ export class Panel {
   private retryCountdownTimer: ReturnType<typeof setInterval> | null = null;
   private retryAttempt = 0;
   private _fetching = false;
-  private _locked = false;
 
   constructor(options: PanelOptions) {
     this.panelId = options.id;
@@ -647,7 +645,7 @@ export class Panel {
     }, '\u2715');
     closeBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      this.element.dispatchEvent(new CustomEvent('wm:panel-close', {
+      this.element.dispatchEvent(new CustomEvent('grid48:panel-close', {
         bubbles: true,
         detail: { panelId: this.panelId },
       }));
@@ -660,7 +658,6 @@ export class Panel {
   }
 
   public showLoading(message = t('common.loading')): void {
-    if (this._locked) return;
     this.setErrorState(false);
     this.clearRetryCountdown();
     replaceChildren(this.content,
@@ -675,7 +672,6 @@ export class Panel {
   }
 
   public showError(message?: string, onRetry?: () => void, autoRetrySeconds?: number): void {
-    if (this._locked) return;
     this.clearRetryCountdown();
     this.setErrorState(true);
     if (onRetry !== undefined) this.retryCallback = onRetry;
@@ -714,41 +710,7 @@ export class Panel {
     this.retryAttempt = 0;
   }
 
-  public showLocked(features: string[] = []): void {
-    this._locked = true;
-    this.clearRetryCountdown();
-
-    for (let child = this.header.nextElementSibling; child && child !== this.content; child = child.nextElementSibling) {
-      (child as HTMLElement).style.display = 'none';
-    }
-    this.element.classList.add('panel-is-locked');
-
-    const lockSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>`;
-    const iconEl = h('div', { className: 'panel-locked-icon' });
-    iconEl.innerHTML = lockSvg;
-
-    const lockedChildren: (HTMLElement | string)[] = [
-      iconEl,
-      h('div', { className: 'panel-locked-desc' }, t('premium.lockedDesc')),
-    ];
-
-    if (features.length > 0) {
-      const featureList = h('ul', { className: 'panel-locked-features' });
-      for (const feat of features) {
-        featureList.appendChild(h('li', {}, feat));
-      }
-      lockedChildren.push(featureList);
-    }
-
-    const ctaBtn = h('button', { type: 'button', className: 'panel-locked-cta' }, t('premium.joinWaitlist'));
-    ctaBtn.addEventListener('click', () => window.open('https://worldmonitor.app/pro', '_blank'));
-    lockedChildren.push(ctaBtn);
-
-    replaceChildren(this.content, h('div', { className: 'panel-locked-state' }, ...lockedChildren));
-  }
-
   public showRetrying(message?: string, countdownSeconds?: number): void {
-    if (this._locked) return;
     this.clearRetryCountdown();
     this.setErrorState(true);
 
@@ -830,7 +792,6 @@ export class Panel {
   }
 
   public setContent(html: string): void {
-    if (this._locked) return;
     this.setErrorState(false);
     this.clearRetryCountdown();
     this.retryAttempt = 0;

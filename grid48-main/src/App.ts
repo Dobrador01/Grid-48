@@ -8,7 +8,6 @@ import {
   SITE_VARIANT,
 } from '@/config';
 import { sanitizeLayersForVariant } from '@/config/map-layer-definitions';
-import type { MapVariant } from '@/config/map-layer-definitions';
 import { initDB, cleanOldSnapshots } from '@/services';
 
 import { subscribeAiFlowChange } from '@/services/ai-flow-settings';
@@ -19,7 +18,6 @@ import type { ParsedMapUrlState } from '@/utils';
 
 import { trackEvent } from '@/services/analytics';
 import { initI18n } from '@/services/i18n';
-import { fetchBootstrapData } from '@/services/bootstrap';
 
 import { SearchManager } from '@/app/search-manager';
 import { RefreshScheduler } from '@/app/refresh-scheduler';
@@ -73,12 +71,12 @@ export class App {
       localStorage.removeItem(PANEL_ORDER_KEY + '-bottom');
       localStorage.removeItem(PANEL_ORDER_KEY + '-bottom-set');
       localStorage.removeItem(PANEL_SPANS_KEY);
-      mapLayers = sanitizeLayersForVariant({ ...defaultLayers }, currentVariant as MapVariant);
+      mapLayers = sanitizeLayersForVariant({ ...defaultLayers }, 'full');
       panelSettings = { ...DEFAULT_PANELS };
     } else {
       mapLayers = sanitizeLayersForVariant(
         loadFromStorage<MapLayers>(STORAGE_KEYS.mapLayers, defaultLayers),
-        currentVariant as MapVariant,
+        'full',
       );
       panelSettings = loadFromStorage<Record<string, PanelConfig>>(
         STORAGE_KEYS.panels,
@@ -112,29 +110,6 @@ export class App {
           }
         }
         localStorage.setItem(PANEL_ORDER_MIGRATION_KEY, 'done');
-      }
-
-      // Tech variant migration: move insights to top (after live-news)
-      if (currentVariant === 'tech') {
-        const TECH_INSIGHTS_MIGRATION_KEY = 'grid48-tech-insights-top-v1';
-        if (!localStorage.getItem(TECH_INSIGHTS_MIGRATION_KEY)) {
-          const savedOrder = localStorage.getItem(PANEL_ORDER_KEY);
-          if (savedOrder) {
-            try {
-              const order: string[] = JSON.parse(savedOrder);
-              const filtered = order.filter(k => k !== 'insights' && k !== 'live-news');
-              const newOrder: string[] = [];
-              if (order.includes('live-news')) newOrder.push('live-news');
-              if (order.includes('insights')) newOrder.push('insights');
-              newOrder.push(...filtered);
-              localStorage.setItem(PANEL_ORDER_KEY, JSON.stringify(newOrder));
-              console.log('[App] Tech variant: Migrated insights panel to top');
-            } catch {
-              // Invalid saved order, will use defaults
-            }
-          }
-          localStorage.setItem(TECH_INSIGHTS_MIGRATION_KEY, 'done');
-        }
       }
     }
 
@@ -180,7 +155,7 @@ export class App {
 
     let initialUrlState: ParsedMapUrlState | null = parseMapUrlState(window.location.search, mapLayers);
     if (initialUrlState.layers) {
-      mapLayers = sanitizeLayersForVariant(initialUrlState.layers, currentVariant as MapVariant);
+      mapLayers = sanitizeLayersForVariant(initialUrlState.layers, 'full');
       initialUrlState.layers = mapLayers;
     }
     let disabledFeedsRaw = loadFromStorage<string[]>(STORAGE_KEYS.disabledFeeds, []);
@@ -235,7 +210,6 @@ export class App {
       flushStaleRefreshes: () => this.refreshScheduler.flushStaleRefreshes(),
       setHiddenSince: (ts) => this.refreshScheduler.setHiddenSince(ts),
       loadDataForLayer: (layer) => { void this.dataLoader.loadDataForLayer(layer); },
-      syncDataFreshnessWithLayers: () => this.dataLoader.syncDataFreshnessWithLayers(),
       ensureCorrectZones: () => this.panelLayout.ensureCorrectZones(),
       refreshOpenCountryBrief: () => {},
       stopLayerActivity: (layer) => this.dataLoader.stopLayerActivity(layer),
@@ -266,9 +240,6 @@ export class App {
 
 
 
-    // Hydrate in-memory cache from bootstrap endpoint (before panels construct and fetch)
-    await fetchBootstrapData();
-
     const geoCoordsPromise: Promise<PreciseCoordinates | null> =
       this.state.isMobile && this.state.initialUrlState?.lat === undefined && this.state.initialUrlState?.lon === undefined
         ? resolvePreciseUserCoordinates(5000)
@@ -291,7 +262,7 @@ export class App {
     // Phase 2: Shared UI components
 
     // Phase 3: UI setup methods (Grid 48 — sem PlaybackControl/StatusPanel/
-    // ExportPanel que eram componentes worldmonitor)
+    // Phase 3: UI setup methods do Grid 48)
     this.eventHandlers.startHeaderClock();
     this.eventHandlers.setupUnifiedSettings();
 
@@ -396,7 +367,6 @@ export class App {
     this.handleDeepLinks();
 
     // Phase 6: Data loading
-    this.dataLoader.syncDataFreshnessWithLayers();
     await this.dataLoader.loadAllData();
 
 
@@ -404,7 +374,7 @@ export class App {
 
 
 
-    // Phase 7: Refresh scheduling (snapshot saving era worldmonitor — drop)
+    // Phase 7: Refresh scheduling
     this.setupRefreshIntervals();
     cleanOldSnapshots().catch((e) => console.warn('[Storage] Snapshot cleanup failed:', e));
 
@@ -426,7 +396,7 @@ export class App {
       this.modules[i]!.destroy();
     }
 
-    // Clean up subscriptions, map (BreakingBanner era worldmonitor — removido)
+    // Clean up subscriptions + map
     this.unsubAiFlow?.();
     this.state.map?.destroy();
   }
@@ -437,7 +407,7 @@ export class App {
 
   private setupRefreshIntervals(): void {
     // Grid 48: dados vêm via DataProvider (Convex). Sem refresh intervals
-    // client-side (FIRMS/flights eram worldmonitor — removidos).
+    // client-side (dados vêm via DataProvider/Convex).
     this.refreshScheduler.registerAll([]);
   }
 }

@@ -3950,14 +3950,14 @@ body.playback-mode .status-dot {
 
 /* ============ Preferences Collapsible Groups ============ */
 
-.wm-pref-group {
+.grid48-pref-group {
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 8px;
   margin-bottom: 8px;
   overflow: hidden;
 }
 
-.wm-pref-group > summary {
+.grid48-pref-group > summary {
   cursor: pointer;
   padding: 10px 14px;
   font-size: 12px;
@@ -3972,26 +3972,26 @@ body.playback-mode .status-dot {
   user-select: none;
 }
 
-.wm-pref-group > summary::-webkit-details-marker {
+.grid48-pref-group > summary::-webkit-details-marker {
   display: none;
 }
 
-.wm-pref-group > summary::before {
+.grid48-pref-group > summary::before {
   content: '\25B8';
   font-size: 10px;
   transition: transform 0.15s ease;
   color: var(--text-faint);
 }
 
-.wm-pref-group[open] > summary::before {
+.grid48-pref-group[open] > summary::before {
   transform: rotate(90deg);
 }
 
-.wm-pref-group > summary:hover {
+.grid48-pref-group > summary:hover {
   background: rgba(255, 255, 255, 0.06);
 }
 
-.wm-pref-group-content {
+.grid48-pref-group-content {
   padding: 4px 14px 10px;
 }
 

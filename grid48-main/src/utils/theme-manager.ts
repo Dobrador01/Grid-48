@@ -3,7 +3,7 @@ import { invalidateColorCache } from './theme-colors';
 export type Theme = 'dark' | 'light';
 export type ThemePreference = 'auto' | 'dark' | 'light';
 
-const STORAGE_KEY = 'worldmonitor-theme';
+const STORAGE_KEY = 'grid48-theme';
 const DEFAULT_THEME: Theme = 'dark';
 
 /**
@@ -81,8 +81,7 @@ export function setTheme(theme: Theme): void {
   }
   const meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
   if (meta) {
-    const variant = document.documentElement.dataset.variant;
-    meta.content = theme === 'dark' ? (variant === 'happy' ? '#1A2332' : '#0a0f0a') : (variant === 'happy' ? '#FAFAF5' : '#f8f9fa');
+    meta.content = theme === 'dark' ? '#0a0f0a' : '#f8f9fa';
   }
   window.dispatchEvent(new CustomEvent('theme-changed', { detail: { theme } }));
 }
@@ -96,23 +95,21 @@ export function setTheme(theme: Theme): void {
  * This is a safety net for cases where the inline script didn't run.
  */
 export function applyStoredTheme(): void {
-  const variant = document.documentElement.dataset.variant;
-
-  // STRICT LIGHT MODE ENFORCEMENT: Engatilhando para pintar modo claro ignorando sessões anteriores (Pedido Humano).
+  // STRICT LIGHT MODE ENFORCEMENT: força modo claro ignorando sessões anteriores (Pedido Humano).
   const effective: Theme = 'light';
   try { localStorage.setItem(STORAGE_KEY, 'light'); } catch { /* noop */ }
 
   // Alinhar o basemap do MapLibre ao tema light (ele lê chaves próprias em localStorage e ignora data-theme).
   try {
-    localStorage.setItem('wm-map-theme:pmtiles', 'light');
-    localStorage.setItem('wm-map-theme:auto', 'light');
-    localStorage.setItem('wm-map-theme:openfreemap', 'positron');
-    localStorage.setItem('wm-map-theme:carto', 'positron');
+    localStorage.setItem('grid48-map-theme:pmtiles', 'light');
+    localStorage.setItem('grid48-map-theme:auto', 'light');
+    localStorage.setItem('grid48-map-theme:openfreemap', 'positron');
+    localStorage.setItem('grid48-map-theme:carto', 'positron');
   } catch { /* noop */ }
 
   document.documentElement.dataset.theme = effective;
   const meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
   if (meta) {
-    meta.content = variant === 'happy' ? '#FAFAF5' : '#f8f9fa';
+    meta.content = '#f8f9fa';
   }
 }

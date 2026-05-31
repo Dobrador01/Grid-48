@@ -1,5 +1,5 @@
 /**
- * UI preferences — apenas o que Grid 48 ainda usa após limpeza WorldMonitor.
+ * UI preferences do Grid 48 (apenas badgeAnimation).
  *
  * Histórico: o arquivo armazenava cloudLlm, browserModel, mapNewsFlash,
  * headlineMemory, streamQuality — todos descartados junto com a Settings UI.
@@ -7,7 +7,7 @@
  * setCount() pra animar contadores.
  */
 
-const STORAGE_KEY_BADGE_ANIMATION = 'wm-badge-animation';
+const STORAGE_KEY_BADGE_ANIMATION = 'grid48-badge-animation';
 const EVENT_NAME = 'ai-flow-changed';
 
 export interface AiFlowSettings {

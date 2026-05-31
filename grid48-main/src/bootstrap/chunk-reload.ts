@@ -16,7 +16,7 @@ interface ChunkReloadGuardOptions {
 }
 
 export function buildChunkReloadStorageKey(version: string): string {
-  return `wm-chunk-reload:${version}`;
+  return `grid48-chunk-reload:${version}`;
 }
 
 export function installChunkReloadGuard(
