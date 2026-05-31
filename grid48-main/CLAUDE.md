@@ -86,11 +86,13 @@ pnpm build        # build pra prod
 
 ## 4. Estado do roadmap (Maio 2026)
 
-### Limpeza pós-WorldMonitor (Maio 2026)
+### Limpeza pós-WorldMonitor (Maio 2026) — CONCLUÍDA
 
 Grid 48 nasceu como fork do WorldMonitor. Sessão 2026-05-23/24 executou
-5 fases de cleanup deletando ~247 arquivos / ~52k linhas de cruft
-worldmonitor. Detalhes completos em `docs/CLEANUP_PLAN.md` (seção 11).
+8 fases de cleanup. **Resultado: `worldmonitor` = 0 refs em todo o código
+vivo** (src + index.html + vite.config + vercel.json + package.json +
+engine/src). O frontend é Grid 48-nativo de verdade. Detalhes em
+`docs/CLEANUP_PLAN.md`.
 
 | Fase | Escopo | Commit |
 |--|--|--|
@@ -99,23 +101,33 @@ worldmonitor. Detalhes completos em `docs/CLEANUP_PLAN.md` (seção 11).
 | 3 | Settings UI WorldMonitor (Inteligência, Mídia, etc.) | `bb60214` |
 | 4 | `isDesktopApp` dead code + settings.html standalone | `aec56b3` |
 | 5 | 60+ services órfãos + 12 subdirs + workers/ + stubs | `384a18f` |
-| 6 | Rebuild do mapa: 13.7k linhas → `Map.ts` único de ~640 linhas | (próximo commit) |
+| 6 | Rebuild do mapa: 13.7k linhas → `Map.ts` único de ~640 linhas | `b83e483` |
+| 7 | `src/generated/` (484K) + locales + CSS purge + proto/worldmonitor + fontes | `aa23d1d`…`ba81a1f` |
+| 8 | **Purga total**: types/index.ts (1.3k→36), runtime-config/data-freshness/bootstrap, dead code, rename keys `worldmonitor-`→`grid48-` | `ae6f3a3`…`c9fc4f1` |
 
-**Rebuild Map (Fase 6 — 2026-05-24)**: deletados `Map.ts` (3.5k) +
-`DeckGLMap.ts` (3.5k) + `MapContainer.ts` (949) + `GlobeMap.ts` (2.8k) +
-`MapPopup.ts` (2.9k) = ~13.7k linhas substituídas por um único
-`src/components/Map.ts` (~640 linhas) Grid 48-native:
-- deck.gl + maplibre direto, sem fallback SVG/Globe
-- Layer Celesc (GeoJsonLayer com cores por %UCs offline)
-- Layer Weather Alerts (ScatterplotLayer com markers Defesa Civil)
-- Tooltip central + hover tooltips
-- Fly-to ao clicar widget Celesc/Beacon (event `CELESC_CITY_SELECTED`)
-- Sync de tema automático com dashboard (`theme-changed` event)
+**Rebuild Map (Fase 6)**: `Map.ts` (3.5k) + `DeckGLMap.ts` (3.5k) +
+`MapContainer.ts` (949) + `GlobeMap.ts` (2.8k) + `MapPopup.ts` (2.9k) =
+~13.7k linhas → um único `src/components/Map.ts` (~640 linhas) Grid 48-native
+(deck.gl + maplibre direto, Layer Celesc + Weather Alerts, fly-to via
+`CELESC_CITY_SELECTED`, sync de tema com dashboard, caixa de toggles de camadas).
 
-Cascata desbloqueou deleção de: 25+ services worldmonitor restantes,
-20 configs, components SearchModal/SignalModal/PlaybackControl/StatusPanel,
-e2e harnesses, `src/workers/`. Bundle main: **2.292 MB → 168 KB
-(-92.6%)**, PWA precache **7.218 KiB → 4.440 KiB**, build **30s → 13s**.
+**Purga total (Fases 7-8)**: deletados `src/generated/`, `proto/worldmonitor/`
+(142 protos), runtime-config/settings-manager/data-freshness/bootstrap/
+cross-domain-storage, sistema premium/locked do Panel, RTL/multi-idioma
+do i18n (21→2 idiomas: pt/en). `types/index.ts` 1.319→36 linhas (131 tipos
+mortos removidos via fechamento transitivo). Locales reescritos (1.806→~56
+chaves). CSS purgado (16.9k→4.4k linhas via PostCSS). Storage keys
+`worldmonitor-*`/`wm-*` → `grid48-*` (+ rehash sha256 da CSP do index.html).
+
+**Métricas cumulativas**: bundle main **2.292 MB → 168 KB (-92.6%)**, CSS
+gzip **42 KB → 12.6 KB**, locale-pt **80 KB → 2 KB**, build **30s → ~15s**,
+PWA precache **7.2 MB → 4.4 MB**. ~440 arquivos deletados, ~68k linhas.
+
+**Confiança worldmonitor eliminado**: ~98%. Resíduo restante é só infra
+(`proto/sebuf` dep do buf, 7 hashes CSP órfãos, doc CLEANUP_PLAN) — nada
+que executa.
+
+⚠️ **Storage keys renomeadas** → usuários resetam settings/layout 1x.
 
 ### Fases concluídas
 
@@ -395,4 +407,4 @@ Quando começar nova sessão:
 
 ---
 
-**Última atualização**: 2026-05-24 (sessão de limpeza pós-WorldMonitor — Fases 1-6 do `docs/CLEANUP_PLAN.md`, incluindo o rebuild final do mapa Grid 48-native + fix do throttle Gemini DEFCON + fix do expiresAt da Defesa Civil em `beacon/`).
+**Última atualização**: 2026-05-25 (limpeza pós-WorldMonitor CONCLUÍDA — Fases 1-8: rebuild do mapa + purga total, `worldmonitor` = 0 refs no código vivo. Frontend Grid 48-nativo. Inclui fix do throttle Gemini DEFCON + fix do expiresAt da Defesa Civil em `beacon/`).

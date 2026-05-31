@@ -17,8 +17,9 @@ O projeto abandona a dependência exclusiva da nuvem e adota a **Computação de
 
 ### 2. Zona 1: O Fat Client (`/grid48-main/src`)
 - **Papel:** Interface tática e mapa interativo.
-- **Tecnologia:** React/Vite/TypeScript.
+- **Tecnologia:** **Vanilla TypeScript + Vite** (sem framework — componentes herdam de uma classe base `Panel`). Mapa em **deck.gl + maplibre-gl** centrado na Grande Florianópolis, com camadas de instabilidades Celesc (polígonos municipais por % de UCs offline) e alertas da Defesa Civil. Estado reativo via cliente Convex (`convex/browser`).
 - **Adapter Pattern:** O app monitora a conexão (`__API_MODE__`). Se a internet cair, o `LocalProvider` assume o controle e passa a buscar os dados estritamente da infraestrutura local (Zona 2), sem o usuário perceber.
+- **Codebase Grid 48-nativo:** originalmente um fork do WorldMonitor, o frontend foi 100% limpo (Mai/2026) — `worldmonitor` = 0 referências no código vivo. Histórico da faxina em `grid48-main/docs/CLEANUP_PLAN.md`.
 
 ### 3. Zona 2: O Engine de Borda (`/grid48-main/engine`)
 - **Papel:** O cérebro de sobrevivência (Instalado no Raspberry Pi / Ipiranga).
@@ -44,3 +45,10 @@ A documentação foi estritamente segregada por responsabilidade. Para levantar 
 
 - **Deploy do Frontend Local (Desenvolvimento)**
   _Navegue até `grid48-main`, instale as dependências com `npm install` e inicie via `npm run dev`._
+
+---
+
+## 📖 Documentação Técnica
+
+- **[`grid48-main/CLAUDE.md`](./grid48-main/CLAUDE.md)** — onboarding completo para qualquer agente/dev: stack, arquitetura, schema Convex, modelo DEFCON, sistema de regras DSL, pegadinhas conhecidas e roadmap. **Ponto de entrada recomendado.**
+- **[`grid48-main/docs/CLEANUP_PLAN.md`](./grid48-main/docs/CLEANUP_PLAN.md)** — histórico da limpeza pós-WorldMonitor.
