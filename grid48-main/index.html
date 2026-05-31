@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https: https://celgeoweb.celesc.com.br http://localhost:5173 ws: wss: blob: data:; img-src 'self' data: blob: https:; style-src 'self' 'unsafe-inline'; script-src 'self' 'sha256-LnMFPWZxTgVOr2VYwIh9mhQ3l/l3+a3SfNOLERnuHfY=' 'sha256-+SFBjfmi2XfnyAT3POBxf6JIKYDcNXtllPclOcaNBI0=' 'sha256-AhZAmdCW6h8iXMyBcvIrqN71FGNk4lwLD+lPxx43hxg=' 'sha256-PnEBZii+iFaNE2EyXaJhRq34g6bdjRJxpLfJALdXYt8=' 'sha256-cVhuR63Moy56DV5yG0caJCEyCugMTbYclkvkK6fSwXY=' 'sha256-903UI9my1I7mqHoiVeZSc56yd50YoRJTB2269QqL76w=' 'sha256-eQ0OZstnx1pw1Q47/36u63gB3pBzmq6jc/LE0V+tjHY=' 'sha256-zNlznr0DL4zeT9vl7Bqjo2K7x+82+4FCd4C8LRKn1bY=' 'sha256-jGfNpYkwbAJFpUwbj37MmleCmXiOXYDhepvxUSmpz48=' 'wasm-unsafe-eval' https://www.youtube.com https://static.cloudflareinsights.com https://vercel.live https://celgeoweb.celesc.com.br https://va.vercel-scripts.com; worker-src 'self' blob:; font-src 'self' data: https:; media-src 'self' data: blob: https: http://127.0.0.1:* http://localhost:*; frame-src 'self' http://127.0.0.1:* http://localhost:* https://www.youtube.com https://www.youtube-nocookie.com;" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https: https://celgeoweb.celesc.com.br http://localhost:5173 ws: wss: blob: data:; img-src 'self' data: blob: https:; style-src 'self' 'unsafe-inline'; script-src 'self' 'sha256-LnMFPWZxTgVOr2VYwIh9mhQ3l/l3+a3SfNOLERnuHfY=' 'sha256-+SFBjfmi2XfnyAT3POBxf6JIKYDcNXtllPclOcaNBI0=' 'sha256-AhZAmdCW6h8iXMyBcvIrqN71FGNk4lwLD+lPxx43hxg=' 'sha256-PnEBZii+iFaNE2EyXaJhRq34g6bdjRJxpLfJALdXYt8=' 'sha256-cVhuR63Moy56DV5yG0caJCEyCugMTbYclkvkK6fSwXY=' 'sha256-903UI9my1I7mqHoiVeZSc56yd50YoRJTB2269QqL76w=' 'sha256-DhvcfG7ZWCX7t1k4sZRvxEBhn044Y6GQyu66Ploz4dI=' 'sha256-zNlznr0DL4zeT9vl7Bqjo2K7x+82+4FCd4C8LRKn1bY=' 'sha256-LmgjAHPX/4FnaYXjmXWXkA3ljWmdBp7N8/Ms8WI3Pjc=' 'wasm-unsafe-eval' https://www.youtube.com https://static.cloudflareinsights.com https://vercel.live https://celgeoweb.celesc.com.br https://va.vercel-scripts.com; worker-src 'self' blob:; font-src 'self' data: https:; media-src 'self' data: blob: https: http://127.0.0.1:* http://localhost:*; frame-src 'self' http://127.0.0.1:* http://localhost:* https://www.youtube.com https://www.youtube-nocookie.com;" />
     <meta name="referrer" content="strict-origin-when-cross-origin" />
 
     <!-- Primary Meta Tags (substituídos em build pelo htmlVariantPlugin a partir de variant-meta.ts) -->
@@ -83,7 +83,7 @@
 
 
     <!-- Theme: apply stored preference before first paint to prevent FOUC -->
-    <script>(function(){try{document.documentElement.removeAttribute('data-variant');document.documentElement.dataset.theme='light';try{localStorage.setItem('worldmonitor-theme','light');localStorage.setItem('wm-map-theme:pmtiles','light');localStorage.setItem('wm-map-theme:auto','light');localStorage.setItem('wm-map-theme:openfreemap','positron');localStorage.setItem('wm-map-theme:carto','positron');}catch(e){}}catch(e){}document.documentElement.classList.add('no-transition');})()</script>
+    <script>(function(){try{document.documentElement.removeAttribute('data-variant');document.documentElement.dataset.theme='light';try{localStorage.setItem('grid48-theme','light');localStorage.setItem('grid48-map-theme:pmtiles','light');localStorage.setItem('grid48-map-theme:auto','light');localStorage.setItem('grid48-map-theme:openfreemap','positron');localStorage.setItem('grid48-map-theme:carto','positron');}catch(e){}}catch(e){}document.documentElement.classList.add('no-transition');})()</script>
 
     <!-- Critical CSS: inline skeleton visible before JS boots -->
     <style>
@@ -213,7 +213,7 @@
     <script>
     (function(){
       if(!('serviceWorker' in navigator))return;
-      var key='wm-sw-nuke';
+      var key='grid48-sw-nuke';
       if(sessionStorage.getItem(key))return;
       window.addEventListener('error',function(e){
         var u=e.target&&(e.target.src||e.target.href)||'';
