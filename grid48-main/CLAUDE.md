@@ -12,6 +12,27 @@ Convex agent skills for common tasks can be installed by running `npx convex ai-
 
 Ponto de entrada pra qualquer agente Claude (ou humano) que vá trabalhar no Grid 48. Cobre os **dois repos entrelaçados** do projeto: `beacon` (este, backend Convex) e `Grid 48` (frontend Vanilla TS).
 
+## 0. Panorama (Escopo · Origem · Situação · Direção)
+
+### 🎯 Escopo
+Sistema **pessoal de Comando & Controle (C2)** para a Grande Florianópolis. Single-user: o dono opera no navegador e a dashboard agrega, em tempo real, o estado da infraestrutura crítica regional — **energia** (Celesc), **clima** e **alertas meteorológicos** (OpenWeather + Defesa Civil), **mobilidade** (Google Routes) — destilando tudo num índice operacional único: o **DEFCON** (1 = colapso, 5 = normal), calculado por regras determinísticas e explicado em linguagem natural via Gemini. O objetivo de longo prazo é **resiliência offline-first**: continuar coletando inteligência via rádio LoRa mesmo num colapso de internet/energia.
+
+### 📜 De onde vem
+Grid 48 começou como **fork do [WorldMonitor](https://worldmonitor.app)** (dashboard global de inteligência geopolítica). Herdou um frontend gigante e genérico — mapas globais, mercados, rastreamento militar, news feeds, multi-idioma, variantes (tech/finance/happy). A maior parte era peso morto para um C2 regional single-user. Em Maio/2026 o projeto passou por uma **faxina completa (8 fases)** que removeu ~440 arquivos / ~68k linhas: hoje **`worldmonitor` = 0 referências no código vivo** e o frontend é Grid 48-nativo (Vanilla TS + deck.gl/maplibre, bundle principal −92.6%). Histórico em `docs/CLEANUP_PLAN.md`.
+
+### 📍 Situação atual
+- **Fases 0–5 deployadas em produção** (DEFCON + DSL de regras, Clima, Tráfego, Celesc, Defesa Civil). Ver tabela na seção 4.
+- **Limpeza pós-WorldMonitor concluída** — codebase enxuto e navegável.
+- **Deploys ativos**: backend Convex prod `secret-shrimp-538`, frontend Vercel `grid-48.vercel.app`.
+- **Arquitetura cloud-first hoje** — o adapter pattern (`ConvexProvider` vs `LocalProvider`) e o engine de borda (Pi) existem mas o modo local/LoRa ainda não está em operação.
+
+### 🧭 Para onde vamos
+- **Fase 6 — Hardware LoRa** (próximo marco): pluviômetro/anemômetro físicos transmitindo via rádio; reusar `meteorologia_state.fonte = "lora_local"` (já no schema), priorizando dado hiperlocal sobre o regional.
+- **Resiliência offline real**: ativar o `LocalProvider` + engine no Pi para o sistema sobreviver a quedas de internet/energia (a promessa central do projeto).
+- **Backlog**: auth real (Convex Auth, elimina dívida das mutations públicas), migrar coleta Celesc para o backend, editor visual de regras DSL, timeline histórica de Celesc/DEFCON. Detalhes na seção 12.
+
+---
+
 ## 1. O que é o Grid 48
 
 Sistema de **comando & controle pessoal** pra Grande Florianópolis, focado em monitoramento agregado de:

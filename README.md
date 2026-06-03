@@ -6,6 +6,17 @@ O objetivo do sistema é fornecer consciência situacional em tempo real e hist�
 
 ---
 
+## 🧭 Panorama
+
+| | |
+|--|--|
+| **🎯 Escopo** | C2 **pessoal** (single-user) para a Grande Florianópolis. Agrega energia (Celesc), clima e alertas (OpenWeather + Defesa Civil) e mobilidade (Google Routes) num índice operacional único — o **DEFCON** (1 = colapso, 5 = normal) — calculado por regras determinísticas e explicado em linguagem natural via Gemini. |
+| **📜 De onde vem** | Fork do **[WorldMonitor](https://worldmonitor.app)** (dashboard global de inteligência). Em Mai/2026 passou por uma faxina completa de 8 fases que removeu ~440 arquivos / ~68k linhas de peso morto. Hoje o frontend é **Grid 48-nativo** — `worldmonitor` = 0 referências no código vivo, bundle principal −92.6%. |
+| **📍 Situação atual** | Fases 0–5 **em produção** (DEFCON + DSL de regras, Clima, Tráfego, Celesc, Defesa Civil). Backend Convex prod `secret-shrimp-538`; frontend em [`grid-48.vercel.app`](https://grid-48.vercel.app). Operação **cloud-first** — o modo offline/LoRa (engine de borda) existe na arquitetura mas ainda não está em operação. |
+| **🚀 Para onde vamos** | **Fase 6 — Hardware LoRa**: pluviômetro/anemômetro físicos via rádio (dado hiperlocal). Depois: ativar resiliência offline real (engine no Pi), auth, migrar coleta Celesc pro backend, timelines históricas. |
+
+---
+
 ## 🏛️ Topologia e Arquitetura (V2.0)
 
 O projeto abandona a dependência exclusiva da nuvem e adota a **Computação de Borda Assimétrica** distribuída em 4 zonas:
