@@ -44,6 +44,8 @@
     "@deck.gl/layers": "^9.2.6",
     "@deck.gl/mapbox": "^9.2.6",
     "@google/generative-ai": "^0.24.1",
+    "@meshtastic/core": "^2.6.7",
+    "@meshtastic/transport-web-serial": "^0.2.5",
     "@protomaps/basemaps": "^5.7.1",
     "@sentry/browser": "^10.39.0",
     "@vercel/analytics": "^1.6.1",

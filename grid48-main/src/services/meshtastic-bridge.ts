@@ -1,0 +1,174 @@
+// ═══════════════════════════════════════════════════════════════════════════
+// meshtastic-bridge — Chrome Web Serial → Meshtastic → Convex
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// A aba do dashboard vira o "gateway": conecta na base RAK (USB) via Web Serial,
+// decodifica os pacotes Meshtastic (@meshtastic/core) e empurra posição/telemetria
+// pro Convex (mutation pública ingestTelemetryPublic). O mapa renderiza pela
+// subscription reativa normal (queries:getLatestTelemetry).
+//
+// Carregado via dynamic import SÓ no clique de "Conectar rádio" (HealthWidget) —
+// mantém o bundle principal magro E preserva o user gesture que o
+// navigator.serial.requestPort() exige (chamado dentro de TransportWebSerial.create).
+//
+// Constraints (aceitas): Chromium-only, HTTPS/localhost, só com a aba aberta.
+// ═══════════════════════════════════════════════════════════════════════════
+
+import { MeshDevice } from '@meshtastic/core';
+import { TransportWebSerial } from '@meshtastic/transport-web-serial';
+import { getOrCreateConvexClient } from './beacon-client';
+
+export type RadioStatus = 'connecting' | 'connected' | 'error' | 'disconnected';
+
+export interface RadioHandle {
+  disconnect: () => Promise<void>;
+}
+
+interface ActiveRadio {
+  device: MeshDevice;
+  transport: TransportWebSerial;
+}
+
+let active: ActiveRadio | null = null;
+
+// Buffers por node num (campo `from` do pacote). Posição, bateria e RSSI chegam
+// em pacotes separados — acumulamos os últimos por nó pra enriquecer o push.
+const batteryByNode = new Map<number, number>();
+const rssiByNode = new Map<number, number>();
+
+// Convenção Meshtastic: node id textual = "!" + num em hex de 8 dígitos.
+function nodeIdHex(num: number): string {
+  return '!' + (num >>> 0).toString(16).padStart(8, '0');
+}
+
+interface TelemetryPushInput {
+  node_id: string;
+  packet_id: number;
+  timestamp: number;
+  lat: number;
+  lon: number;
+  rssi?: number;
+  battery_level?: number;
+}
+
+// Monta o payload OMITINDO rssi/battery_level quando ausentes — Convex
+// v.optional(v.number()) rejeita null (pegadinha conhecida do projeto).
+async function pushTelemetry(input: TelemetryPushInput): Promise<void> {
+  const client = getOrCreateConvexClient();
+  if (!client) {
+    console.warn('[meshtastic] ConvexClient indisponível — pacote descartado.');
+    return;
+  }
+  const payload: Record<string, number | string> = {
+    node_id: input.node_id,
+    packet_id: input.packet_id,
+    timestamp: input.timestamp,
+    lat: input.lat,
+    lon: input.lon,
+    bitmask_status: 0, // sem semântica definida no milestone 1
+  };
+  if (Number.isFinite(input.rssi)) payload.rssi = input.rssi as number;
+  if (Number.isFinite(input.battery_level)) payload.battery_level = input.battery_level as number;
+
+  try {
+    // String FunctionReference — mesmo padrão de services/celesc.ts (sem codegen
+    // do backend no frontend). ingestTelemetryPublic mora em convex/mutations.ts.
+    await (client as unknown as {
+      mutation: (name: string, args: unknown) => Promise<unknown>;
+    }).mutation('mutations:ingestTelemetryPublic', payload);
+  } catch (e) {
+    console.warn('[meshtastic] push falhou:', e);
+  }
+}
+
+/**
+ * Conecta na base RAK via Web Serial e começa a empurrar telemetria pro Convex.
+ * DEVE ser chamado de dentro de um handler de clique (user gesture) — o
+ * requestPort() nativo do Chrome depende disso.
+ */
+export async function connectRadio(onStatus?: (s: RadioStatus) => void): Promise<RadioHandle> {
+  if (active) return { disconnect: disconnectRadio };
+
+  onStatus?.('connecting');
+  try {
+    // Abre o seletor de porta nativo do Chrome (user gesture).
+    const transport = await TransportWebSerial.create();
+    const device = new MeshDevice(transport);
+    active = { device, transport };
+
+    // RSSI/SNR só existem no MeshPacket cru (não no PacketMetadata). Buffer por
+    // `from`. Obs: rxRssi só é confiável p/ pacotes diretos (0-hop) — refinamos
+    // isso na Fase 2 (heatmap); aqui guardamos o último como aproximação.
+    device.events.onMeshPacket.subscribe((pkt: unknown) => {
+      const p = pkt as { from?: number; rxRssi?: number };
+      if (typeof p.from === 'number' && typeof p.rxRssi === 'number' && p.rxRssi !== 0) {
+        rssiByNode.set(p.from, p.rxRssi);
+      }
+    });
+
+    // Device metrics (bateria/voltagem) — protobuf-es representa o oneof como
+    // { case, value }. Buffer da bateria por nó.
+    device.events.onTelemetryPacket.subscribe((meta: unknown) => {
+      const m = meta as {
+        from?: number;
+        data?: { variant?: { case?: string; value?: { batteryLevel?: number } } };
+      };
+      if (typeof m.from !== 'number') return;
+      const variant = m.data?.variant;
+      if (variant?.case === 'deviceMetrics' && typeof variant.value?.batteryLevel === 'number') {
+        batteryByNode.set(m.from, variant.value.batteryLevel);
+      }
+    });
+
+    // Posição é o GATILHO do push (bateria/RSSI entram como enriquecimento).
+    device.events.onPositionPacket.subscribe((meta: unknown) => {
+      const m = meta as {
+        id?: number;
+        from?: number;
+        data?: { latitudeI?: number; longitudeI?: number };
+      };
+      const from = m.from;
+      const pos = m.data;
+      if (typeof from !== 'number' || !pos) return;
+      if (typeof pos.latitudeI !== 'number' || typeof pos.longitudeI !== 'number') return;
+      if (pos.latitudeI === 0 && pos.longitudeI === 0) return; // sem GPS fix
+
+      void pushTelemetry({
+        node_id: nodeIdHex(from),
+        packet_id: typeof m.id === 'number' && m.id !== 0 ? m.id : Date.now(),
+        timestamp: Date.now(),
+        lat: pos.latitudeI * 1e-7,
+        lon: pos.longitudeI * 1e-7,
+        rssi: rssiByNode.get(from),
+        battery_level: batteryByNode.get(from),
+      });
+    });
+
+    // Handshake: dispara o dump de config + node DB. Sem isso os eventos não fluem.
+    await device.configure();
+    onStatus?.('connected');
+    console.log('[meshtastic] rádio conectado e configurado.');
+    return { disconnect: disconnectRadio };
+  } catch (e) {
+    console.error('[meshtastic] falha ao conectar:', e);
+    active = null;
+    onStatus?.('error');
+    throw e;
+  }
+}
+
+export async function disconnectRadio(): Promise<void> {
+  if (!active) return;
+  try {
+    await active.transport.disconnect();
+  } catch (e) {
+    console.warn('[meshtastic] erro ao desconectar:', e);
+  }
+  active = null;
+  batteryByNode.clear();
+  rssiByNode.clear();
+}
+
+export function isRadioConnected(): boolean {
+  return active !== null;
+}

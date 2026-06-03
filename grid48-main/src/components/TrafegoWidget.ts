@@ -58,6 +58,7 @@ export class TrafegoWidget extends Panel {
     defcon: null,
     clima: [],
     trafego: [],
+    telemetria: [],
     connection: { kind: 'connecting' },
   };
 
