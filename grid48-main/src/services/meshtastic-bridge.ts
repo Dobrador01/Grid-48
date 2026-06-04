@@ -130,7 +130,11 @@ function touchNode(num: number, patch: Partial<MeshNode>): void {
 }
 
 export function getMeshNodes(): MeshNode[] {
-  return [...meshNodes.values()].sort((a, b) => b.lastHeard - a.lastHeard);
+  // Exclui o PRÓPRIO nó (o device conectado) — não faz sentido listar a si mesmo.
+  const self = configSnapshot.myNodeNum;
+  return [...meshNodes.values()]
+    .filter((n) => n.num !== self)
+    .sort((a, b) => b.lastHeard - a.lastHeard);
 }
 
 interface TelemetryPushInput {

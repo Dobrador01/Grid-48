@@ -269,12 +269,15 @@ export class HealthWidget extends Panel {
         ${echoLabel}
       </button>`;
 
-    const nodes = this.meshNodes;
-    const header = `<div style="font-size:10px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:var(--text-dim,#6b7280);margin-top:10px;">Vizinhança · ${nodes.length} nó${nodes.length === 1 ? '' : 's'} na escuta${this.echoActive ? ' · eco ON' : ''}</div>`;
+    // Censo = só nós EXTERNOS: tira os que já aparecem na lista rastreada acima
+    // (as tuas tags com GPS). O self já é filtrado na ponte (getMeshNodes).
+    const trackedIds = new Set(this.telemetria.map((t) => t.node_id));
+    const nodes = this.meshNodes.filter((n) => !trackedIds.has(n.id));
+    const header = `<div style="font-size:10px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:var(--text-dim,#6b7280);margin-top:10px;">Vizinhança · ${nodes.length} nó${nodes.length === 1 ? '' : 's'} externo${nodes.length === 1 ? '' : 's'}${this.echoActive ? ' · eco ON' : ''}</div>`;
 
     let body: string;
     if (nodes.length === 0) {
-      body = `<div style="font-size:11px;color:var(--text-dim,#6b7280);margin-top:6px;">${this.echoActive ? 'Ninguém respondeu ainda — sondando…' : 'Ninguém na escuta. Clique "Sondar malha" pra varrer.'}</div>`;
+      body = `<div style="font-size:11px;color:var(--text-dim,#6b7280);margin-top:6px;">${this.echoActive ? 'Sondando… nenhum nó externo respondeu ainda.' : 'Nenhum nó externo na escuta (só os teus aparelhos). Clique "Sondar malha" pra varrer.'}</div>`;
     } else {
       const agora = Date.now();
       body = `<div style="margin-top:6px;display:flex;flex-direction:column;gap:5px;">${nodes.map((n) => this.renderCensusRow(n, agora)).join('')}</div>`;
