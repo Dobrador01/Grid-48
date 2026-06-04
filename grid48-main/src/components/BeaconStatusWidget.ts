@@ -31,6 +31,7 @@ export class BeaconStatusWidget extends Panel {
     clima: [],
     trafego: [],
     telemetria: [],
+    telemetriaTrack: [],
     connection: { kind: 'connecting' },
   };
 

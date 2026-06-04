@@ -299,6 +299,8 @@ export class App {
            this.state.map.setBeaconAlerts(snapshot.alertas);
            // Telemetria LoRa → layer de nós no mapa (mesmo fanout do snapshot).
            this.state.map.setTelemetry(snapshot.telemetria);
+           // Histórico → trilha + heatmap por hop.
+           this.state.map.setTelemetryTrack(snapshot.telemetriaTrack);
         }
         const setBeaconPanel = () => {
           const beaconPanel = this.state.panels['beacon-status'] as any;

@@ -150,6 +150,17 @@ export interface TelemetryNode {
     label?: string;          // rótulo local definido pelo usuário (node_labels)
 }
 
+// Espelha convex/queries.ts:getTelemetryTrack — ponto histórico de posição
+// (janela 6h) pra trilha e heatmap por hop.
+export interface TelemetryTrackPoint {
+    node_id: string;
+    lat: number;
+    lon: number;
+    ts: number;            // epoch ms
+    snr?: number;          // dB — pondera o heatmap de cobertura direta
+    hops_away?: number;    // 0 = direto; usado pra bucketar o heatmap
+}
+
 export type BeaconConnectionStatus =
     | { kind: 'no-config' }
     | { kind: 'connecting' }
@@ -163,6 +174,7 @@ export interface BeaconSnapshot {
     clima: ClimaLocalidade[];
     trafego: TrafegoRota[];
     telemetria: TelemetryNode[];
+    telemetriaTrack: TelemetryTrackPoint[];
     connection: BeaconConnectionStatus;
 }
 
@@ -173,6 +185,7 @@ const initialSnapshot: BeaconSnapshot = {
     clima: [],
     trafego: [],
     telemetria: [],
+    telemetriaTrack: [],
     connection: { kind: 'connecting' },
 };
 
@@ -236,6 +249,13 @@ export function initBeaconClient(onUpdate: (snapshot: BeaconSnapshot) => void) {
         // dev helper injectTestSignal. Renderizado como pontos no mapa.
         c.onUpdate("queries:getLatestTelemetry", {}, (data: any) => {
             snapshot.telemetria = Array.isArray(data) ? data : [];
+            emit();
+        });
+
+        // Histórico de posições (janela 6h) — alimenta a trilha (PathLayer) e o
+        // heatmap por hop no mapa. Mesmo dado, três vistas (marcador/trilha/heat).
+        c.onUpdate("queries:getTelemetryTrack", {}, (data: any) => {
+            snapshot.telemetriaTrack = Array.isArray(data) ? data : [];
             emit();
         });
 

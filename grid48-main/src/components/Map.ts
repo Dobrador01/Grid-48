@@ -30,7 +30,8 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import maplibregl from 'maplibre-gl';
-import { GeoJsonLayer, ScatterplotLayer } from '@deck.gl/layers';
+import { GeoJsonLayer, ScatterplotLayer, PathLayer } from '@deck.gl/layers';
+import { HeatmapLayer } from '@deck.gl/aggregation-layers';
 import { MapboxOverlay } from '@deck.gl/mapbox';
 import {
   registerPMTilesProtocol,
@@ -44,12 +45,45 @@ import {
 } from '@/config/basemap';
 import { getCurrentTheme } from '@/utils';
 import { escapeHtml } from '@/utils/sanitize';
+import { readSignal } from '@/utils/signal';
 import type { CelescMunicipioPayload } from '@/types/celesc';
 import type { MapLayers } from '@/types';
-import type { BeaconAlert, TelemetryNode } from '@/services/beacon-client';
+import type { BeaconAlert, TelemetryNode, TelemetryTrackPoint } from '@/services/beacon-client';
 
 // Nó é "online" se o último pacote chegou nos últimos 5 min.
 const LORA_ONLINE_WINDOW_MS = 5 * 60 * 1000;
+
+// Rampas de cor dos heatmaps por hop (baixa→alta densidade). Cada bucket tem
+// hue próprio pra distinguir cobertura direta (verde) de alcance via malha
+// (amarelo → vermelho), conforme o nº de saltos cresce.
+type RGB = [number, number, number];
+const HEAT_GREEN: RGB[] = [
+  [237, 248, 233], [186, 228, 179], [116, 196, 118], [49, 163, 84], [0, 109, 44], [0, 68, 27],
+];
+const HEAT_YELLOW: RGB[] = [
+  [255, 255, 229], [255, 247, 188], [254, 227, 145], [254, 196, 79], [217, 153, 0], [153, 102, 0],
+];
+const HEAT_RED: RGB[] = [
+  [254, 229, 217], [252, 187, 161], [252, 146, 114], [239, 101, 72], [203, 24, 29], [127, 0, 38],
+];
+
+// Peso do ponto no heatmap de cobertura direta: SNR alto = link forte = mais
+// "quente". -20 dB (piso LoRa) → 0.1 · +10 dB (excelente) → 1. Sem SNR → 0.4.
+function snrWeight(snr?: number): number {
+  if (typeof snr !== 'number' || !Number.isFinite(snr)) return 0.4;
+  return Math.max(0.1, Math.min(1, (snr + 20) / 30));
+}
+
+// HSL→RGB (h em graus, s/l em 0..1) → [r,g,b] 0..255. Usado pra cor estável por nó.
+function hslToRgb(h: number, s: number, l: number): RGB {
+  const hn = h / 360;
+  const a = s * Math.min(l, 1 - l);
+  const f = (n: number): number => {
+    const k = (n + hn * 12) % 12;
+    return l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1));
+  };
+  return [Math.round(f(0) * 255), Math.round(f(8) * 255), Math.round(f(4) * 255)];
+}
 
 // Centro de Florianópolis / São José
 const SJF_CENTER: [number, number] = [-48.5495, -27.5969];
@@ -87,6 +121,12 @@ interface BeaconMarker {
   risco: string;
 }
 
+interface TrailPath {
+  node_id: string;
+  path: [number, number][];
+  color: RGB;
+}
+
 export class MapComponent {
   private map: maplibregl.Map;
   private overlay: MapboxOverlay;
@@ -95,6 +135,10 @@ export class MapComponent {
   private celescLookup = new Map<string, CelescMunicipioPayload>();
   private beaconAlerts: BeaconAlert[] = [];
   private loraNodes: TelemetryNode[] = [];
+  private loraTrack: TelemetryTrackPoint[] = [];
+  // "Seguir" a tag mais recente (recentra o mapa quando ela se move). Persistido
+  // em localStorage; não é uma MapLayer (é comportamento de câmera, não dado).
+  private followEnabled = localStorage.getItem('grid48-lora-follow') === '1';
   private state: MapContainerState;
   private isResizing = false;
   private layerLoading = new Set<string>();
@@ -190,7 +234,20 @@ export class MapComponent {
 
   public setTelemetry(nodes: TelemetryNode[]): void {
     this.loraNodes = nodes ?? [];
+    this.maybeFollowLatest();
     this.rebuildLayers();
+  }
+
+  public setTelemetryTrack(points: TelemetryTrackPoint[]): void {
+    this.loraTrack = points ?? [];
+    this.rebuildLayers();
+  }
+
+  /** Recentra na tag mais recente quando "Seguir" está ativo. */
+  private maybeFollowLatest(): void {
+    if (!this.followEnabled || this.loraNodes.length === 0) return;
+    const latest = this.loraNodes.reduce((a, b) => (b.timestamp > a.timestamp ? b : a));
+    this.map.easeTo({ center: [latest.lon, latest.lat], duration: 800, essential: true });
   }
 
   public setView(view: MapView): void {
@@ -313,6 +370,31 @@ export class MapComponent {
           <span class="toggle-icon">⛈</span>
           <span class="toggle-label">Alertas Meteorológicos</span>
         </label>
+        <label class="layer-toggle" data-layer="loraTrail">
+          <input type="checkbox" ${this.state.layers.loraTrail ? 'checked' : ''}>
+          <span class="toggle-icon">🛰</span>
+          <span class="toggle-label">Trilha das tags</span>
+        </label>
+        <label class="layer-toggle" data-layer="loraHeatDirect">
+          <input type="checkbox" ${this.state.layers.loraHeatDirect ? 'checked' : ''}>
+          <span class="toggle-icon">📡</span>
+          <span class="toggle-label">Cobertura direta (0 hop)</span>
+        </label>
+        <label class="layer-toggle" data-layer="loraHeat1">
+          <input type="checkbox" ${this.state.layers.loraHeat1 ? 'checked' : ''}>
+          <span class="toggle-icon">🔗</span>
+          <span class="toggle-label">Alcance via 1 salto</span>
+        </label>
+        <label class="layer-toggle" data-layer="loraHeat2plus">
+          <input type="checkbox" ${this.state.layers.loraHeat2plus ? 'checked' : ''}>
+          <span class="toggle-icon">🕸</span>
+          <span class="toggle-label">Alcance via 2+ saltos</span>
+        </label>
+        <label class="layer-toggle lora-follow-toggle">
+          <input type="checkbox" data-role="lora-follow" ${this.followEnabled ? 'checked' : ''}>
+          <span class="toggle-icon">🎯</span>
+          <span class="toggle-label">Seguir tag</span>
+        </label>
       </div>
     `;
     this.container.appendChild(panel);
@@ -327,6 +409,15 @@ export class MapComponent {
         this.rebuildLayers();
         if (this.layerChangeCb) this.layerChangeCb(key, enabled, 'user');
       });
+    });
+
+    // "Seguir tag" — comportamento de câmera, não MapLayer. Persistido em
+    // localStorage; ao ligar, já recentra na tag mais recente.
+    const followInput = panel.querySelector<HTMLInputElement>('input[data-role="lora-follow"]');
+    followInput?.addEventListener('change', () => {
+      this.followEnabled = followInput.checked;
+      try { localStorage.setItem('grid48-lora-follow', followInput.checked ? '1' : '0'); } catch { /* private mode */ }
+      if (followInput.checked) this.maybeFollowLatest();
     });
 
     // Wheel scroll dentro do panel sem zoom no map
@@ -449,6 +540,48 @@ export class MapComponent {
             updateTriggers: { getFillColor: [pts.length] },
           }),
         );
+      }
+    }
+
+    // ── Heatmaps por hop (cobertura) + trilha — usam o histórico (loraTrack) ──
+    // Empilhados ANTES dos nós/marcadores pra ficarem por baixo. Direto (0 hop)
+    // é ponderado por SNR = qualidade real do link tag↔base; 1 e 2+ saltos
+    // mostram o alcance prático via malha (peso uniforme = extensão da cobertura).
+    if (this.loraTrack.length > 0) {
+      const direct = this.loraTrack.filter((p) => p.hops_away === 0);
+      const hop1 = this.loraTrack.filter((p) => p.hops_away === 1);
+      const hop2 = this.loraTrack.filter((p) => typeof p.hops_away === 'number' && p.hops_away >= 2);
+
+      if (this.state.layers.loraHeatDirect && direct.length > 0) {
+        layers.push(this.buildHeatmap('lora-heat-direct', direct, HEAT_GREEN, true));
+      }
+      if (this.state.layers.loraHeat1 && hop1.length > 0) {
+        layers.push(this.buildHeatmap('lora-heat-1', hop1, HEAT_YELLOW, false));
+      }
+      if (this.state.layers.loraHeat2plus && hop2.length > 0) {
+        layers.push(this.buildHeatmap('lora-heat-2plus', hop2, HEAT_RED, false));
+      }
+
+      if (this.state.layers.loraTrail) {
+        const paths = this.buildTrackPaths();
+        if (paths.length > 0) {
+          layers.push(
+            new PathLayer<TrailPath>({
+              id: 'lora-trail',
+              data: paths,
+              getPath: (d: TrailPath) => d.path,
+              getColor: (d: TrailPath) => d.color,
+              getWidth: 3,
+              widthMinPixels: 2,
+              widthMaxPixels: 6,
+              capRounded: true,
+              jointRounded: true,
+              opacity: 0.85,
+              pickable: false,
+              updateTriggers: { getPath: [this.loraTrack.length], getColor: [paths.length] },
+            }),
+          );
+        }
       }
     }
 
@@ -592,6 +725,51 @@ export class MapComponent {
     `;
   }
 
+  // ── Helpers LoRa (trilha + heatmap) ─────────────────────────────────────
+
+  /** Agrupa o histórico por nó e monta os paths (>= 2 pontos) pra trilha. */
+  private buildTrackPaths(): TrailPath[] {
+    const byNode = new Map<string, [number, number][]>();
+    for (const p of this.loraTrack) {
+      let arr = byNode.get(p.node_id);
+      if (!arr) { arr = []; byNode.set(p.node_id, arr); }
+      arr.push([p.lon, p.lat]);
+    }
+    const out: TrailPath[] = [];
+    for (const [node_id, path] of byNode) {
+      if (path.length >= 2) out.push({ node_id, path, color: this.colorForNode(node_id) });
+    }
+    return out;
+  }
+
+  /** Cor determinística por nó (hash → hue) pra distinguir trilhas no mapa. */
+  private colorForNode(nodeId: string): RGB {
+    let h = 0;
+    for (let i = 0; i < nodeId.length; i++) h = (h * 31 + nodeId.charCodeAt(i)) >>> 0;
+    return hslToRgb(h % 360, 0.7, 0.55);
+  }
+
+  /** Constrói o HeatmapLayer de um bucket de hop. */
+  private buildHeatmap(
+    id: string,
+    data: TelemetryTrackPoint[],
+    colorRange: RGB[],
+    weightBySnr: boolean,
+  ): unknown {
+    return new HeatmapLayer<TelemetryTrackPoint>({
+      id,
+      data,
+      getPosition: (d: TelemetryTrackPoint) => [d.lon, d.lat],
+      getWeight: weightBySnr ? (d: TelemetryTrackPoint) => snrWeight(d.snr) : () => 1,
+      aggregation: 'SUM',
+      radiusPixels: 45,
+      intensity: 1,
+      threshold: 0.05,
+      colorRange,
+      updateTriggers: { getWeight: [data.length] },
+    });
+  }
+
   private handleLoraHover(info: { object?: TelemetryNode; x: number; y: number }): void {
     const tt = this.getOrCreateHoverTooltip();
     if (!info.object) {
@@ -602,15 +780,20 @@ export class MapComponent {
     const online = Date.now() - n.timestamp < LORA_ONLINE_WINDOW_MS;
     const color = online ? '#22c55e' : '#9ca3af';
     const statusLabel = online ? 'ONLINE' : 'STALE';
+    const name = n.label?.trim() || n.node_id;
     const bateria = typeof n.battery_level === 'number' ? `${n.battery_level}%` : '—';
-    const rssi = typeof n.rssi === 'number' ? `${n.rssi} dBm` : '—';
+    const sig = readSignal(n.snr, n.rssi);
+    const hops = typeof n.hops_away === 'number'
+      ? (n.hops_away === 0 ? 'direto' : `${n.hops_away} salto${n.hops_away > 1 ? 's' : ''}`)
+      : '—';
     tt.style.left = `${info.x}px`;
     tt.style.top = `${info.y}px`;
     tt.style.display = 'block';
     tt.innerHTML = `
       <div style="display:flex;align-items:center;justify-content:center;background-color:${color};color:white;padding:2px 6px;border-radius:4px;font-weight:bold;margin-bottom:8px;font-size:0.65rem;">📡 ${statusLabel}</div>
-      <div style="font-size:0.8rem;font-weight:600;margin-bottom:4px;">${escapeHtml(n.node_id)}</div>
-      <div style="font-size:0.7rem;color:#cbd5e1;">Bateria: ${bateria} · RSSI: ${escapeHtml(rssi)}</div>
+      <div style="font-size:0.8rem;font-weight:600;margin-bottom:4px;">${escapeHtml(name)}</div>
+      <div style="font-size:0.7rem;color:#cbd5e1;">Sinal: <span style="color:${sig.color};font-weight:600;">${escapeHtml(sig.label)}</span> · Bateria: ${bateria}</div>
+      <div style="font-size:0.7rem;color:#cbd5e1;">${escapeHtml(sig.detail)} · ${hops}</div>
       <div style="font-size:0.7rem;color:#cbd5e1;">Visto ${this.relativeAge(n.timestamp)}</div>
     `;
   }
