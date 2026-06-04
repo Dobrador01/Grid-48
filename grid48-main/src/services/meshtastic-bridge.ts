@@ -14,9 +14,20 @@
 // Constraints (aceitas): Chromium-only, HTTPS/localhost, só com a aba aberta.
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { MeshDevice } from '@meshtastic/core';
+import { MeshDevice, Protobuf } from '@meshtastic/core';
 import { TransportWebSerial } from '@meshtastic/transport-web-serial';
+import { create } from '@bufbuild/protobuf';
 import { getOrCreateConvexClient } from './beacon-client';
+
+// Os tipos de `@meshtastic/protobufs` vêm BUNDLED no core (re-exportados como
+// `Protobuf`) mas o pacote não está instalado como módulo separado, então o tsc
+// não resolve `Protobuf.Config.Config` etc. Seguindo o padrão da ponte (casts
+// pontuais), tratamos o namespace e o `create` de forma frouxa SÓ na montagem
+// das mensagens de config. Runtime é 100% válido (paths verificados no bundle).
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const P = Protobuf as any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mk = create as unknown as (schema: unknown, init: unknown) => any;
 
 export type RadioStatus = 'connecting' | 'connected' | 'error' | 'disconnected';
 
@@ -38,6 +49,49 @@ const batteryByNode = new Map<number, number>();
 const rssiByNode = new Map<number, number>();
 const snrByNode = new Map<number, number>();
 const hopsByNode = new Map<number, number>();
+// Última posição conhecida por nó (lat/lon graus). Bug fix: o push pra Convex
+// era disparado SÓ por pacote de posição — uma tag parada quase não emite
+// posição, então o dado congelava (só destravava ao reconectar, quando o
+// configure() força o re-anúncio). Guardamos a posição pra poder dar um
+// "refresh de liveness" quando QUALQUER pacote chega (mesh/telemetry), com
+// throttle por nó pra não inflar a tabela append-only nem o recompute DEFCON.
+const posByNode = new Map<number, { lat: number; lon: number }>();
+const lastPushByNode = new Map<number, number>();
+const LIVENESS_THROTTLE_MS = 60_000;
+
+// ── Snapshot de config do device (Fase D) ──────────────────────────────────
+// Capturado durante o handshake `configure()` (que despeja config + node DB).
+// Serve pra PRÉ-PREENCHER o formulário da aba "Rádio" — o user edita em cima
+// do estado real do device, não de um form vazio.
+export interface RadioConfigSnapshot {
+  myNodeNum?: number;
+  ownerLongName?: string;
+  ownerShortName?: string;
+  region?: number;          // Config.LoRaConfig.RegionCode
+  modemPreset?: number;     // Config.LoRaConfig.ModemPreset
+  fixedPosition?: boolean;
+  positionBroadcastSecs?: number;
+  channelName?: string;
+  channelPskB64?: string;   // PSK do canal 0 em base64 (bytes crus na wire)
+}
+let configSnapshot: RadioConfigSnapshot = {};
+
+export function getRadioConfigSnapshot(): RadioConfigSnapshot {
+  return { ...configSnapshot };
+}
+
+// PSK trafega como bytes crus; a UI lida com base64. Helpers de conversão.
+export function pskToB64(bytes: Uint8Array): string {
+  let s = '';
+  for (const b of bytes) s += String.fromCharCode(b);
+  return btoa(s);
+}
+export function pskFromB64(b64: string): Uint8Array {
+  const s = atob(b64.trim());
+  const out = new Uint8Array(s.length);
+  for (let i = 0; i < s.length; i++) out[i] = s.charCodeAt(i);
+  return out;
+}
 
 // Convenção Meshtastic: node id textual = "!" + num em hex de 8 dígitos.
 function nodeIdHex(num: number): string {
@@ -83,9 +137,41 @@ async function pushTelemetry(input: TelemetryPushInput): Promise<void> {
     await (client as unknown as {
       mutation: (name: string, args: unknown) => Promise<unknown>;
     }).mutation('mutations:ingestTelemetryPublic', payload);
+    console.log(`[mesh-debug] push OK node=${input.node_id} lat=${input.lat.toFixed(5)} lon=${input.lon.toFixed(5)}`);
   } catch (e) {
-    console.warn('[meshtastic] push falhou:', e);
+    console.warn('[mesh-debug] push FALHOU:', e);
   }
+}
+
+/**
+ * Empurra a telemetria de um nó usando a ÚLTIMA posição conhecida + os buffers
+ * de enriquecimento (rssi/snr/bateria/hops). Dois caminhos:
+ *   - `force: true` (pacote de posição novo) → push imediato, packet_id real.
+ *   - liveness (mesh/telemetry packet) → throttled por nó; packet_id = now
+ *     (row nova, sem dedup) pra "visto há X" e bateria atualizarem mesmo com a
+ *     tag parada.
+ * Sem posição conhecida ainda → não há o que mapear, ignora.
+ */
+function pushNode(from: number, opts: { packetId?: number; force?: boolean }): void {
+  const pos = posByNode.get(from);
+  if (!pos) return;
+  const now = Date.now();
+  if (!opts.force) {
+    const last = lastPushByNode.get(from) ?? 0;
+    if (now - last < LIVENESS_THROTTLE_MS) return;
+  }
+  lastPushByNode.set(from, now);
+  void pushTelemetry({
+    node_id: nodeIdHex(from),
+    packet_id: opts.packetId ?? now,
+    timestamp: now,
+    lat: pos.lat,
+    lon: pos.lon,
+    rssi: rssiByNode.get(from),
+    battery_level: batteryByNode.get(from),
+    snr: snrByNode.get(from),
+    hops_away: hopsByNode.get(from),
+  });
 }
 
 /**
@@ -131,6 +217,21 @@ export async function connectRadio(onStatus?: (s: RadioStatus) => void): Promise
       if (typeof p.hopStart === 'number' && typeof p.hopLimit === 'number') {
         hopsByNode.set(p.from, Math.max(0, p.hopStart - p.hopLimit));
       }
+
+      // ── DIAGNÓSTICO ────────────────────────────────────────────────────────
+      // onMeshPacket dispara pra TODO pacote, ANTES do filtro decoded/encrypted
+      // do core. Logamos o suficiente pra descobrir por que a posição ao vivo
+      // não flui: se vier `encrypted`, a base não tem a chave do canal da tag
+      // (canal/PSK divergentes → Fase D resolve). Se vier `decoded` com portnum
+      // 3 (POSITION_APP), o pacote chegou e devia ter empurrado.
+      const variant = (pkt as { payloadVariant?: { case?: string; value?: { portnum?: number } } }).payloadVariant;
+      const portnum = variant?.case === 'decoded' ? variant.value?.portnum : undefined;
+      console.log(`[mesh-debug] pkt from=${nodeIdHex(p.from)} payload=${variant?.case ?? '?'}` +
+        (portnum !== undefined ? ` portnum=${portnum}` : ''));
+
+      // Liveness: qualquer pacote prova que o nó está vivo agora. Refresca o
+      // "visto há X" / bateria mesmo sem posição nova (throttled por nó).
+      pushNode(p.from, {});
     });
 
     // Device metrics (bateria/voltagem) — protobuf-es representa o oneof como
@@ -145,9 +246,12 @@ export async function connectRadio(onStatus?: (s: RadioStatus) => void): Promise
       if (variant?.case === 'deviceMetrics' && typeof variant.value?.batteryLevel === 'number') {
         batteryByNode.set(m.from, variant.value.batteryLevel);
       }
+      // Liveness: telemetria (bateria) chega periódica mesmo com a tag parada.
+      pushNode(m.from, {});
     });
 
-    // Posição é o GATILHO do push (bateria/RSSI entram como enriquecimento).
+    // Posição NOVA → atualiza o buffer e empurra na hora (push forçado, fora do
+    // throttle de liveness). É o gatilho principal do rastreamento.
     device.events.onPositionPacket.subscribe((meta: unknown) => {
       const m = meta as {
         id?: number;
@@ -160,17 +264,47 @@ export async function connectRadio(onStatus?: (s: RadioStatus) => void): Promise
       if (typeof pos.latitudeI !== 'number' || typeof pos.longitudeI !== 'number') return;
       if (pos.latitudeI === 0 && pos.longitudeI === 0) return; // sem GPS fix
 
-      void pushTelemetry({
-        node_id: nodeIdHex(from),
-        packet_id: typeof m.id === 'number' && m.id !== 0 ? m.id : Date.now(),
-        timestamp: Date.now(),
-        lat: pos.latitudeI * 1e-7,
-        lon: pos.longitudeI * 1e-7,
-        rssi: rssiByNode.get(from),
-        battery_level: batteryByNode.get(from),
-        snr: snrByNode.get(from),
-        hops_away: hopsByNode.get(from),
-      });
+      console.log(`[mesh-debug] POSITION from=${nodeIdHex(from)} lat=${(pos.latitudeI * 1e-7).toFixed(5)} lon=${(pos.longitudeI * 1e-7).toFixed(5)} → push`);
+      posByNode.set(from, { lat: pos.latitudeI * 1e-7, lon: pos.longitudeI * 1e-7 });
+      pushNode(from, { packetId: typeof m.id === 'number' && m.id !== 0 ? m.id : Date.now(), force: true });
+    });
+
+    // ── Captura de config pro snapshot (pré-preenche a aba "Rádio") ──────────
+    // Esses eventos disparam durante o configure() abaixo (dump inicial) e a
+    // cada admin-message de leitura. Guardamos só o que o formulário precisa.
+    device.events.onMyNodeInfo.subscribe((info: unknown) => {
+      const i = info as { myNodeNum?: number };
+      if (typeof i.myNodeNum === 'number') configSnapshot.myNodeNum = i.myNodeNum;
+    });
+
+    device.events.onConfigPacket.subscribe((cfg: unknown) => {
+      const v = (cfg as { payloadVariant?: { case?: string; value?: Record<string, unknown> } }).payloadVariant;
+      if (v?.case === 'lora') {
+        if (typeof v.value?.region === 'number') configSnapshot.region = v.value.region as number;
+        if (typeof v.value?.modemPreset === 'number') configSnapshot.modemPreset = v.value.modemPreset as number;
+      } else if (v?.case === 'position') {
+        if (typeof v.value?.fixedPosition === 'boolean') configSnapshot.fixedPosition = v.value.fixedPosition as boolean;
+        if (typeof v.value?.positionBroadcastSecs === 'number') configSnapshot.positionBroadcastSecs = v.value.positionBroadcastSecs as number;
+      }
+    });
+
+    device.events.onChannelPacket.subscribe((ch: unknown) => {
+      const c = ch as { index?: number; settings?: { name?: string; psk?: Uint8Array } };
+      if (c.index === 0 && c.settings) {
+        if (typeof c.settings.name === 'string') configSnapshot.channelName = c.settings.name;
+        if (c.settings.psk instanceof Uint8Array && c.settings.psk.length > 0) {
+          configSnapshot.channelPskB64 = pskToB64(c.settings.psk);
+        }
+      }
+    });
+
+    device.events.onUserPacket.subscribe((meta: unknown) => {
+      const m = meta as { from?: number; data?: { longName?: string; shortName?: string } };
+      // Só o owner do PRÓPRIO nó (myNodeNum) interessa pro formulário de identidade.
+      if (typeof m.from === 'number' && m.from === configSnapshot.myNodeNum && m.data) {
+        if (m.data.longName) configSnapshot.ownerLongName = m.data.longName;
+        if (m.data.shortName) configSnapshot.ownerShortName = m.data.shortName;
+      }
     });
 
     // Handshake: dispara o dump de config + node DB. Sem isso os eventos não fluem.
@@ -198,8 +332,112 @@ export async function disconnectRadio(): Promise<void> {
   rssiByNode.clear();
   snrByNode.clear();
   hopsByNode.clear();
+  posByNode.clear();
+  lastPushByNode.clear();
+  configSnapshot = {};
 }
 
 export function isRadioConnected(): boolean {
   return active !== null;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Fase D — Escrita de config no device (via dock USB / Web Serial)
+// ═══════════════════════════════════════════════════════════════════════════
+// A aba "Rádio" do Settings chama estes writers. Cada um exige rádio conectado.
+// `setConfig` auto-inicia a sessão de edição (beginEditSettings) e fechamos com
+// `commitEditSettings()`. Mudança de região/preset faz o firmware reiniciar.
+
+function requireDevice(): MeshDevice {
+  if (!active) throw new Error('Rádio não conectado. Conecte pelo painel Comando & Controle primeiro.');
+  return active.device;
+}
+
+/** Nome longo (≤39 chars) + curto (≤4) — anunciados na mesh inteira. */
+export async function applyOwner(longName: string, shortName: string): Promise<void> {
+  const device = requireDevice();
+  const user = mk(P.Mesh.UserSchema, { longName, shortName });
+  await device.setOwner(user);
+  configSnapshot.ownerLongName = longName;
+  configSnapshot.ownerShortName = shortName;
+}
+
+/**
+ * Região + modem preset. ⚠️ Mudar região reinicia o device (firmware aplica no
+ * boot). usePreset=true diz pro firmware usar os parâmetros do preset escolhido.
+ */
+export async function applyLoraConfig(region: number, modemPreset: number): Promise<void> {
+  const device = requireDevice();
+  const cfg = mk(P.Config.ConfigSchema, {
+    payloadVariant: { case: 'lora', value: { region, modemPreset, usePreset: true } },
+  });
+  await device.setConfig(cfg);
+  await device.commitEditSettings();
+  configSnapshot.region = region;
+  configSnapshot.modemPreset = modemPreset;
+}
+
+/** Canal primário (índice 0): nome + PSK compartilhado. Tags com o mesmo par conversam. */
+export async function applyChannel(name: string, psk: Uint8Array): Promise<void> {
+  const device = requireDevice();
+  const channel = mk(P.Channel.ChannelSchema, {
+    index: 0,
+    role: 1, // Channel.Role.PRIMARY
+    settings: mk(P.Channel.ChannelSettingsSchema, { name, psk }),
+  });
+  await device.setChannel(channel);
+  configSnapshot.channelName = name;
+  configSnapshot.channelPskB64 = psk.length > 0 ? pskToB64(psk) : undefined;
+}
+
+/**
+ * Posição fixa (pra sensores parados — pluviômetro/anemômetro da Fase 6) +
+ * intervalo de broadcast de posição. Quando `fixed=false`, remove a posição
+ * fixa e o device volta a depender do GPS.
+ */
+export async function applyPositionConfig(opts: {
+  fixed: boolean;
+  lat?: number;
+  lon?: number;
+  positionBroadcastSecs?: number;
+}): Promise<void> {
+  const device = requireDevice();
+  const value: Record<string, unknown> = { fixedPosition: opts.fixed };
+  if (typeof opts.positionBroadcastSecs === 'number' && opts.positionBroadcastSecs > 0) {
+    value.positionBroadcastSecs = opts.positionBroadcastSecs;
+  }
+  const cfg = mk(P.Config.ConfigSchema, { payloadVariant: { case: 'position', value } });
+  await device.setConfig(cfg);
+  await device.commitEditSettings();
+
+  if (opts.fixed && typeof opts.lat === 'number' && typeof opts.lon === 'number') {
+    await device.setFixedPosition(opts.lat, opts.lon);
+  } else if (!opts.fixed) {
+    // removeFixedPosition existe no core; best-effort (não trava o fluxo se ausente).
+    try {
+      await (device as unknown as { removeFixedPosition?: () => Promise<number> }).removeFixedPosition?.();
+    } catch { /* device antigo sem o comando */ }
+  }
+  configSnapshot.fixedPosition = opts.fixed;
+  if (typeof opts.positionBroadcastSecs === 'number') {
+    configSnapshot.positionBroadcastSecs = opts.positionBroadcastSecs;
+  }
+}
+
+// ── Opções de enum pros dropdowns (lidas do runtime, robusto a versões) ──────
+export interface EnumOption { value: number; label: string }
+
+function enumOptions(e: Record<string, unknown>): EnumOption[] {
+  // TS numeric enum = mapa bidirecional (nome→num E num→nome). Mantém só o
+  // forward (chave não-numérica → valor numérico).
+  return Object.entries(e)
+    .filter(([k, v]) => typeof v === 'number' && !Number.isFinite(Number(k)))
+    .map(([k, v]) => ({ value: v as number, label: k }));
+}
+
+export function getRegionOptions(): EnumOption[] {
+  return enumOptions(P.Config.Config_LoRaConfig_RegionCode);
+}
+export function getModemPresetOptions(): EnumOption[] {
+  return enumOptions(P.Config.Config_LoRaConfig_ModemPreset);
 }
