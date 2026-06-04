@@ -220,13 +220,12 @@ export class HealthWidget extends Panel {
   private renderNodeRow(n: TelemetryNode, agora: number): string {
     const online = agora - n.timestamp < LORA_ONLINE_WINDOW_MS;
     const sig = readSignal(n.snr, n.rssi);
-    const name = n.label?.trim() || n.node_id;
+    const labelled = !!n.label?.trim();
+    const name = labelled ? n.label!.trim() : n.node_id;
     const dot = online ? '#22c55e' : '#9ca3af';
     const bat = typeof n.battery_level === 'number' ? `${n.battery_level}%` : '—';
-    const batColor = typeof n.battery_level === 'number' && n.battery_level <= 20 ? '#ef4444' : 'var(--text-secondary,#4b5563)';
-    const hops = typeof n.hops_away === 'number'
-      ? (n.hops_away === 0 ? 'direto' : `${n.hops_away} hop${n.hops_away > 1 ? 's' : ''}`)
-      : '—';
+    const batLow = typeof n.battery_level === 'number' && n.battery_level <= 20;
+    const batColor = batLow ? '#ef4444' : 'var(--text-secondary,#4b5563)';
     const seen = this.lastSeenLabel(n.timestamp, agora);
 
     // Linha em edição → input + salvar/cancelar.
@@ -240,22 +239,51 @@ export class HealthWidget extends Panel {
         </div>`;
     }
 
+    // Badges: hops (direto/N saltos) + SNR numérico quando disponível.
+    const badges: string[] = [];
+    if (typeof n.hops_away === 'number') {
+      const direct = n.hops_away === 0;
+      badges.push(this.badgeHtml(
+        direct ? '📡 direto' : `🔗 ${n.hops_away} salto${n.hops_away > 1 ? 's' : ''}`,
+        direct ? '#16a34a' : '#6b7280',
+      ));
+    }
+    if (typeof n.snr === 'number') {
+      badges.push(this.badgeHtml(`SNR ${n.snr.toFixed(1)} dB`, sig.color));
+    }
+    const badgesRow = badges.length
+      ? `<div style="display:flex;gap:4px;margin-top:3px;flex-wrap:wrap;">${badges.join('')}</div>`
+      : '';
+
+    // Sub-linha: id cru (quando há rótulo) + visto-há.
+    const idPart = labelled
+      ? `<span style="font-family:var(--font-mono,ui-monospace,monospace);">${escapeHtml(n.node_id)}</span> · `
+      : '';
+
     return `
-      <div style="display:flex;align-items:center;gap:8px;padding:6px;border-radius:6px;background:var(--overlay-medium,rgba(0,0,0,0.03));">
-        <span style="width:8px;height:8px;border-radius:50%;background:${dot};flex-shrink:0;" title="${online ? 'online' : 'stale'}"></span>
+      <div style="display:flex;align-items:flex-start;gap:8px;padding:7px;border-radius:6px;background:var(--overlay-medium,rgba(0,0,0,0.03));">
+        <span style="width:8px;height:8px;border-radius:50%;background:${dot};flex-shrink:0;margin-top:3px;" title="${online ? 'online' : 'stale'}"></span>
         <div style="flex:1;min-width:0;">
           <div style="display:flex;align-items:center;gap:6px;">
             <span style="font-size:12px;font-weight:600;color:var(--text-primary,inherit);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeAttr(n.node_id)}">${escapeHtml(name)}</span>
             <button type="button" data-action="edit-label" data-node="${escapeAttr(n.node_id)}" title="Renomear (rótulo local)"
               style="cursor:pointer;border:none;background:none;font-size:11px;padding:0;opacity:0.6;">✏️</button>
           </div>
-          <div style="font-size:10px;color:var(--text-dim,#6b7280);margin-top:2px;">${seen} · ${hops}</div>
+          <div style="font-size:10px;color:var(--text-dim,#6b7280);margin-top:2px;">${idPart}${seen}</div>
+          ${badgesRow}
         </div>
-        <div style="display:flex;align-items:center;gap:2px;" title="${escapeAttr(sig.detail)}">
-          ${this.signalBarsHtml(sig.bars, sig.color)}
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0;">
+          <div style="display:flex;align-items:center;gap:2px;" title="${escapeAttr(sig.detail)}">
+            ${this.signalBarsHtml(sig.bars, sig.color)}
+          </div>
+          <span style="font-size:11px;font-weight:600;color:${batColor};white-space:nowrap;" title="bateria">${batLow ? '⚠️' : '🔋'}${bat}</span>
         </div>
-        <span style="font-size:11px;font-weight:600;color:${batColor};min-width:34px;text-align:right;" title="bateria">🔋${bat}</span>
       </div>`;
+  }
+
+  /** Pílula pequena pra badges (hops/SNR) no card do nó. */
+  private badgeHtml(text: string, color: string): string {
+    return `<span style="font-size:9.5px;font-weight:600;color:${color};background:var(--overlay-medium,rgba(0,0,0,0.05));border-radius:4px;padding:1px 5px;white-space:nowrap;">${escapeHtml(text)}</span>`;
   }
 
   /** 4 barrinhas verticais crescentes — preenchidas conforme a qualidade. */

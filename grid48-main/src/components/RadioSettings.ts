@@ -45,6 +45,7 @@ export function renderRadioSettings(): RenderResult {
       </div>
 
       <div id="radioForms" hidden>
+        <div id="radioDeviceLine" style="font-size: 0.72rem; font-weight: 600; margin-bottom: 8px; font-family: var(--font-mono, ui-monospace, monospace);"></div>
         <p style="${SUB} margin-bottom: 14px;">
           Campos pré-preenchidos com o estado atual do device. Edite e grave
           seção por seção. Mudar a <strong>região</strong> reinicia o rádio.
@@ -70,8 +71,9 @@ export function renderRadioSettings(): RenderResult {
             <select id="radioRegion" style="${INPUT}"></select>
           </label>
           <p style="${SUB}">
+            <span id="radioRegionBand" style="font-weight: 600; color: var(--text-secondary,#4b5563);"></span>
             Brasil não tem entrada própria nesta versão — use <strong>US</strong>
-            (915&nbsp;MHz, dentro da faixa ISM brasileira 902–928&nbsp;MHz).
+            (dentro da faixa ISM brasileira 902–928&nbsp;MHz).
           </p>
           <label style="${LABEL}">Modem preset
             <select id="radioPreset" style="${INPUT}"></select>
@@ -89,6 +91,7 @@ export function renderRadioSettings(): RenderResult {
           <label style="${LABEL}">PSK (base64)
             <input type="text" id="radioChannelPsk" placeholder="vazio = sem criptografia" style="${INPUT}">
           </label>
+          <div id="radioPskInfo" style="${SUB} margin-top: -6px;"></div>
           <p style="${SUB}">
             Todas as tags precisam do <strong>mesmo nome + PSK</strong> pra formar
             a mesh. 16 bytes = AES-128, 32 bytes = AES-256.
@@ -154,6 +157,16 @@ export function renderRadioSettings(): RenderResult {
 
       const snap = bridge.getRadioConfigSnapshot();
 
+      // Linha do device conectado: nome (se houver) + node id em hex.
+      const deviceLine = root.querySelector<HTMLElement>('#radioDeviceLine');
+      if (deviceLine) {
+        const idHex = typeof snap.myNodeNum === 'number'
+          ? '!' + (snap.myNodeNum >>> 0).toString(16).padStart(8, '0')
+          : '—';
+        const owner = snap.ownerLongName ? `${snap.ownerLongName} · ` : '';
+        deviceLine.textContent = `📟 ${owner}${idHex}`;
+      }
+
       // ── Dropdowns (lidos do runtime) ──────────────────────────────────────
       const regionSel = root.querySelector<HTMLSelectElement>('#radioRegion')!;
       const presetSel = root.querySelector<HTMLSelectElement>('#radioPreset')!;
@@ -164,6 +177,24 @@ export function renderRadioSettings(): RenderResult {
       };
       fillSelect(regionSel, bridge.getRegionOptions(), snap.region);
       fillSelect(presetSel, bridge.getModemPresetOptions(), snap.modemPreset);
+
+      // Dica de faixa de frequência da região selecionada (só as comuns; resto
+      // mostra genérico). Atualiza ao trocar o dropdown.
+      const REGION_BANDS: Record<string, string> = {
+        US: '902–928 MHz', ANZ: '915–928 MHz', ANZ_433: '433 MHz',
+        EU_433: '433 MHz', EU_868: '863–870 MHz', CN: '470–510 MHz',
+        JP: '920–923 MHz', KR: '920–923 MHz', RU: '868–870 MHz',
+        IN: '865–867 MHz', TH: '920–925 MHz', LORA_24: '2.4 GHz',
+      };
+      const bandEl = root.querySelector<HTMLElement>('#radioRegionBand');
+      const updateBand = () => {
+        if (!bandEl) return;
+        const label = regionSel.options[regionSel.selectedIndex]?.text ?? '';
+        const band = REGION_BANDS[label];
+        bandEl.textContent = band ? `📶 ${label} · ${band}. ` : '';
+      };
+      updateBand();
+      regionSel.addEventListener('change', updateBand);
 
       // ── Pré-preenchimento ─────────────────────────────────────────────────
       const setVal = (id: string, v: string) => {
@@ -180,19 +211,41 @@ export function renderRadioSettings(): RenderResult {
         setVal('radioPosBroadcast', String(snap.positionBroadcastSecs));
       }
 
-      // Guard genérico de gravação: trava o botão, roda, reporta.
+      // Guard genérico de gravação: trava o botão, roda, reporta. Sucesso some
+      // sozinho depois de 5s pra não poluir.
       const guarded = async (btn: HTMLButtonElement, statusId: string, fn: () => Promise<void>, okMsg: string) => {
         btn.disabled = true;
         setStatus(statusId, 'Gravando…', 'busy');
         try {
           await fn();
-          if (!disposed) setStatus(statusId, okMsg, 'ok');
+          if (!disposed) {
+            setStatus(statusId, okMsg, 'ok');
+            window.setTimeout(() => { if (!disposed) setStatus(statusId, '', ''); }, 5000);
+          }
         } catch (e) {
           if (!disposed) setStatus(statusId, e instanceof Error ? e.message : 'Falha ao gravar.', 'err');
         } finally {
           if (!disposed) btn.disabled = false;
         }
       };
+
+      // Validação de PSK ao vivo: mostra bytes + se é um tamanho aceito.
+      const pskInput = root.querySelector<HTMLInputElement>('#radioChannelPsk')!;
+      const pskInfo = root.querySelector<HTMLElement>('#radioPskInfo');
+      const updatePskInfo = () => {
+        if (!pskInfo) return;
+        const raw = pskInput.value.trim();
+        if (!raw) { pskInfo.textContent = 'Sem PSK → canal aberto (sem criptografia).'; pskInfo.style.color = '#6b7280'; return; }
+        let len: number;
+        try { len = bridge.pskFromB64(raw).length; }
+        catch { pskInfo.textContent = '⚠️ base64 inválido.'; pskInfo.style.color = '#dc2626'; return; }
+        const ok = len === 0 || len === 1 || len === 16 || len === 32;
+        const tipo = len === 32 ? ' (AES-256)' : len === 16 ? ' (AES-128)' : '';
+        pskInfo.textContent = `${ok ? '✓' : '⚠️'} ${len} bytes${tipo}${ok ? '' : ' — use 16 ou 32'}`;
+        pskInfo.style.color = ok ? '#16a34a' : '#dc2626';
+      };
+      pskInput.addEventListener('input', updatePskInfo);
+      updatePskInfo();
 
       // ── Identidade ────────────────────────────────────────────────────────
       const saveOwnerBtn = root.querySelector<HTMLButtonElement>('#radioSaveOwner')!;
@@ -211,6 +264,9 @@ export function renderRadioSettings(): RenderResult {
       saveLoraBtn.addEventListener('click', () => {
         const region = Number(regionSel.value);
         const preset = Number(presetSel.value);
+        const regionLabel = regionSel.options[regionSel.selectedIndex]?.text ?? '';
+        // Gravar rede reinicia o firmware — confirma pra evitar clique acidental.
+        if (!window.confirm(`Gravar região ${regionLabel} + preset? Isso REINICIA o rádio e derruba a conexão por alguns segundos.`)) return;
         void guarded(saveLoraBtn, 'radioLoraStatus', () => bridge.applyLoraConfig(region, preset),
           'Rede gravada ✓ — o rádio vai reiniciar.');
       });
