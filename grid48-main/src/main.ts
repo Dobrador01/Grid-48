@@ -1,5 +1,9 @@
 import './styles/base-layer.css';
 
+// Polyfill de globais Node (process/global) ANTES de qualquer módulo avaliar —
+// @meshtastic/core (lazy) usa process.cwd() nu no logger. Ver bootstrap/node-globals.
+import './bootstrap/node-globals';
+
 import 'maplibre-gl/dist/maplibre-gl.css';
 import * as Sentry from '@sentry/browser';
 import { App } from './App';
