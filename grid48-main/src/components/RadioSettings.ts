@@ -117,12 +117,38 @@ export function renderRadioSettings(): RenderResult {
               <input type="number" id="radioLon" step="0.0000001" placeholder="-48.5480" style="${INPUT}">
             </label>
           </div>
-          <label style="${LABEL}">Broadcast de posição (segundos)
-            <input type="number" id="radioPosBroadcast" min="0" step="1" placeholder="ex: 900" style="${INPUT}">
-          </label>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <label style="${LABEL}">Broadcast de posição (s)
+              <input type="number" id="radioPosBroadcast" min="0" step="1" placeholder="ex: 900" style="${INPUT}">
+            </label>
+            <label style="${LABEL}">Update do GPS (s)
+              <input type="number" id="radioGpsInterval" min="0" step="1" placeholder="ex: 120" style="${INPUT}">
+            </label>
+          </div>
           <div style="${ACTIONS}">
             <button type="button" id="radioSavePosition" style="${BTN}">Gravar posição</button>
             <span id="radioPositionStatus" style="${STATUS}"></span>
+          </div>
+        </fieldset>
+
+        <fieldset style="${FIELDSET}">
+          <legend style="${LEGEND}">Tag / Sensores</legend>
+          <label style="${LABEL}">Intervalo de telemetria (s) — bateria/TX/uptime
+            <input type="number" id="radioTelemetryInterval" min="0" step="1" placeholder="ex: 900" style="${INPUT}">
+          </label>
+          <div style="${ACTIONS}">
+            <button type="button" id="radioSaveTelemetry" style="${BTN}">Gravar telemetria</button>
+            <span id="radioTelemetryStatus" style="${STATUS}"></span>
+          </div>
+          <hr style="border: none; border-top: 1px solid rgba(0,0,0,0.08); margin: 14px 0;">
+          <label style="display: flex; align-items: center; gap: 8px; font-size: 0.72rem; margin-bottom: 4px;">
+            <input type="checkbox" id="radioBuzzer">
+            <span>Notificações sonoras (buzzer/LED — módulo de notificação externa)</span>
+          </label>
+          <p style="${SUB}">Apita/pisca em mensagens recebidas. Exige buzzer ligado no GPIO do device.</p>
+          <div style="${ACTIONS}">
+            <button type="button" id="radioSaveBuzzer" style="${BTN}">Gravar buzzer</button>
+            <span id="radioBuzzerStatus" style="${STATUS}"></span>
           </div>
         </fieldset>
       </div>
@@ -207,9 +233,11 @@ export function renderRadioSettings(): RenderResult {
       setVal('radioChannelPsk', snap.channelPskB64 ?? '');
       const fixedCheck = root.querySelector<HTMLInputElement>('#radioFixedPos')!;
       fixedCheck.checked = snap.fixedPosition ?? false;
-      if (typeof snap.positionBroadcastSecs === 'number') {
-        setVal('radioPosBroadcast', String(snap.positionBroadcastSecs));
-      }
+      if (typeof snap.positionBroadcastSecs === 'number') setVal('radioPosBroadcast', String(snap.positionBroadcastSecs));
+      if (typeof snap.gpsUpdateInterval === 'number') setVal('radioGpsInterval', String(snap.gpsUpdateInterval));
+      if (typeof snap.telemetryIntervalSecs === 'number') setVal('radioTelemetryInterval', String(snap.telemetryIntervalSecs));
+      const buzzerCheck = root.querySelector<HTMLInputElement>('#radioBuzzer')!;
+      buzzerCheck.checked = snap.buzzerEnabled ?? false;
 
       // Guard genérico de gravação: trava o botão, roda, reporta. Sucesso some
       // sozinho depois de 5s pra não poluir.
@@ -312,8 +340,27 @@ export function renderRadioSettings(): RenderResult {
           return;
         }
         const positionBroadcastSecs = bcastStr ? Number(bcastStr) : undefined;
+        const gpsStr = (root.querySelector<HTMLInputElement>('#radioGpsInterval')!).value.trim();
+        const gpsUpdateInterval = gpsStr ? Number(gpsStr) : undefined;
         void guarded(savePosBtn, 'radioPositionStatus',
-          () => bridge.applyPositionConfig({ fixed, lat, lon, positionBroadcastSecs }), 'Posição gravada ✓');
+          () => bridge.applyPositionConfig({ fixed, lat, lon, positionBroadcastSecs, gpsUpdateInterval }), 'Posição gravada ✓');
+      });
+
+      // ── Tag / Sensores ────────────────────────────────────────────────────
+      const saveTelBtn = root.querySelector<HTMLButtonElement>('#radioSaveTelemetry')!;
+      saveTelBtn.addEventListener('click', () => {
+        const secs = Number((root.querySelector<HTMLInputElement>('#radioTelemetryInterval')!).value.trim());
+        if (!Number.isFinite(secs) || secs <= 0) {
+          setStatus('radioTelemetryStatus', 'Informe um intervalo em segundos (> 0).', 'err');
+          return;
+        }
+        void guarded(saveTelBtn, 'radioTelemetryStatus', () => bridge.applyTelemetryConfig(secs), 'Telemetria gravada ✓');
+      });
+
+      const saveBuzzerBtn = root.querySelector<HTMLButtonElement>('#radioSaveBuzzer')!;
+      saveBuzzerBtn.addEventListener('click', () => {
+        void guarded(saveBuzzerBtn, 'radioBuzzerStatus',
+          () => bridge.applyBuzzer(buzzerCheck.checked), `Buzzer ${buzzerCheck.checked ? 'ligado' : 'desligado'} ✓`);
       });
     })();
 

@@ -63,6 +63,7 @@ function handleRadioLost(): void {
   lastPushByNode.clear();
   meshNodes.clear();
   configSnapshot = {};
+  localMetrics = {};
   const cb = statusCb;
   statusCb = null;
   cb?.('disconnected');
@@ -98,10 +99,27 @@ export interface RadioConfigSnapshot {
   modemPreset?: number;     // Config.LoRaConfig.ModemPreset
   fixedPosition?: boolean;
   positionBroadcastSecs?: number;
+  gpsUpdateInterval?: number;     // s entre fixes do GPS
+  telemetryIntervalSecs?: number; // s entre broadcasts de device metrics
+  buzzerEnabled?: boolean;        // módulo de notificação externa (buzzer/LED)
   channelName?: string;
   channelPskB64?: string;   // PSK do canal 0 em base64 (bytes crus na wire)
 }
 let configSnapshot: RadioConfigSnapshot = {};
+
+// Métricas do próprio RAK (vêm no deviceMetrics da telemetria periódica dele).
+export interface LocalRadioMetrics {
+  airUtilTx?: number;         // % do tempo que ESTE nó passou transmitindo (inclui relay)
+  channelUtilization?: number; // % do tempo que o canal esteve ocupado
+  voltage?: number;
+  uptimeSeconds?: number;
+  updatedAt?: number;
+}
+let localMetrics: LocalRadioMetrics = {};
+
+export function getLocalRadioMetrics(): LocalRadioMetrics {
+  return { ...localMetrics };
+}
 
 export function getRadioConfigSnapshot(): RadioConfigSnapshot {
   return { ...configSnapshot };
@@ -137,6 +155,7 @@ export interface MeshNode {
   shortName?: string;
   hopsAway?: number;
   snr?: number;            // SNR do último pacote ouvido
+  viaMqtt?: boolean;       // ouvido pela ponte de internet (MQTT), não por RF
   lastHeard: number;       // ms epoch
   route?: number[];        // último traceroute: caminho de ida (node nums)
   snrTowards?: number[];   // SNR por salto na ida
@@ -221,6 +240,9 @@ async function pushTelemetry(input: TelemetryPushInput): Promise<void> {
 function pushNode(from: number, opts: { packetId?: number; force?: boolean }): void {
   const pos = posByNode.get(from);
   if (!pos) return;
+  // Nós ouvidos via MQTT (ponte de internet) ficam espalhados pelo Brasil inteiro
+  // — não são RF-local. Não poluem o mapa nem a tabela de telemetria.
+  if (meshNodes.get(from)?.viaMqtt) return;
   const now = Date.now();
   if (!opts.force) {
     const last = lastPushByNode.get(from) ?? 0;
@@ -330,12 +352,25 @@ export async function connectRadio(onStatus?: (s: RadioStatus) => void): Promise
     device.events.onTelemetryPacket.subscribe((meta: unknown) => {
       const m = meta as {
         from?: number;
-        data?: { variant?: { case?: string; value?: { batteryLevel?: number } } };
+        data?: { variant?: { case?: string; value?: {
+          batteryLevel?: number; voltage?: number;
+          channelUtilization?: number; airUtilTx?: number; uptimeSeconds?: number;
+        } } };
       };
       if (typeof m.from !== 'number') return;
       const variant = m.data?.variant;
-      if (variant?.case === 'deviceMetrics' && typeof variant.value?.batteryLevel === 'number') {
-        batteryByNode.set(m.from, variant.value.batteryLevel);
+      if (variant?.case === 'deviceMetrics') {
+        const dm = variant.value ?? {};
+        if (typeof dm.batteryLevel === 'number') batteryByNode.set(m.from, dm.batteryLevel);
+        // Métricas do PRÓPRIO rádio (RAK): quanto ele transmite (air_util_tx) e
+        // quão ocupado está o canal. air_util_tx inclui o que ele RELAYA.
+        if (m.from === configSnapshot.myNodeNum) {
+          if (typeof dm.airUtilTx === 'number') localMetrics.airUtilTx = dm.airUtilTx;
+          if (typeof dm.channelUtilization === 'number') localMetrics.channelUtilization = dm.channelUtilization;
+          if (typeof dm.voltage === 'number') localMetrics.voltage = dm.voltage;
+          if (typeof dm.uptimeSeconds === 'number') localMetrics.uptimeSeconds = dm.uptimeSeconds;
+          localMetrics.updatedAt = Date.now();
+        }
       }
       // Liveness: telemetria (bateria) chega periódica mesmo com a tag parada.
       pushNode(m.from, {});
@@ -376,6 +411,17 @@ export async function connectRadio(onStatus?: (s: RadioStatus) => void): Promise
       } else if (v?.case === 'position') {
         if (typeof v.value?.fixedPosition === 'boolean') configSnapshot.fixedPosition = v.value.fixedPosition as boolean;
         if (typeof v.value?.positionBroadcastSecs === 'number') configSnapshot.positionBroadcastSecs = v.value.positionBroadcastSecs as number;
+        if (typeof v.value?.gpsUpdateInterval === 'number') configSnapshot.gpsUpdateInterval = v.value.gpsUpdateInterval as number;
+      }
+    });
+
+    // Module config (telemetria, notificação externa/buzzer) pro pré-preenchimento.
+    device.events.onModuleConfigPacket.subscribe((cfg: unknown) => {
+      const v = (cfg as { payloadVariant?: { case?: string; value?: Record<string, unknown> } }).payloadVariant;
+      if (v?.case === 'telemetry') {
+        if (typeof v.value?.deviceUpdateInterval === 'number') configSnapshot.telemetryIntervalSecs = v.value.deviceUpdateInterval as number;
+      } else if (v?.case === 'externalNotification') {
+        if (typeof v.value?.enabled === 'boolean') configSnapshot.buzzerEnabled = v.value.enabled as boolean;
       }
     });
 
@@ -407,7 +453,7 @@ export async function connectRadio(onStatus?: (s: RadioStatus) => void): Promise
     device.events.onNodeInfoPacket.subscribe((info: unknown) => {
       const n = info as {
         num?: number; snr?: number; lastHeard?: number; hopsAway?: number;
-        user?: { longName?: string; shortName?: string };
+        viaMqtt?: boolean; user?: { longName?: string; shortName?: string };
       };
       if (typeof n.num !== 'number') return;
       touchNode(n.num, {
@@ -415,6 +461,7 @@ export async function connectRadio(onStatus?: (s: RadioStatus) => void): Promise
         shortName: n.user?.shortName,
         snr: typeof n.snr === 'number' && n.snr !== 0 ? n.snr : undefined,
         hopsAway: typeof n.hopsAway === 'number' ? n.hopsAway : undefined,
+        viaMqtt: n.viaMqtt === true,
         // lastHeard do NodeInfo vem em segundos epoch; 0/ausente → agora.
         lastHeard: typeof n.lastHeard === 'number' && n.lastHeard > 0 ? n.lastHeard * 1000 : Date.now(),
       });
@@ -468,6 +515,7 @@ export async function disconnectRadio(): Promise<void> {
   lastPushByNode.clear();
   meshNodes.clear();
   configSnapshot = {};
+  localMetrics = {};
 }
 
 export function isRadioConnected(): boolean {
@@ -533,11 +581,15 @@ export async function applyPositionConfig(opts: {
   lat?: number;
   lon?: number;
   positionBroadcastSecs?: number;
+  gpsUpdateInterval?: number;
 }): Promise<void> {
   const device = requireDevice();
   const value: Record<string, unknown> = { fixedPosition: opts.fixed };
   if (typeof opts.positionBroadcastSecs === 'number' && opts.positionBroadcastSecs > 0) {
     value.positionBroadcastSecs = opts.positionBroadcastSecs;
+  }
+  if (typeof opts.gpsUpdateInterval === 'number' && opts.gpsUpdateInterval > 0) {
+    value.gpsUpdateInterval = opts.gpsUpdateInterval;
   }
   const cfg = mk(P.Config.ConfigSchema, { payloadVariant: { case: 'position', value } });
   await device.setConfig(cfg);
@@ -552,9 +604,30 @@ export async function applyPositionConfig(opts: {
     } catch { /* device antigo sem o comando */ }
   }
   configSnapshot.fixedPosition = opts.fixed;
-  if (typeof opts.positionBroadcastSecs === 'number') {
-    configSnapshot.positionBroadcastSecs = opts.positionBroadcastSecs;
-  }
+  if (typeof opts.positionBroadcastSecs === 'number') configSnapshot.positionBroadcastSecs = opts.positionBroadcastSecs;
+  if (typeof opts.gpsUpdateInterval === 'number') configSnapshot.gpsUpdateInterval = opts.gpsUpdateInterval;
+}
+
+/** Intervalo (s) entre broadcasts de device metrics (bateria/TX/uptime). Module config. */
+export async function applyTelemetryConfig(deviceUpdateIntervalSecs: number): Promise<void> {
+  const device = requireDevice();
+  const mod = mk(P.ModuleConfig.ModuleConfigSchema, {
+    payloadVariant: { case: 'telemetry', value: { deviceUpdateInterval: deviceUpdateIntervalSecs } },
+  });
+  await device.setModuleConfig(mod);
+  configSnapshot.telemetryIntervalSecs = deviceUpdateIntervalSecs;
+}
+
+/** Liga/desliga o módulo de notificação externa (buzzer/LED). Module config. */
+export async function applyBuzzer(enabled: boolean): Promise<void> {
+  const device = requireDevice();
+  const mod = mk(P.ModuleConfig.ModuleConfigSchema, {
+    payloadVariant: { case: 'externalNotification', value: enabled
+      ? { enabled: true, alertMessage: true, alertBell: true, usePwm: true }
+      : { enabled: false } },
+  });
+  await device.setModuleConfig(mod);
+  configSnapshot.buzzerEnabled = enabled;
 }
 
 // ── Opções de enum pros dropdowns (lidas do runtime, robusto a versões) ──────

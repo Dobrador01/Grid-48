@@ -3,7 +3,7 @@ import { getDataProvider } from '@/adapters';
 import type { HealthStatus } from '@/adapters/types';
 import { buildChunkReloadStorageKey } from '@/bootstrap/chunk-reload';
 // type-only — o @meshtastic fica lazy (carregado no clique, fora do bundle inicial).
-import type { RadioStatus, MeshNode } from '@/services/meshtastic-bridge';
+import type { RadioStatus, MeshNode, LocalRadioMetrics } from '@/services/meshtastic-bridge';
 import type { BeaconSnapshot, TelemetryNode } from '@/services/beacon-client';
 import { getOrCreateConvexClient } from '@/services/beacon-client';
 import { readSignal } from '@/utils/signal';
@@ -41,6 +41,7 @@ export class HealthWidget extends Panel {
   private editingValue = '';
   // Eco / censo da malha (sondagem ativa via traceroute). Vive só aqui (efêmero).
   private meshNodes: MeshNode[] = [];
+  private localMetrics: LocalRadioMetrics = {};
   private echoActive = false;
   private echoBusy = false;
   private echoIntervalId: ReturnType<typeof setInterval> | null = null;
@@ -158,10 +159,11 @@ export class HealthWidget extends Panel {
 
   /** Puxa o censo da vizinhança da ponte (só com rádio conectado; chunk já cacheado). */
   private async refreshMesh(): Promise<void> {
-    if (this.radioStatus !== 'connected') { this.meshNodes = []; return; }
+    if (this.radioStatus !== 'connected') { this.meshNodes = []; this.localMetrics = {}; return; }
     try {
-      const { getMeshNodes } = await import('@/services/meshtastic-bridge');
+      const { getMeshNodes, getLocalRadioMetrics } = await import('@/services/meshtastic-bridge');
       this.meshNodes = getMeshNodes();
+      this.localMetrics = getLocalRadioMetrics();
     } catch { /* ponte ainda não carregada */ }
   }
 
@@ -257,10 +259,24 @@ export class HealthWidget extends Panel {
           style="width:100%;cursor:pointer;font-family:var(--font-mono, ui-monospace, monospace);font-size:12px;font-weight:600;padding:6px 10px;border-radius:6px;border:1px solid var(--overlay-medium, rgba(0,0,0,0.12));background:var(--overlay-medium, rgba(0,0,0,0.04));color:var(--text-primary, inherit);">
           ${this.radioLabel()}
         </button>
+        ${this.renderLocalMetrics()}
         ${this.renderNodeList()}
         ${this.renderMeshCensus()}
       </div>
     `;
+  }
+
+  /** Métricas do próprio RAK: TX airtime (inclui relay) + ocupação do canal. */
+  private renderLocalMetrics(): string {
+    if (this.radioStatus !== 'connected') return '';
+    const m = this.localMetrics;
+    if (typeof m.airUtilTx !== 'number' && typeof m.channelUtilization !== 'number') return '';
+    const tx = typeof m.airUtilTx === 'number' ? `📡 TX ${m.airUtilTx.toFixed(1)}%` : '';
+    const ch = typeof m.channelUtilization === 'number' ? `📶 Canal ${m.channelUtilization.toFixed(0)}%` : '';
+    const txHot = typeof m.airUtilTx === 'number' && m.airUtilTx >= 10; // limite legal/saúde
+    return `<div style="margin-top:8px;font-size:11px;display:flex;gap:10px;color:${txHot ? '#ef4444' : 'var(--text-dim,#6b7280)'};" title="air_util_tx = % do tempo que o RAK transmite (inclui o que relaya) · channel_utilization = ocupação do canal">
+      <span style="font-weight:600;">${tx}</span><span>${ch}</span>
+    </div>`;
   }
 
   /** Censo da vizinhança LoRa + botão de eco (traceroute periódico). */
@@ -298,7 +314,8 @@ export class HealthWidget extends Panel {
       : '';
     const snr = typeof n.snr === 'number' ? `SNR ${n.snr.toFixed(1)} dB` : '';
     const seen = this.lastSeenLabel(n.lastHeard, agora);
-    const meta = [hops, snr, seen].filter(Boolean).join(' · ');
+    const via = n.viaMqtt ? '🌐 MQTT' : '';
+    const meta = [via, hops, snr, seen].filter(Boolean).join(' · ');
 
     // Rota do último traceroute (caminho de ida), se houver.
     let routeLine = '';
