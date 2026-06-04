@@ -129,6 +129,12 @@ export class HealthWidget extends Panel {
     this.radioStatus = s;
     if (s === 'connected') {
       void this.refreshMesh().then(() => { if (!this.editingNodeId) this.render(); });
+    } else {
+      // Perdeu/encerrou conexão → para o eco e limpa o censo (estava preso).
+      this.meshNodes = [];
+      if (this.echoIntervalId) { clearInterval(this.echoIntervalId); this.echoIntervalId = null; }
+      this.echoActive = false;
+      this.echoBusy = false;
     }
     this.render();
   }

@@ -41,6 +41,33 @@ interface ActiveRadio {
 }
 
 let active: ActiveRadio | null = null;
+// Callback de status do widget — guardado pra poder sinalizar desconexão
+// assíncrona (USB removido) fora do fluxo do connectRadio.
+let statusCb: ((s: RadioStatus) => void) | null = null;
+// Listener global de remoção física da porta serial (registrado 1x).
+let serialDisconnectWired = false;
+
+// DeviceStatusEnum do @meshtastic/core: 2 = DeviceDisconnected.
+const DEVICE_DISCONNECTED = 2;
+
+// Trata a queda da conexão (USB removido, porta fechada). Idempotente.
+function handleRadioLost(): void {
+  if (!active) return;
+  console.log('[meshtastic] conexão perdida — limpando estado.');
+  active = null;
+  batteryByNode.clear();
+  rssiByNode.clear();
+  snrByNode.clear();
+  hopsByNode.clear();
+  posByNode.clear();
+  lastPushByNode.clear();
+  meshNodes.clear();
+  configSnapshot = {};
+  const cb = statusCb;
+  statusCb = null;
+  cb?.('disconnected');
+}
+
 
 // Buffers por node num (campo `from` do pacote). Posição, bateria, RSSI/SNR e
 // hops chegam em pacotes separados — acumulamos os últimos por nó pra enriquecer
@@ -221,12 +248,30 @@ function pushNode(from: number, opts: { packetId?: number; force?: boolean }): v
 export async function connectRadio(onStatus?: (s: RadioStatus) => void): Promise<RadioHandle> {
   if (active) return { disconnect: disconnectRadio };
 
+  statusCb = onStatus ?? null;
   onStatus?.('connecting');
+
+  // Remoção física da porta (USB arrancado) → navigator.serial dispara
+  // 'disconnect'. Registrado uma vez; handleRadioLost é idempotente.
+  // Web Serial não está no lib.dom padrão — cast pontual.
+  const serial = (navigator as unknown as {
+    serial?: { addEventListener: (type: string, cb: () => void) => void };
+  }).serial;
+  if (!serialDisconnectWired && serial) {
+    serialDisconnectWired = true;
+    serial.addEventListener('disconnect', () => handleRadioLost());
+  }
+
   try {
     // Abre o seletor de porta nativo do Chrome (user gesture).
     const transport = await TransportWebSerial.create();
     const device = new MeshDevice(transport);
     active = { device, transport };
+
+    // Queda lógica da conexão (stream fechado, timeout) → DeviceStatusEnum.
+    device.events.onDeviceStatus.subscribe((s: unknown) => {
+      if (s === DEVICE_DISCONNECTED) handleRadioLost();
+    });
 
     // Silencia o logger interno (tslog, runtime Node bundizado): ele faz
     // deep-clone/mask dos valores logados chamando Buffer/process/util a cada
@@ -414,6 +459,7 @@ export async function disconnectRadio(): Promise<void> {
     console.warn('[meshtastic] erro ao desconectar:', e);
   }
   active = null;
+  statusCb = null;
   batteryByNode.clear();
   rssiByNode.clear();
   snrByNode.clear();
