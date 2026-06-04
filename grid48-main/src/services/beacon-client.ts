@@ -133,6 +133,20 @@ export interface TrafegoRota {
     erro?: string;
 }
 
+// Espelha o shape de convex/queries.ts:getLatestTelemetry (último pacote por
+// node LoRa). Não importa types do backend — mesmo padrão de BeaconAlert.
+export interface TelemetryNode {
+    _id: string;
+    node_id: string;
+    packet_id: number;
+    timestamp: number;       // epoch ms — usado pra online/offline (last-seen)
+    lat: number;
+    lon: number;
+    bitmask_status: number;
+    rssi?: number;           // dBm (recepção no gateway)
+    battery_level?: number;  // 0..100
+}
+
 export type BeaconConnectionStatus =
     | { kind: 'no-config' }
     | { kind: 'connecting' }
@@ -145,6 +159,7 @@ export interface BeaconSnapshot {
     defcon: DefconStatus | null;
     clima: ClimaLocalidade[];
     trafego: TrafegoRota[];
+    telemetria: TelemetryNode[];
     connection: BeaconConnectionStatus;
 }
 
@@ -154,6 +169,7 @@ const initialSnapshot: BeaconSnapshot = {
     defcon: null,
     clima: [],
     trafego: [],
+    telemetria: [],
     connection: { kind: 'connecting' },
 };
 
@@ -209,6 +225,14 @@ export function initBeaconClient(onUpdate: (snapshot: BeaconSnapshot) => void) {
         // on-demand pelo TrafegoWidget via mutation trafego/mutations:requestUpdate.
         c.onUpdate("trafego/queries:getTrafegoState", {}, (data: any) => {
             snapshot.trafego = Array.isArray(data) ? data : [];
+            emit();
+        });
+
+        // Telemetria LoRa — último pacote por nó. Populado pela ponte
+        // meshtastic-bridge.ts (browser → ingestTelemetryPublic) ou pelo
+        // dev helper injectTestSignal. Renderizado como pontos no mapa.
+        c.onUpdate("queries:getLatestTelemetry", {}, (data: any) => {
+            snapshot.telemetria = Array.isArray(data) ? data : [];
             emit();
         });
 

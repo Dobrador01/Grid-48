@@ -221,6 +221,15 @@ export default defineConfig({
       '@': resolve(__dirname, 'src'),
       child_process: resolve(__dirname, 'src/shims/child-process.ts'),
       'node:child_process': resolve(__dirname, 'src/shims/child-process.ts'),
+      // @meshtastic/core bundles a logger que importa built-ins do Node
+      // estaticamente. O Vite stuba node built-ins sem named exports, então
+      // apontamos os/path/util pra shims browser-safe (só o que o logger usa).
+      os: resolve(__dirname, 'src/shims/node-os.ts'),
+      'node:os': resolve(__dirname, 'src/shims/node-os.ts'),
+      path: resolve(__dirname, 'src/shims/node-path.ts'),
+      'node:path': resolve(__dirname, 'src/shims/node-path.ts'),
+      util: resolve(__dirname, 'src/shims/node-util.ts'),
+      'node:util': resolve(__dirname, 'src/shims/node-util.ts'),
       '@loaders.gl/worker-utils/dist/lib/process-utils/child-process-proxy.js': resolve(
         __dirname,
         'src/shims/child-process-proxy.ts'
