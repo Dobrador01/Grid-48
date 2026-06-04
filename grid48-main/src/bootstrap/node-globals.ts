@@ -27,4 +27,17 @@ if (typeof g.global === 'undefined') {
   g.global = globalThis;
 }
 
+// O logger do @meshtastic faz deep-clone/mask dos valores logados e chama
+// Buffer.isBuffer() / usa `instanceof Buffer` sem guarda → "Buffer is not
+// defined" no navegador. Shim como FUNÇÃO (pra `x instanceof Buffer` não
+// estourar) com isBuffer sempre false (o browser nunca tem Buffers).
+if (typeof g.Buffer === 'undefined') {
+  const BufferShim = function () {} as unknown as Record<string, unknown>;
+  BufferShim.isBuffer = () => false;
+  BufferShim.from = (v: unknown) =>
+    v instanceof Uint8Array ? v : new Uint8Array(Array.isArray(v) ? v : []);
+  BufferShim.alloc = (n: number) => new Uint8Array(n);
+  g.Buffer = BufferShim;
+}
+
 export {};
