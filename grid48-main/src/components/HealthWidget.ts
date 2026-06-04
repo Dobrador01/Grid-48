@@ -1,8 +1,11 @@
 import { Panel } from './Panel';
 import { getDataProvider } from '@/adapters';
 import type { HealthStatus } from '@/adapters/types';
-// type-only — não puxa o bundle Meshtastic (lazy-loaded no clique).
-import type { RadioStatus } from '@/services/meshtastic-bridge';
+// Import ESTÁTICO (não dinâmico): a ponte vive no mesmo chunk do widget, que já
+// carrega com o dashboard. Um import dinâmico no clique gerava vite:preloadError
+// quando o chunk falhava (deploy/SW propagando) → o chunk-reload guard
+// recarregava a página em loop. Custo: ~65KB gzip no bundle, aceitável.
+import { connectRadio, type RadioStatus } from '@/services/meshtastic-bridge';
 
 declare const __API_MODE__: string;
 
@@ -43,15 +46,14 @@ export class HealthWidget extends Panel {
   }
 
   /**
-   * Conecta na base RAK via Web Serial. Dynamic import DENTRO do clique:
-   * mantém o bundle Meshtastic fora do main chunk E preserva o user gesture
-   * que o navigator.serial.requestPort() exige.
+   * Conecta na base RAK via Web Serial. connectRadio é import estático, então
+   * chamá-lo direto do handler de clique preserva o user gesture que o
+   * navigator.serial.requestPort() exige (sem await de import no meio).
    */
   private async onConnectRadioClick(): Promise<void> {
     if (this.radioStatus === 'connecting' || this.radioStatus === 'connected') return;
     this.setRadioStatus('connecting');
     try {
-      const { connectRadio } = await import('@/services/meshtastic-bridge');
       await connectRadio((s) => this.setRadioStatus(s));
     } catch (e) {
       console.warn('[HealthWidget] conexão de rádio falhou', e);
