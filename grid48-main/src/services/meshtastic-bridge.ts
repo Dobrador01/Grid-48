@@ -96,6 +96,14 @@ export async function connectRadio(onStatus?: (s: RadioStatus) => void): Promise
     const device = new MeshDevice(transport);
     active = { device, transport };
 
+    // Silencia o logger interno (tslog, runtime Node bundizado): ele faz
+    // deep-clone/mask dos valores logados chamando Buffer/process/util a cada
+    // log — caro e cheio de node-isms no browser. minLevel alto pula tudo ANTES
+    // do mask; sub-loggers criados depois herdam o nível. Best-effort.
+    try {
+      (device.log as unknown as { settings: { minLevel: number } }).settings.minLevel = 7;
+    } catch { /* sem logger acessível — o polyfill de Buffer cobre o resto */ }
+
     // RSSI/SNR só existem no MeshPacket cru (não no PacketMetadata). Buffer por
     // `from`. Obs: rxRssi só é confiável p/ pacotes diretos (0-hop) — refinamos
     // isso na Fase 2 (heatmap); aqui guardamos o último como aproximação.
