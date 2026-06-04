@@ -3,7 +3,7 @@ import { getDataProvider } from '@/adapters';
 import type { HealthStatus } from '@/adapters/types';
 import { buildChunkReloadStorageKey } from '@/bootstrap/chunk-reload';
 // type-only — o @meshtastic fica lazy (carregado no clique, fora do bundle inicial).
-import type { RadioStatus } from '@/services/meshtastic-bridge';
+import type { RadioStatus, MeshNode } from '@/services/meshtastic-bridge';
 import type { BeaconSnapshot, TelemetryNode } from '@/services/beacon-client';
 import { getOrCreateConvexClient } from '@/services/beacon-client';
 import { readSignal } from '@/utils/signal';
@@ -39,6 +39,11 @@ export class HealthWidget extends Panel {
   // estourar o <input> aberto (o poll de 5s e o fanout reconstroem o innerHTML).
   private editingNodeId: string | null = null;
   private editingValue = '';
+  // Eco / censo da malha (sondagem ativa via traceroute). Vive só aqui (efêmero).
+  private meshNodes: MeshNode[] = [];
+  private echoActive = false;
+  private echoBusy = false;
+  private echoIntervalId: ReturnType<typeof setInterval> | null = null;
 
   constructor() {
     super({
@@ -51,6 +56,10 @@ export class HealthWidget extends Panel {
       const target = e.target as HTMLElement | null;
       if (target?.closest('[data-action="connect-radio"]')) {
         void this.onConnectRadioClick();
+        return;
+      }
+      if (target?.closest('[data-action="echo-toggle"]')) {
+        this.onEchoToggle();
         return;
       }
       const editBtn = target?.closest('[data-action="edit-label"]') as HTMLElement | null;
@@ -118,11 +127,15 @@ export class HealthWidget extends Panel {
 
   private setRadioStatus(s: RadioStatus): void {
     this.radioStatus = s;
+    if (s === 'connected') {
+      void this.refreshMesh().then(() => { if (!this.editingNodeId) this.render(); });
+    }
     this.render();
   }
 
   public destroy() {
     if (this.intervalId) { clearInterval(this.intervalId); this.intervalId = null; }
+    if (this.echoIntervalId) { clearInterval(this.echoIntervalId); this.echoIntervalId = null; }
   }
 
   private async refresh() {
@@ -132,8 +145,47 @@ export class HealthWidget extends Panel {
       console.warn('[HealthWidget] refresh failed', e);
       this.status = { status: 'offline' };
     }
+    await this.refreshMesh();
     // Pausa o re-render enquanto o usuário edita um rótulo (preserva o input).
     if (!this.editingNodeId) this.render();
+  }
+
+  /** Puxa o censo da vizinhança da ponte (só com rádio conectado; chunk já cacheado). */
+  private async refreshMesh(): Promise<void> {
+    if (this.radioStatus !== 'connected') { this.meshNodes = []; return; }
+    try {
+      const { getMeshNodes } = await import('@/services/meshtastic-bridge');
+      this.meshNodes = getMeshNodes();
+    } catch { /* ponte ainda não carregada */ }
+  }
+
+  /** Liga/desliga o eco periódico (traceroute na vizinhança a cada 90s). */
+  private onEchoToggle(): void {
+    this.echoActive = !this.echoActive;
+    if (this.echoActive) {
+      void this.runEcho();
+      this.echoIntervalId = setInterval(() => void this.runEcho(), 90_000);
+    } else if (this.echoIntervalId) {
+      clearInterval(this.echoIntervalId);
+      this.echoIntervalId = null;
+    }
+    if (!this.editingNodeId) this.render();
+  }
+
+  private async runEcho(): Promise<void> {
+    if (this.echoBusy || this.radioStatus !== 'connected') return;
+    this.echoBusy = true;
+    if (!this.editingNodeId) this.render();
+    try {
+      const bridge = await import('@/services/meshtastic-bridge');
+      await bridge.echoOnce();
+      this.meshNodes = bridge.getMeshNodes();
+    } catch (e) {
+      console.warn('[HealthWidget] eco falhou', e);
+    } finally {
+      this.echoBusy = false;
+      if (!this.editingNodeId) this.render();
+    }
   }
 
   public render() {
@@ -200,8 +252,66 @@ export class HealthWidget extends Panel {
           ${this.radioLabel()}
         </button>
         ${this.renderNodeList()}
+        ${this.renderMeshCensus()}
       </div>
     `;
+  }
+
+  /** Censo da vizinhança LoRa + botão de eco (traceroute periódico). */
+  private renderMeshCensus(): string {
+    if (this.radioStatus !== 'connected') return '';
+    const echoLabel = this.echoBusy
+      ? '⏳ Sondando…'
+      : this.echoActive ? '⏹ Parar eco' : '📡 Sondar malha (eco)';
+    const btn = `
+      <button type="button" data-action="echo-toggle" ${this.echoBusy ? 'disabled' : ''}
+        style="width:100%;margin-top:10px;cursor:${this.echoBusy ? 'wait' : 'pointer'};font-size:11px;font-weight:600;padding:5px 10px;border-radius:6px;border:1px solid var(--overlay-medium,rgba(0,0,0,0.12));background:${this.echoActive ? 'rgba(34,197,94,0.12)' : 'var(--overlay-medium,rgba(0,0,0,0.04))'};color:var(--text-primary,inherit);">
+        ${echoLabel}
+      </button>`;
+
+    const nodes = this.meshNodes;
+    const header = `<div style="font-size:10px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:var(--text-dim,#6b7280);margin-top:10px;">Vizinhança · ${nodes.length} nó${nodes.length === 1 ? '' : 's'} na escuta${this.echoActive ? ' · eco ON' : ''}</div>`;
+
+    let body: string;
+    if (nodes.length === 0) {
+      body = `<div style="font-size:11px;color:var(--text-dim,#6b7280);margin-top:6px;">${this.echoActive ? 'Ninguém respondeu ainda — sondando…' : 'Ninguém na escuta. Clique "Sondar malha" pra varrer.'}</div>`;
+    } else {
+      const agora = Date.now();
+      body = `<div style="margin-top:6px;display:flex;flex-direction:column;gap:5px;">${nodes.map((n) => this.renderCensusRow(n, agora)).join('')}</div>`;
+    }
+    return btn + header + body;
+  }
+
+  private renderCensusRow(n: MeshNode, agora: number): string {
+    const name = n.longName?.trim() || n.shortName?.trim() || n.id;
+    const hops = typeof n.hopsAway === 'number'
+      ? (n.hopsAway === 0 ? '📡 direto' : `🔗 ${n.hopsAway} salto${n.hopsAway > 1 ? 's' : ''}`)
+      : '';
+    const snr = typeof n.snr === 'number' ? `SNR ${n.snr.toFixed(1)} dB` : '';
+    const seen = this.lastSeenLabel(n.lastHeard, agora);
+    const meta = [hops, snr, seen].filter(Boolean).join(' · ');
+
+    // Rota do último traceroute (caminho de ida), se houver.
+    let routeLine = '';
+    if (n.route && n.route.length > 0) {
+      const path = n.route.map((num) => this.idHexShort(num)).join(' → ');
+      routeLine = `<div style="font-size:9.5px;color:var(--text-dim,#6b7280);margin-top:2px;font-family:var(--font-mono,ui-monospace,monospace);">🛰 ${escapeHtml(path)}</div>`;
+    }
+
+    return `
+      <div style="padding:6px 7px;border-radius:6px;background:var(--overlay-medium,rgba(0,0,0,0.03));">
+        <div style="display:flex;align-items:baseline;gap:6px;">
+          <span style="font-size:11.5px;font-weight:600;color:var(--text-primary,inherit);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(name)}</span>
+          <span style="font-size:9.5px;color:var(--text-dim,#6b7280);font-family:var(--font-mono,ui-monospace,monospace);">${escapeHtml(n.id)}</span>
+        </div>
+        <div style="font-size:10px;color:var(--text-dim,#6b7280);margin-top:2px;">${escapeHtml(meta)}</div>
+        ${routeLine}
+      </div>`;
+  }
+
+  /** node num → "!hex" curto (últimos 4 dígitos pra economizar espaço na rota). */
+  private idHexShort(num: number): string {
+    return '!' + (num >>> 0).toString(16).padStart(8, '0').slice(-4);
   }
 
   /** Lista de nós LoRa conhecidos (do snapshot). Vazia → placeholder discreto. */

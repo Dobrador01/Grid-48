@@ -98,6 +98,41 @@ function nodeIdHex(num: number): string {
   return '!' + (num >>> 0).toString(16).padStart(8, '0');
 }
 
+// ── Vizinhança / censo da malha (eco) ───────────────────────────────────────
+// Registro de TODOS os nós ouvidos no ar (não só os que mandam GPS pro Convex).
+// Alimentado passivamente por onNodeInfoPacket/onMeshPacket e enriquecido pelo
+// eco (traceroute → onTraceRoutePacket). Vive só em memória — é sondagem
+// efêmera da malha, não vai pro backend.
+export interface MeshNode {
+  num: number;
+  id: string;              // !hex
+  longName?: string;
+  shortName?: string;
+  hopsAway?: number;
+  snr?: number;            // SNR do último pacote ouvido
+  lastHeard: number;       // ms epoch
+  route?: number[];        // último traceroute: caminho de ida (node nums)
+  snrTowards?: number[];   // SNR por salto na ida
+  routeBack?: number[];
+  snrBack?: number[];
+  routeAt?: number;        // quando o traceroute voltou
+}
+const meshNodes = new Map<number, MeshNode>();
+
+// Upsert que só sobrescreve campos definidos (não apaga o que já tinha).
+function touchNode(num: number, patch: Partial<MeshNode>): void {
+  const e = meshNodes.get(num) ?? { num, id: nodeIdHex(num), lastHeard: 0 };
+  const rec = e as unknown as Record<string, unknown>;
+  for (const [k, v] of Object.entries(patch)) {
+    if (v !== undefined) rec[k] = v;
+  }
+  meshNodes.set(num, e);
+}
+
+export function getMeshNodes(): MeshNode[] {
+  return [...meshNodes.values()].sort((a, b) => b.lastHeard - a.lastHeard);
+}
+
 interface TelemetryPushInput {
   node_id: string;
   packet_id: number;
@@ -229,6 +264,13 @@ export async function connectRadio(onStatus?: (s: RadioStatus) => void): Promise
       console.log(`[mesh-debug] pkt from=${nodeIdHex(p.from)} payload=${variant?.case ?? '?'}` +
         (portnum !== undefined ? ` portnum=${portnum}` : ''));
 
+      // Censo: todo pacote prova que o nó está vivo. Atualiza vizinhança.
+      touchNode(p.from, {
+        lastHeard: Date.now(),
+        snr: snrByNode.get(p.from),
+        hopsAway: hopsByNode.get(p.from),
+      });
+
       // Liveness: qualquer pacote prova que o nó está vivo agora. Refresca o
       // "visto há X" / bateria mesmo sem posição nova (throttled por nó).
       pushNode(p.from, {});
@@ -300,11 +342,51 @@ export async function connectRadio(onStatus?: (s: RadioStatus) => void): Promise
 
     device.events.onUserPacket.subscribe((meta: unknown) => {
       const m = meta as { from?: number; data?: { longName?: string; shortName?: string } };
-      // Só o owner do PRÓPRIO nó (myNodeNum) interessa pro formulário de identidade.
-      if (typeof m.from === 'number' && m.from === configSnapshot.myNodeNum && m.data) {
-        if (m.data.longName) configSnapshot.ownerLongName = m.data.longName;
-        if (m.data.shortName) configSnapshot.ownerShortName = m.data.shortName;
+      if (typeof m.from === 'number' && m.data) {
+        // Censo: nome amigável de qualquer nó ouvido.
+        touchNode(m.from, { longName: m.data.longName, shortName: m.data.shortName, lastHeard: Date.now() });
+        // Owner do PRÓPRIO nó (myNodeNum) também alimenta o form de identidade.
+        if (m.from === configSnapshot.myNodeNum) {
+          if (m.data.longName) configSnapshot.ownerLongName = m.data.longName;
+          if (m.data.shortName) configSnapshot.ownerShortName = m.data.shortName;
+        }
       }
+    });
+
+    // Censo: NodeInfo (dump inicial + broadcasts periódicos) traz num, nome,
+    // hops e SNR de cada nó conhecido — base da vizinhança.
+    device.events.onNodeInfoPacket.subscribe((info: unknown) => {
+      const n = info as {
+        num?: number; snr?: number; lastHeard?: number; hopsAway?: number;
+        user?: { longName?: string; shortName?: string };
+      };
+      if (typeof n.num !== 'number') return;
+      touchNode(n.num, {
+        longName: n.user?.longName,
+        shortName: n.user?.shortName,
+        snr: typeof n.snr === 'number' && n.snr !== 0 ? n.snr : undefined,
+        hopsAway: typeof n.hopsAway === 'number' ? n.hopsAway : undefined,
+        // lastHeard do NodeInfo vem em segundos epoch; 0/ausente → agora.
+        lastHeard: typeof n.lastHeard === 'number' && n.lastHeard > 0 ? n.lastHeard * 1000 : Date.now(),
+      });
+    });
+
+    // Eco: resposta de traceroute. `from` = nó que respondeu; data.route = caminho.
+    device.events.onTraceRoutePacket.subscribe((meta: unknown) => {
+      const m = meta as {
+        from?: number;
+        data?: { route?: number[]; snrTowards?: number[]; routeBack?: number[]; snrBack?: number[] };
+      };
+      if (typeof m.from !== 'number') return;
+      console.log(`[mesh-debug] traceroute resp de ${nodeIdHex(m.from)} route=[${(m.data?.route ?? []).map(nodeIdHex).join(', ')}]`);
+      touchNode(m.from, {
+        route: m.data?.route,
+        snrTowards: m.data?.snrTowards,
+        routeBack: m.data?.routeBack,
+        snrBack: m.data?.snrBack,
+        routeAt: Date.now(),
+        lastHeard: Date.now(),
+      });
     });
 
     // Handshake: dispara o dump de config + node DB. Sem isso os eventos não fluem.
@@ -334,6 +416,7 @@ export async function disconnectRadio(): Promise<void> {
   hopsByNode.clear();
   posByNode.clear();
   lastPushByNode.clear();
+  meshNodes.clear();
   configSnapshot = {};
 }
 
@@ -440,4 +523,28 @@ export function getRegionOptions(): EnumOption[] {
 }
 export function getModemPresetOptions(): EnumOption[] {
   return enumOptions(P.Config.Config_LoRaConfig_ModemPreset);
+}
+
+// ── Eco: sonda ativa da malha (traceroute pros nós conhecidos) ───────────────
+// Pra cada nó da vizinhança (exceto o nosso), dispara um traceroute. A resposta
+// volta em onTraceRoutePacket e enriquece o registro com caminho + SNR por
+// salto. Escalonado (traceroute é caro: round-trip + relays) pra não inundar o
+// ar. Se a vizinhança está vazia, não há alvo — o censo passivo já responde
+// "não tem ninguém". Retorna quantos nós foram sondados.
+const ECHO_STAGGER_MS = 4000;
+
+export async function echoOnce(): Promise<{ probed: number }> {
+  const device = requireDevice();
+  const self = configSnapshot.myNodeNum;
+  const targets = [...meshNodes.values()].filter((n) => n.num !== self);
+  for (const t of targets) {
+    try {
+      console.log(`[mesh-debug] eco → traceroute pra ${t.id}`);
+      await (device as unknown as { traceRoute: (dest: number) => Promise<number> }).traceRoute(t.num);
+    } catch (e) {
+      console.warn('[mesh-debug] traceroute falhou', t.id, e);
+    }
+    await new Promise((r) => setTimeout(r, ECHO_STAGGER_MS));
+  }
+  return { probed: targets.length };
 }
