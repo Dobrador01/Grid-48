@@ -1,6 +1,8 @@
 import { Panel } from './Panel';
 import { getDataProvider } from '@/adapters';
 import type { HealthStatus } from '@/adapters/types';
+// type-only — não puxa o bundle Meshtastic (lazy-loaded no clique).
+import type { RadioStatus } from '@/services/meshtastic-bridge';
 
 declare const __API_MODE__: string;
 
@@ -20,15 +22,46 @@ const POLL_INTERVAL_MS = 5_000;
 export class HealthWidget extends Panel {
   private status: HealthStatus | null = null;
   private intervalId: ReturnType<typeof setInterval> | null = null;
+  private radioStatus: RadioStatus | 'idle' = 'idle';
 
   constructor() {
     super({
       id: 'engine-health',
       title: 'Comando & Controle',
     });
+    // Event delegation no container (sobrevive aos re-renders de innerHTML).
+    // CSP proíbe onclick inline — daí o data-action + listener único.
+    this.content.addEventListener('click', (e) => {
+      const target = e.target as HTMLElement | null;
+      if (target?.closest('[data-action="connect-radio"]')) {
+        void this.onConnectRadioClick();
+      }
+    });
     this.render();
     void this.refresh();
     this.intervalId = setInterval(() => void this.refresh(), POLL_INTERVAL_MS);
+  }
+
+  /**
+   * Conecta na base RAK via Web Serial. Dynamic import DENTRO do clique:
+   * mantém o bundle Meshtastic fora do main chunk E preserva o user gesture
+   * que o navigator.serial.requestPort() exige.
+   */
+  private async onConnectRadioClick(): Promise<void> {
+    if (this.radioStatus === 'connecting' || this.radioStatus === 'connected') return;
+    this.setRadioStatus('connecting');
+    try {
+      const { connectRadio } = await import('@/services/meshtastic-bridge');
+      await connectRadio((s) => this.setRadioStatus(s));
+    } catch (e) {
+      console.warn('[HealthWidget] conexão de rádio falhou', e);
+      this.setRadioStatus('error');
+    }
+  }
+
+  private setRadioStatus(s: RadioStatus): void {
+    this.radioStatus = s;
+    this.render();
   }
 
   public destroy() {
@@ -52,37 +85,30 @@ export class HealthWidget extends Panel {
 
   protected renderContent(): string {
     const mode = typeof __API_MODE__ !== 'undefined' ? __API_MODE__ : 'cloud';
-    const modeBadge = this.renderModeBadge(mode);
+    return `
+      <div class="hw-container">
+        ${this.renderModeBadge(mode)}
+        ${this.renderBody()}
+        ${this.renderRadioSection()}
+      </div>
+    `;
+  }
 
+  private renderBody(): string {
     if (!this.status) {
-      return `
-        <div class="hw-container">
-          ${modeBadge}
-          <div class="hw-placeholder">Carregando saúde do engine…</div>
-        </div>
-      `;
+      return `<div class="hw-placeholder">Carregando saúde do engine…</div>`;
     }
 
     const s = this.status;
 
-    // CLOUD provider: nothing to introspect, single pill + badge MODE.
+    // CLOUD provider: nothing to introspect, single pill.
     if (s.status === 'cloud-ok') {
-      return `
-        <div class="hw-container">
-          ${modeBadge}
-          ${this.pill('🟢', 'Modo Cloud', 'Engine local não aplicável neste build.')}
-        </div>
-      `;
+      return this.pill('🟢', 'Modo Cloud', 'Engine local não aplicável neste build.');
     }
 
     // LOCAL provider offline.
     if (s.status === 'offline') {
-      return `
-        <div class="hw-container">
-          ${modeBadge}
-          ${this.pill('🔴', 'Engine offline', 'Sem resposta em http://localhost:3001/api/health.')}
-        </div>
-      `;
+      return this.pill('🔴', 'Engine offline', 'Sem resposta em http://localhost:3001/api/health.');
     }
 
     // LOCAL provider online/degraded: full breakdown.
@@ -90,21 +116,44 @@ export class HealthWidget extends Panel {
     const overallLabel = s.status === 'degraded' ? 'Operação degradada' : 'Operação normal';
 
     return `
-      <div class="hw-container">
-        ${modeBadge}
-        ${this.pill(overall, overallLabel, this.uptimeLabel(s.uptime))}
-        <div class="hw-grid">
-          ${this.metric('Pendrive', this.pendriveBadge(s.pendrive_mounted))}
-          ${this.metric('Fila pendente', `${s.pending_sync ?? 0} pacotes`)}
-          ${this.metric('Último rádio', this.relativeTime(s.last_radio_at, 'epoch_s'))}
-          ${this.metric('Último PUSH', this.relativeTime(s.last_sync_at, 'epoch_s'))}
-          ${this.metric('Snapshot Celesc', this.relativeTime(s.last_celesc_at, 'epoch_ms'))}
-          ${this.metric('Snapshot Beacon', this.relativeTime(s.last_beacon_at, 'epoch_ms'))}
-          ${this.metric('SQLite', this.bytesLabel(s.sqlite_size_bytes))}
-          ${this.metric('Disco livre', this.bytesLabel(s.disk_free_bytes))}
-        </div>
+      ${this.pill(overall, overallLabel, this.uptimeLabel(s.uptime))}
+      <div class="hw-grid">
+        ${this.metric('Pendrive', this.pendriveBadge(s.pendrive_mounted))}
+        ${this.metric('Fila pendente', `${s.pending_sync ?? 0} pacotes`)}
+        ${this.metric('Último rádio', this.relativeTime(s.last_radio_at, 'epoch_s'))}
+        ${this.metric('Último PUSH', this.relativeTime(s.last_sync_at, 'epoch_s'))}
+        ${this.metric('Snapshot Celesc', this.relativeTime(s.last_celesc_at, 'epoch_ms'))}
+        ${this.metric('Snapshot Beacon', this.relativeTime(s.last_beacon_at, 'epoch_ms'))}
+        ${this.metric('SQLite', this.bytesLabel(s.sqlite_size_bytes))}
+        ${this.metric('Disco livre', this.bytesLabel(s.disk_free_bytes))}
       </div>
     `;
+  }
+
+  /**
+   * Seção "Rádio LoRa" — botão que conecta na base RAK via Chrome Web Serial
+   * (ponte Meshtastic → Convex). Presente em todos os modos.
+   */
+  private renderRadioSection(): string {
+    const disabled = this.radioStatus === 'connecting' ? 'disabled' : '';
+    return `
+      <div style="margin-top:10px;border-top:1px solid var(--overlay-medium, rgba(0,0,0,0.08));padding-top:10px;">
+        <button type="button" class="hw-radio-btn" data-action="connect-radio" ${disabled}
+          style="width:100%;cursor:pointer;font-family:var(--font-mono, ui-monospace, monospace);font-size:12px;font-weight:600;padding:6px 10px;border-radius:6px;border:1px solid var(--overlay-medium, rgba(0,0,0,0.12));background:var(--overlay-medium, rgba(0,0,0,0.04));color:var(--text-primary, inherit);">
+          ${this.radioLabel()}
+        </button>
+      </div>
+    `;
+  }
+
+  private radioLabel(): string {
+    switch (this.radioStatus) {
+      case 'connecting': return 'Conectando rádio…';
+      case 'connected': return '🟢 Rádio conectado';
+      case 'error': return '🔴 Falha — tentar de novo';
+      case 'disconnected': return '📡 Reconectar rádio';
+      default: return '📡 Conectar rádio';
+    }
   }
 
   /**

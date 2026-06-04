@@ -11,6 +11,8 @@
 //   2. Layer Celesc — polígonos dos municípios SC coloridos por %UCs offline
 //   3. Layer Weather Alerts — marcadores de alertas Defesa Civil
 //      (centroide do município afetado, tamanho/cor por nivel_risco)
+//   4. Layer LoRa Nodes — pontos das tags Meshtastic (posição + status
+//      online/stale por last-seen; hover com bateria/RSSI)
 //
 // Interage com:
 //   - CelescStatusWidget click → window event 'CELESC_CITY_SELECTED'
@@ -22,8 +24,8 @@
 //     → reload basemap com novo style
 //
 // API pública chamada por core:
-//   setCelescOutages, setBeaconAlerts, setView, setCenter, setZoom,
-//   setLayers, setLayerLoading, setIsResizing, onStateChanged,
+//   setCelescOutages, setBeaconAlerts, setTelemetry, setView, setCenter,
+//   setZoom, setLayers, setLayerLoading, setIsResizing, onStateChanged,
 //   setOnLayerChange, reloadBasemap, destroy
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -44,7 +46,10 @@ import { getCurrentTheme } from '@/utils';
 import { escapeHtml } from '@/utils/sanitize';
 import type { CelescMunicipioPayload } from '@/types/celesc';
 import type { MapLayers } from '@/types';
-import type { BeaconAlert } from '@/services/beacon-client';
+import type { BeaconAlert, TelemetryNode } from '@/services/beacon-client';
+
+// Nó é "online" se o último pacote chegou nos últimos 5 min.
+const LORA_ONLINE_WINDOW_MS = 5 * 60 * 1000;
 
 // Centro de Florianópolis / São José
 const SJF_CENTER: [number, number] = [-48.5495, -27.5969];
@@ -89,6 +94,7 @@ export class MapComponent {
   private scGeojson: GeoJSON.FeatureCollection | null = null;
   private celescLookup = new Map<string, CelescMunicipioPayload>();
   private beaconAlerts: BeaconAlert[] = [];
+  private loraNodes: TelemetryNode[] = [];
   private state: MapContainerState;
   private isResizing = false;
   private layerLoading = new Set<string>();
@@ -179,6 +185,11 @@ export class MapComponent {
 
   public setBeaconAlerts(alertas: BeaconAlert[]): void {
     this.beaconAlerts = alertas ?? [];
+    this.rebuildLayers();
+  }
+
+  public setTelemetry(nodes: TelemetryNode[]): void {
+    this.loraNodes = nodes ?? [];
     this.rebuildLayers();
   }
 
@@ -441,6 +452,33 @@ export class MapComponent {
       }
     }
 
+    // Layer LoRa — nós (tags Meshtastic). Renderiza sempre que há dado (sem
+    // toggle no milestone 1). Verde = online (last-seen < 5min), cinza = stale.
+    if (this.loraNodes.length > 0) {
+      const agora = Date.now();
+      layers.push(
+        new ScatterplotLayer({
+          id: 'lora-nodes',
+          data: this.loraNodes,
+          getPosition: (d: TelemetryNode) => [d.lon, d.lat] as [number, number],
+          getRadius: 200,
+          radiusMinPixels: 6,
+          radiusMaxPixels: 16,
+          getFillColor: (d: TelemetryNode) =>
+            agora - d.timestamp < LORA_ONLINE_WINDOW_MS
+              ? [34, 197, 94, 230]   // online — verde
+              : [120, 120, 120, 180], // stale — cinza
+          stroked: true,
+          getLineColor: [255, 255, 255] as [number, number, number],
+          lineWidthMinPixels: 2,
+          pickable: true,
+          onHover: (info: { object?: TelemetryNode; x: number; y: number }) =>
+            this.handleLoraHover(info),
+          updateTriggers: { getFillColor: [this.loraNodes.length, agora] },
+        }),
+      );
+    }
+
     this.overlay.setProps({ layers });
   }
 
@@ -552,6 +590,42 @@ export class MapComponent {
       <div style="display:flex;align-items:center;justify-content:center;background-color:${color};color:white;padding:2px 6px;border-radius:4px;font-weight:bold;margin-bottom:8px;font-size:0.65rem;">${escapeHtml(risco)}</div>
       <div style="font-size:0.8rem;font-weight:600;">${escapeHtml(titulo)}</div>
     `;
+  }
+
+  private handleLoraHover(info: { object?: TelemetryNode; x: number; y: number }): void {
+    const tt = this.getOrCreateHoverTooltip();
+    if (!info.object) {
+      this.hideHoverTooltip();
+      return;
+    }
+    const n = info.object;
+    const online = Date.now() - n.timestamp < LORA_ONLINE_WINDOW_MS;
+    const color = online ? '#22c55e' : '#9ca3af';
+    const statusLabel = online ? 'ONLINE' : 'STALE';
+    const bateria = typeof n.battery_level === 'number' ? `${n.battery_level}%` : '—';
+    const rssi = typeof n.rssi === 'number' ? `${n.rssi} dBm` : '—';
+    tt.style.left = `${info.x}px`;
+    tt.style.top = `${info.y}px`;
+    tt.style.display = 'block';
+    tt.innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:center;background-color:${color};color:white;padding:2px 6px;border-radius:4px;font-weight:bold;margin-bottom:8px;font-size:0.65rem;">📡 ${statusLabel}</div>
+      <div style="font-size:0.8rem;font-weight:600;margin-bottom:4px;">${escapeHtml(n.node_id)}</div>
+      <div style="font-size:0.7rem;color:#cbd5e1;">Bateria: ${bateria} · RSSI: ${escapeHtml(rssi)}</div>
+      <div style="font-size:0.7rem;color:#cbd5e1;">Visto ${this.relativeAge(n.timestamp)}</div>
+    `;
+  }
+
+  /** "há Xs / X min / Xh" a partir de um timestamp epoch-ms. */
+  private relativeAge(ts: number): string {
+    const diff = Date.now() - ts;
+    if (diff < 0) return 'agora';
+    const sec = Math.floor(diff / 1000);
+    if (sec < 60) return `há ${sec}s`;
+    const min = Math.floor(sec / 60);
+    if (min < 60) return `há ${min} min`;
+    const hr = Math.floor(min / 60);
+    if (hr < 24) return `há ${hr}h`;
+    return `há ${Math.floor(hr / 24)}d`;
   }
 
   private getOrCreateHoverTooltip(): HTMLElement {

@@ -297,6 +297,8 @@ export class App {
       const unsubBeacon = await dataProvider.initBeacon((snapshot) => {
         if (this.state.map) {
            this.state.map.setBeaconAlerts(snapshot.alertas);
+           // Telemetria LoRa → layer de nós no mapa (mesmo fanout do snapshot).
+           this.state.map.setTelemetry(snapshot.telemetria);
         }
         const setBeaconPanel = () => {
           const beaconPanel = this.state.panels['beacon-status'] as any;
