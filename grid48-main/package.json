@@ -46,8 +46,6 @@
     "@google/generative-ai": "^0.24.1",
     "@protomaps/basemaps": "^5.7.1",
     "@sentry/browser": "^10.39.0",
-    "@vercel/analytics": "^1.6.1",
-    "@vercel/speed-insights": "^2.0.0",
     "canvas-confetti": "^1.9.4",
     "convex": "^1.35.1",
     "d3": "^7.9.0",
