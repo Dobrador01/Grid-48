@@ -31,10 +31,13 @@ interface ActiveRadio {
 
 let active: ActiveRadio | null = null;
 
-// Buffers por node num (campo `from` do pacote). Posição, bateria e RSSI chegam
-// em pacotes separados — acumulamos os últimos por nó pra enriquecer o push.
+// Buffers por node num (campo `from` do pacote). Posição, bateria, RSSI/SNR e
+// hops chegam em pacotes separados — acumulamos os últimos por nó pra enriquecer
+// o push (que é disparado pelo pacote de posição).
 const batteryByNode = new Map<number, number>();
 const rssiByNode = new Map<number, number>();
+const snrByNode = new Map<number, number>();
+const hopsByNode = new Map<number, number>();
 
 // Convenção Meshtastic: node id textual = "!" + num em hex de 8 dígitos.
 function nodeIdHex(num: number): string {
@@ -49,6 +52,8 @@ interface TelemetryPushInput {
   lon: number;
   rssi?: number;
   battery_level?: number;
+  snr?: number;
+  hops_away?: number;
 }
 
 // Monta o payload OMITINDO rssi/battery_level quando ausentes — Convex
@@ -69,6 +74,8 @@ async function pushTelemetry(input: TelemetryPushInput): Promise<void> {
   };
   if (Number.isFinite(input.rssi)) payload.rssi = input.rssi as number;
   if (Number.isFinite(input.battery_level)) payload.battery_level = input.battery_level as number;
+  if (Number.isFinite(input.snr)) payload.snr = input.snr as number;
+  if (Number.isFinite(input.hops_away)) payload.hops_away = input.hops_away as number;
 
   try {
     // String FunctionReference — mesmo padrão de services/celesc.ts (sem codegen
@@ -104,13 +111,25 @@ export async function connectRadio(onStatus?: (s: RadioStatus) => void): Promise
       (device.log as unknown as { settings: { minLevel: number } }).settings.minLevel = 7;
     } catch { /* sem logger acessível — o polyfill de Buffer cobre o resto */ }
 
-    // RSSI/SNR só existem no MeshPacket cru (não no PacketMetadata). Buffer por
-    // `from`. Obs: rxRssi só é confiável p/ pacotes diretos (0-hop) — refinamos
-    // isso na Fase 2 (heatmap); aqui guardamos o último como aproximação.
+    // RSSI/SNR e hops só existem no MeshPacket cru (não no PacketMetadata).
+    // Buffer por `from`. Obs: rxRssi/rxSnr refletem o ÚLTIMO salto (relay→base)
+    // quando hops_away>0 — não o link tag→base. O heatmap por hop filtra por
+    // hops_away pra isolar a cobertura direta (0-hop); aqui só guardamos o cru.
     device.events.onMeshPacket.subscribe((pkt: unknown) => {
-      const p = pkt as { from?: number; rxRssi?: number };
-      if (typeof p.from === 'number' && typeof p.rxRssi === 'number' && p.rxRssi !== 0) {
-        rssiByNode.set(p.from, p.rxRssi);
+      const p = pkt as {
+        from?: number;
+        rxRssi?: number;
+        rxSnr?: number;
+        hopStart?: number;
+        hopLimit?: number;
+      };
+      if (typeof p.from !== 'number') return;
+      if (typeof p.rxRssi === 'number' && p.rxRssi !== 0) rssiByNode.set(p.from, p.rxRssi);
+      if (typeof p.rxSnr === 'number' && p.rxSnr !== 0) snrByNode.set(p.from, p.rxSnr);
+      // hops_away = hopStart - hopLimit. Ambos presentes a partir do firmware
+      // que popula hopStart; 0 = comunicação direta tag↔base.
+      if (typeof p.hopStart === 'number' && typeof p.hopLimit === 'number') {
+        hopsByNode.set(p.from, Math.max(0, p.hopStart - p.hopLimit));
       }
     });
 
@@ -149,6 +168,8 @@ export async function connectRadio(onStatus?: (s: RadioStatus) => void): Promise
         lon: pos.longitudeI * 1e-7,
         rssi: rssiByNode.get(from),
         battery_level: batteryByNode.get(from),
+        snr: snrByNode.get(from),
+        hops_away: hopsByNode.get(from),
       });
     });
 
@@ -175,6 +196,8 @@ export async function disconnectRadio(): Promise<void> {
   active = null;
   batteryByNode.clear();
   rssiByNode.clear();
+  snrByNode.clear();
+  hopsByNode.clear();
 }
 
 export function isRadioConnected(): boolean {

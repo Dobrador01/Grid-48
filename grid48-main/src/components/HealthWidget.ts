@@ -4,6 +4,13 @@ import type { HealthStatus } from '@/adapters/types';
 import { buildChunkReloadStorageKey } from '@/bootstrap/chunk-reload';
 // type-only — o @meshtastic fica lazy (carregado no clique, fora do bundle inicial).
 import type { RadioStatus } from '@/services/meshtastic-bridge';
+import type { BeaconSnapshot, TelemetryNode } from '@/services/beacon-client';
+import { getOrCreateConvexClient } from '@/services/beacon-client';
+import { readSignal } from '@/utils/signal';
+import { escapeHtml, escapeAttr } from '@/utils/sanitize';
+
+// Janela de "online" pro status dos nós (espelha LORA_ONLINE_WINDOW_MS do Map).
+const LORA_ONLINE_WINDOW_MS = 5 * 60 * 1000;
 
 declare const __APP_VERSION__: string;
 
@@ -26,6 +33,12 @@ export class HealthWidget extends Panel {
   private status: HealthStatus | null = null;
   private intervalId: ReturnType<typeof setInterval> | null = null;
   private radioStatus: RadioStatus | 'idle' = 'idle';
+  // Telemetria dos nós LoRa (do snapshot Convex) — alimenta o status do rádio.
+  private telemetria: TelemetryNode[] = [];
+  // Edição inline de rótulo: enquanto setado, pausamos re-renders pra não
+  // estourar o <input> aberto (o poll de 5s e o fanout reconstroem o innerHTML).
+  private editingNodeId: string | null = null;
+  private editingValue = '';
 
   constructor() {
     super({
@@ -38,11 +51,37 @@ export class HealthWidget extends Panel {
       const target = e.target as HTMLElement | null;
       if (target?.closest('[data-action="connect-radio"]')) {
         void this.onConnectRadioClick();
+        return;
       }
+      const editBtn = target?.closest('[data-action="edit-label"]') as HTMLElement | null;
+      if (editBtn?.dataset.node) { this.startEdit(editBtn.dataset.node); return; }
+      const saveBtn = target?.closest('[data-action="save-label"]') as HTMLElement | null;
+      if (saveBtn) { void this.commitEdit(); return; }
+      const cancelBtn = target?.closest('[data-action="cancel-label"]') as HTMLElement | null;
+      if (cancelBtn) { this.cancelEdit(); return; }
+    });
+    // Input de edição de rótulo: rastreia valor + Enter/Esc.
+    this.content.addEventListener('input', (e) => {
+      const el = e.target as HTMLInputElement | null;
+      if (el?.dataset.role === 'label-input') this.editingValue = el.value;
+    });
+    this.content.addEventListener('keydown', (e) => {
+      const el = e.target as HTMLInputElement | null;
+      if (el?.dataset.role !== 'label-input') return;
+      const ke = e as KeyboardEvent;
+      if (ke.key === 'Enter') { e.preventDefault(); void this.commitEdit(); }
+      else if (ke.key === 'Escape') { e.preventDefault(); this.cancelEdit(); }
     });
     this.render();
     void this.refresh();
     this.intervalId = setInterval(() => void this.refresh(), POLL_INTERVAL_MS);
+  }
+
+  /** Fanout do snapshot Convex — só usamos a telemetria dos nós LoRa aqui. */
+  public setSnapshot(snapshot: BeaconSnapshot): void {
+    this.telemetria = snapshot.telemetria ?? [];
+    // Não re-renderiza no meio de uma edição de rótulo (estouraria o input).
+    if (!this.editingNodeId) this.render();
   }
 
   /**
@@ -89,12 +128,12 @@ export class HealthWidget extends Panel {
   private async refresh() {
     try {
       this.status = await getDataProvider().getHealthStatus();
-      this.render();
     } catch (e) {
       console.warn('[HealthWidget] refresh failed', e);
       this.status = { status: 'offline' };
-      this.render();
     }
+    // Pausa o re-render enquanto o usuário edita um rótulo (preserva o input).
+    if (!this.editingNodeId) this.render();
   }
 
   public render() {
@@ -149,8 +188,8 @@ export class HealthWidget extends Panel {
   }
 
   /**
-   * Seção "Rádio LoRa" — botão que conecta na base RAK via Chrome Web Serial
-   * (ponte Meshtastic → Convex). Presente em todos os modos.
+   * Seção "Rádio LoRa" — botão de conexão + status dos nós (sinal amigável,
+   * bateria, visto-há, hops) com edição inline do rótulo local.
    */
   private renderRadioSection(): string {
     const disabled = this.radioStatus === 'connecting' ? 'disabled' : '';
@@ -160,8 +199,119 @@ export class HealthWidget extends Panel {
           style="width:100%;cursor:pointer;font-family:var(--font-mono, ui-monospace, monospace);font-size:12px;font-weight:600;padding:6px 10px;border-radius:6px;border:1px solid var(--overlay-medium, rgba(0,0,0,0.12));background:var(--overlay-medium, rgba(0,0,0,0.04));color:var(--text-primary, inherit);">
           ${this.radioLabel()}
         </button>
+        ${this.renderNodeList()}
       </div>
     `;
+  }
+
+  /** Lista de nós LoRa conhecidos (do snapshot). Vazia → placeholder discreto. */
+  private renderNodeList(): string {
+    if (this.telemetria.length === 0) {
+      return `<div style="margin-top:8px;font-size:11px;color:var(--text-dim,#6b7280);">Nenhum nó reportado ainda.</div>`;
+    }
+    // Online primeiro, depois mais recentes.
+    const agora = Date.now();
+    const nodes = [...this.telemetria].sort((a, b) => b.timestamp - a.timestamp);
+    return `<div style="margin-top:8px;display:flex;flex-direction:column;gap:6px;">
+      ${nodes.map((n) => this.renderNodeRow(n, agora)).join('')}
+    </div>`;
+  }
+
+  private renderNodeRow(n: TelemetryNode, agora: number): string {
+    const online = agora - n.timestamp < LORA_ONLINE_WINDOW_MS;
+    const sig = readSignal(n.snr, n.rssi);
+    const name = n.label?.trim() || n.node_id;
+    const dot = online ? '#22c55e' : '#9ca3af';
+    const bat = typeof n.battery_level === 'number' ? `${n.battery_level}%` : '—';
+    const batColor = typeof n.battery_level === 'number' && n.battery_level <= 20 ? '#ef4444' : 'var(--text-secondary,#4b5563)';
+    const hops = typeof n.hops_away === 'number'
+      ? (n.hops_away === 0 ? 'direto' : `${n.hops_away} hop${n.hops_away > 1 ? 's' : ''}`)
+      : '—';
+    const seen = this.lastSeenLabel(n.timestamp, agora);
+
+    // Linha em edição → input + salvar/cancelar.
+    if (this.editingNodeId === n.node_id) {
+      return `
+        <div style="display:flex;align-items:center;gap:6px;padding:6px;border-radius:6px;background:var(--overlay-medium,rgba(0,0,0,0.04));">
+          <input type="text" data-role="label-input" value="${escapeAttr(this.editingValue)}" maxlength="32" placeholder="${escapeAttr(n.node_id)}"
+            style="flex:1;min-width:0;font-size:12px;padding:4px 6px;border-radius:4px;border:1px solid var(--overlay-medium,rgba(0,0,0,0.2));background:var(--bg-primary,#fff);color:var(--text-primary,inherit);" />
+          <button type="button" data-action="save-label" title="Salvar" style="cursor:pointer;border:none;background:none;font-size:14px;padding:2px 4px;">✓</button>
+          <button type="button" data-action="cancel-label" title="Cancelar" style="cursor:pointer;border:none;background:none;font-size:14px;padding:2px 4px;">✕</button>
+        </div>`;
+    }
+
+    return `
+      <div style="display:flex;align-items:center;gap:8px;padding:6px;border-radius:6px;background:var(--overlay-medium,rgba(0,0,0,0.03));">
+        <span style="width:8px;height:8px;border-radius:50%;background:${dot};flex-shrink:0;" title="${online ? 'online' : 'stale'}"></span>
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;align-items:center;gap:6px;">
+            <span style="font-size:12px;font-weight:600;color:var(--text-primary,inherit);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeAttr(n.node_id)}">${escapeHtml(name)}</span>
+            <button type="button" data-action="edit-label" data-node="${escapeAttr(n.node_id)}" title="Renomear (rótulo local)"
+              style="cursor:pointer;border:none;background:none;font-size:11px;padding:0;opacity:0.6;">✏️</button>
+          </div>
+          <div style="font-size:10px;color:var(--text-dim,#6b7280);margin-top:2px;">${seen} · ${hops}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:2px;" title="${escapeAttr(sig.detail)}">
+          ${this.signalBarsHtml(sig.bars, sig.color)}
+        </div>
+        <span style="font-size:11px;font-weight:600;color:${batColor};min-width:34px;text-align:right;" title="bateria">🔋${bat}</span>
+      </div>`;
+  }
+
+  /** 4 barrinhas verticais crescentes — preenchidas conforme a qualidade. */
+  private signalBarsHtml(bars: number, color: string): string {
+    const heights = [5, 8, 11, 14];
+    return heights.map((h, i) => {
+      const on = i < bars;
+      return `<span style="display:inline-block;width:3px;height:${h}px;border-radius:1px;background:${on ? color : 'var(--overlay-medium,rgba(0,0,0,0.15))'};"></span>`;
+    }).join('');
+  }
+
+  private lastSeenLabel(ts: number, agora: number): string {
+    const diff = agora - ts;
+    if (diff < 0) return 'agora';
+    const sec = Math.floor(diff / 1000);
+    if (sec < 60) return `visto há ${sec}s`;
+    const min = Math.floor(sec / 60);
+    if (min < 60) return `visto há ${min} min`;
+    const hr = Math.floor(min / 60);
+    if (hr < 24) return `visto há ${hr}h`;
+    return `visto há ${Math.floor(hr / 24)}d`;
+  }
+
+  private startEdit(nodeId: string): void {
+    const node = this.telemetria.find((n) => n.node_id === nodeId);
+    this.editingNodeId = nodeId;
+    this.editingValue = node?.label ?? '';
+    this.render();
+    // Foca o input recém-renderizado.
+    const input = this.content.querySelector('[data-role="label-input"]') as HTMLInputElement | null;
+    if (input) { input.focus(); input.select(); }
+  }
+
+  private cancelEdit(): void {
+    this.editingNodeId = null;
+    this.editingValue = '';
+    this.render();
+  }
+
+  private async commitEdit(): Promise<void> {
+    const nodeId = this.editingNodeId;
+    if (!nodeId) return;
+    const value = this.editingValue.trim();
+    this.editingNodeId = null;
+    this.editingValue = '';
+    this.render();
+    try {
+      const client = getOrCreateConvexClient();
+      if (!client) { console.warn('[HealthWidget] ConvexClient indisponível — rótulo não salvo.'); return; }
+      await (client as unknown as {
+        mutation: (name: string, args: unknown) => Promise<unknown>;
+      }).mutation('mutations:setNodeLabel', { node_id: nodeId, label: value });
+      // O rótulo volta via subscription reativa (getLatestTelemetry faz join).
+    } catch (e) {
+      console.warn('[HealthWidget] falha ao salvar rótulo:', e);
+    }
   }
 
   private radioLabel(): string {

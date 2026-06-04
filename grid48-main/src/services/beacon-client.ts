@@ -145,6 +145,9 @@ export interface TelemetryNode {
     bitmask_status: number;
     rssi?: number;           // dBm (recepção no gateway)
     battery_level?: number;  // 0..100
+    snr?: number;            // dB — qualidade do link (melhor indicador que RSSI em LoRa)
+    hops_away?: number;      // saltos até a base (0 = direto)
+    label?: string;          // rótulo local definido pelo usuário (node_labels)
 }
 
 export type BeaconConnectionStatus =

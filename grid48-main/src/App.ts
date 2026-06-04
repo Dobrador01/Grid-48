@@ -351,6 +351,19 @@ export class App {
         if (!setTrafegoPanel()) {
            const retryTrafego = setInterval(() => { if (setTrafegoPanel()) clearInterval(retryTrafego); }, 500);
         }
+        // Fanout pro HealthWidget (Comando & Controle) — usa snapshot.telemetria
+        // pra renderizar o status dos nós LoRa (sinal/bateria/hops + rótulo).
+        const setHealthPanel = () => {
+          const healthPanel = this.state.panels['engine-health'] as any;
+          if (healthPanel && typeof healthPanel.setSnapshot === 'function') {
+            healthPanel.setSnapshot(snapshot);
+            return true;
+          }
+          return false;
+        };
+        if (!setHealthPanel()) {
+           const retryHealth = setInterval(() => { if (setHealthPanel()) clearInterval(retryHealth); }, 500);
+        }
       });
       this.modules.push({ destroy: unsubBeacon });
 
