@@ -17,15 +17,24 @@ export const DEFAULT_PANELS: Record<string, PanelConfig> = {
   sitrep: { name: 'SITREP — Pedido C2', enabled: true, priority: 1 },
 };
 
-// Layers Grid 48 — apenas Celesc (energia) e Weather Alerts (Defesa Civil).
+// Layers Grid 48 — Celesc (energia), Weather Alerts (Defesa Civil) e tags LoRa
+// (trilha/heatmap, default OFF — ligadas sob demanda no painel de Rádio).
 export const DEFAULT_MAP_LAYERS = {
   celescOutages: true,
   weatherAlerts: true,
+  loraTrail: false,
+  loraHeatDirect: false,
+  loraHeat1: false,
+  loraHeat2plus: false,
 };
 
 export const MOBILE_DEFAULT_MAP_LAYERS = {
   celescOutages: true,
   weatherAlerts: true,
+  loraTrail: false,
+  loraHeatDirect: false,
+  loraHeat1: false,
+  loraHeat2plus: false,
 };
 
 export const VARIANT_CONFIG: VariantConfig = {

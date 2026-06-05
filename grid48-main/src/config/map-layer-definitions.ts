@@ -24,11 +24,18 @@ const def = (
 
 // Layers do Grid 48 — apenas Celesc + Weather Alerts (Defesa Civil).
 export const LAYER_REGISTRY: Record<keyof MapLayers, LayerDefinition> = {
-  celescOutages: def('celescOutages', '⚡', 'celescOutages',  'Celesc (Rede Elétrica)'),
-  weatherAlerts: def('weatherAlerts', '⛈',  'weatherAlerts',  'Alertas Meteorológicos'),
+  celescOutages:  def('celescOutages',  '⚡', 'celescOutages',  'Celesc (Rede Elétrica)'),
+  weatherAlerts:  def('weatherAlerts',  '⛈',  'weatherAlerts',  'Alertas Meteorológicos'),
+  loraTrail:      def('loraTrail',      '🛰', 'loraTrail',      'Trilha das tags'),
+  loraHeatDirect: def('loraHeatDirect', '📡', 'loraHeatDirect', 'Cobertura direta (0 hop)'),
+  loraHeat1:      def('loraHeat1',      '🔗', 'loraHeat1',      'Alcance via 1 salto'),
+  loraHeat2plus:  def('loraHeat2plus',  '🕸', 'loraHeat2plus',  'Alcance via 2+ saltos'),
 };
 
-const KEPT_LAYERS: Array<keyof MapLayers> = ['celescOutages', 'weatherAlerts'];
+const KEPT_LAYERS: Array<keyof MapLayers> = [
+  'celescOutages', 'weatherAlerts',
+  'loraTrail', 'loraHeatDirect', 'loraHeat1', 'loraHeat2plus',
+];
 
 export function getLayersForVariant(_variant: MapVariant, renderer: MapRenderer): LayerDefinition[] {
   return KEPT_LAYERS
@@ -46,9 +53,16 @@ export function sanitizeLayersForVariant(layers: Partial<MapLayers> & Record<str
   if ('weather' in migrated && !('weatherAlerts' in migrated)) {
     migrated.weatherAlerts = migrated.weather;
   }
+  const bool = (k: string, fallback: boolean) =>
+    typeof migrated[k] === 'boolean' ? (migrated[k] as boolean) : fallback;
   return {
-    celescOutages: typeof migrated.celescOutages === 'boolean' ? migrated.celescOutages : true,
-    weatherAlerts: typeof migrated.weatherAlerts === 'boolean' ? migrated.weatherAlerts : true,
+    celescOutages:  bool('celescOutages', true),
+    weatherAlerts:  bool('weatherAlerts', true),
+    // Camadas LoRa default OFF — só aparecem quando o user liga (sem poluir o mapa).
+    loraTrail:      bool('loraTrail', false),
+    loraHeatDirect: bool('loraHeatDirect', false),
+    loraHeat1:      bool('loraHeat1', false),
+    loraHeat2plus:  bool('loraHeat2plus', false),
   };
 }
 

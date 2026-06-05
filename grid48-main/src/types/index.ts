@@ -26,6 +26,11 @@ export interface PanelConfig {
 export interface MapLayers {
   celescOutages: boolean;
   weatherAlerts: boolean;
+  // Tags Meshtastic (Fase B/C do painel de Rádio).
+  loraTrail: boolean;        // trilha (breadcrumb) das tags
+  loraHeatDirect: boolean;   // heatmap cobertura DIRETA (0 hop) — ponderado por SNR
+  loraHeat1: boolean;        // heatmap alcance via 1 salto
+  loraHeat2plus: boolean;    // heatmap alcance via 2+ saltos
   // Index signature pra compat com callers que iteram dinamicamente
   // (event-handlers, data-loader) — sempre boolean pra layers Grid 48.
   [key: string]: boolean;

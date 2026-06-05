@@ -59,6 +59,7 @@ export class TrafegoWidget extends Panel {
     clima: [],
     trafego: [],
     telemetria: [],
+    telemetriaTrack: [],
     connection: { kind: 'connecting' },
   };
 

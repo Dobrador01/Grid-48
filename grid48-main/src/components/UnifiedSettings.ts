@@ -7,6 +7,7 @@ import type { PanelConfig } from '@/types';
 import { renderPreferences } from '@/services/preferences-content';
 import { renderDefconSettings } from './DefconSettings';
 import { renderDefconRulesPanel } from './DefconRulesPanel';
+import { renderRadioSettings } from './RadioSettings';
 
 const GEAR_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`;
 
@@ -18,7 +19,7 @@ export interface UnifiedSettingsConfig {
   onMapProviderChange?: (provider: MapProvider) => void;
 }
 
-type TabId = 'settings' | 'panels' | 'defcon';
+type TabId = 'settings' | 'panels' | 'defcon' | 'radio';
 
 export class UnifiedSettings {
   private overlay: HTMLElement;
@@ -30,6 +31,7 @@ export class UnifiedSettings {
   private prefsCleanup: (() => void) | null = null;
   private defconCleanup: (() => void) | null = null;
   private rulesCleanup: (() => void) | null = null;
+  private radioCleanup: (() => void) | null = null;
   private draftPanelSettings: Record<string, PanelConfig> = {};
   private panelsJustSaved = false;
   private savedTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -148,6 +150,8 @@ export class UnifiedSettings {
     this.defconCleanup = null;
     this.rulesCleanup?.();
     this.rulesCleanup = null;
+    this.radioCleanup?.();
+    this.radioCleanup = null;
     document.removeEventListener('keydown', this.escapeHandler);
     this.overlay.remove();
   }
@@ -159,6 +163,8 @@ export class UnifiedSettings {
     this.defconCleanup = null;
     this.rulesCleanup?.();
     this.rulesCleanup = null;
+    this.radioCleanup?.();
+    this.radioCleanup = null;
 
     const tabClass = (id: TabId) => `unified-settings-tab${this.activeTab === id ? ' active' : ''}`;
     const prefs = renderPreferences({
@@ -166,6 +172,7 @@ export class UnifiedSettings {
     });
     const defcon = renderDefconSettings();
     const rules = renderDefconRulesPanel();
+    const radio = renderRadioSettings();
 
     this.overlay.innerHTML = `
       <div class="modal unified-settings-modal">
@@ -177,6 +184,7 @@ export class UnifiedSettings {
           <button class="${tabClass('settings')}" data-tab="settings" role="tab" aria-selected="${this.activeTab === 'settings'}" id="us-tab-settings" aria-controls="us-tab-panel-settings">${t('header.tabSettings')}</button>
           <button class="${tabClass('panels')}" data-tab="panels" role="tab" aria-selected="${this.activeTab === 'panels'}" id="us-tab-panels" aria-controls="us-tab-panel-panels">${t('header.tabPanels')}</button>
           <button class="${tabClass('defcon')}" data-tab="defcon" role="tab" aria-selected="${this.activeTab === 'defcon'}" id="us-tab-defcon" aria-controls="us-tab-panel-defcon">DEFCON</button>
+          <button class="${tabClass('radio')}" data-tab="radio" role="tab" aria-selected="${this.activeTab === 'radio'}" id="us-tab-radio" aria-controls="us-tab-panel-radio">Rádio</button>
         </div>
         <div class="unified-settings-tab-panel${this.activeTab === 'settings' ? ' active' : ''}" data-panel-id="settings" id="us-tab-panel-settings" role="tabpanel" aria-labelledby="us-tab-settings">
           ${prefs.html}
@@ -199,6 +207,9 @@ export class UnifiedSettings {
           ${defcon.html}
           ${rules.html}
         </div>
+        <div class="unified-settings-tab-panel${this.activeTab === 'radio' ? ' active' : ''}" data-panel-id="radio" id="us-tab-panel-radio" role="tabpanel" aria-labelledby="us-tab-radio">
+          ${radio.html}
+        </div>
       </div>
     `;
 
@@ -213,6 +224,11 @@ export class UnifiedSettings {
       // O DefconRulesPanel é renderizado dentro da MESMA tab DEFCON, mas o
       // attach precisa rodar separadamente pra subscrever queries próprias.
       this.rulesCleanup = rules.attach(defconPanel as HTMLElement);
+    }
+
+    const radioPanel = this.overlay.querySelector('#us-tab-panel-radio');
+    if (radioPanel) {
+      this.radioCleanup = radio.attach(radioPanel as HTMLElement);
     }
 
     const closeBtn = this.overlay.querySelector<HTMLButtonElement>('.unified-settings-close');

@@ -299,6 +299,8 @@ export class App {
            this.state.map.setBeaconAlerts(snapshot.alertas);
            // Telemetria LoRa → layer de nós no mapa (mesmo fanout do snapshot).
            this.state.map.setTelemetry(snapshot.telemetria);
+           // Histórico → trilha + heatmap por hop.
+           this.state.map.setTelemetryTrack(snapshot.telemetriaTrack);
         }
         const setBeaconPanel = () => {
           const beaconPanel = this.state.panels['beacon-status'] as any;
@@ -350,6 +352,19 @@ export class App {
         };
         if (!setTrafegoPanel()) {
            const retryTrafego = setInterval(() => { if (setTrafegoPanel()) clearInterval(retryTrafego); }, 500);
+        }
+        // Fanout pro HealthWidget (Comando & Controle) — usa snapshot.telemetria
+        // pra renderizar o status dos nós LoRa (sinal/bateria/hops + rótulo).
+        const setHealthPanel = () => {
+          const healthPanel = this.state.panels['engine-health'] as any;
+          if (healthPanel && typeof healthPanel.setSnapshot === 'function') {
+            healthPanel.setSnapshot(snapshot);
+            return true;
+          }
+          return false;
+        };
+        if (!setHealthPanel()) {
+           const retryHealth = setInterval(() => { if (setHealthPanel()) clearInterval(retryHealth); }, 500);
         }
       });
       this.modules.push({ destroy: unsubBeacon });

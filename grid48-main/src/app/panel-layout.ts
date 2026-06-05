@@ -6,6 +6,7 @@ import { ClimaWidget } from '@/components/ClimaWidget';
 import { TrafegoWidget } from '@/components/TrafegoWidget';
 import { HealthWidget } from '@/components/HealthWidget';
 import { SitrepButton } from '@/components/SitrepButton';
+import { ChatWidget } from '@/components/ChatWidget';
 import { saveToStorage, loadFromStorage } from '@/utils';
 import {
   DEFAULT_PANELS,
@@ -191,6 +192,11 @@ export class PanelLayoutManager implements AppModule {
     if (this.shouldCreatePanel('sitrep')) {
       const widget = new SitrepButton();
       this.ctx.panels['sitrep'] = widget;
+    }
+
+    if (this.shouldCreatePanel('lora-chat')) {
+      const widget = new ChatWidget();
+      this.ctx.panels['lora-chat'] = widget;
     }
 
     // Injeção Prioritária O(1) do Beacon Widget (Light Mode Transparente) no topo.
