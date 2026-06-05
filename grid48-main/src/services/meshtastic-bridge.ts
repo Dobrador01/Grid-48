@@ -276,9 +276,13 @@ async function pushChatMessage(input: ChatPushInput): Promise<void> {
 function pushNode(from: number, opts: { packetId?: number; force?: boolean }): void {
   const pos = posByNode.get(from);
   if (!pos) return;
-  // Nós ouvidos via MQTT (ponte de internet) ficam espalhados pelo Brasil inteiro
-  // — não são RF-local. Não poluem o mapa nem a tabela de telemetria.
-  if (meshNodes.get(from)?.viaMqtt) return;
+  // Descarta SÓ nós que vieram exclusivamente via MQTT (ponte de internet,
+  // espalhados pelo Brasil) — sem recepção RF. Um nó nosso ouvido por rádio tem
+  // rssi/snr (≠0) registrado, então PASSA mesmo que o bridge MQTT do canal
+  // público também o tenha ecoado de volta (viaMqtt=true) — senão a própria tag
+  // some do mapa quando está no canal público.
+  const heardByRf = rssiByNode.has(from) || snrByNode.has(from);
+  if (meshNodes.get(from)?.viaMqtt && !heardByRf) return;
   const now = Date.now();
   if (!opts.force) {
     const last = lastPushByNode.get(from) ?? 0;
