@@ -309,7 +309,7 @@ function pushNode(from: number, opts: { packetId?: number; force?: boolean }): v
  * DEVE ser chamado de dentro de um handler de clique (user gesture) — o
  * requestPort() nativo do Chrome depende disso.
  */
-export async function connectRadio(onStatus?: (s: RadioStatus) => void): Promise<RadioHandle> {
+export async function connectRadio(onStatus?: (s: RadioStatus) => void, existingPort?: unknown): Promise<RadioHandle> {
   if (active) return { disconnect: disconnectRadio };
 
   statusCb = onStatus ?? null;
@@ -327,8 +327,11 @@ export async function connectRadio(onStatus?: (s: RadioStatus) => void): Promise
   }
 
   try {
-    // Abre o seletor de porta nativo do Chrome (user gesture).
-    const transport = await TransportWebSerial.create();
+    // Com porta já autorizada (auto-reconexão) → reusa sem seletor/gesture.
+    // Senão, abre o seletor de porta nativo do Chrome (exige user gesture).
+    const transport = existingPort
+      ? await TransportWebSerial.createFromPort(existingPort as Parameters<typeof TransportWebSerial.createFromPort>[0])
+      : await TransportWebSerial.create();
     const device = new MeshDevice(transport);
     active = { device, transport };
 
@@ -581,6 +584,31 @@ export async function disconnectRadio(): Promise<void> {
 
 export function isRadioConnected(): boolean {
   return active !== null;
+}
+
+/**
+ * Reconexão automática SEM clique: se o navegador já tem uma porta serial
+ * autorizada (de uma conexão anterior), reabre direto via createFromPort.
+ * `navigator.serial.getPorts()` não exige user gesture. Retorna true se
+ * reconectou. Chamado pelo HealthWidget no load — só roda se já houver porta
+ * autorizada (o chamador checa getPorts antes de importar a ponte).
+ */
+export async function tryAutoReconnect(onStatus?: (s: RadioStatus) => void): Promise<boolean> {
+  if (active) return true;
+  const serial = (navigator as unknown as {
+    serial?: { getPorts?: () => Promise<unknown[]> };
+  }).serial;
+  if (!serial?.getPorts) return false;
+  let ports: unknown[] = [];
+  try { ports = await serial.getPorts(); } catch { return false; }
+  if (!ports || ports.length === 0) return false;
+  try {
+    await connectRadio(onStatus, ports[0]);
+    return true;
+  } catch (e) {
+    console.warn('[meshtastic] auto-reconexão falhou (clique manual segue valendo):', e);
+    return false;
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

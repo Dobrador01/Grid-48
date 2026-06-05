@@ -85,6 +85,29 @@ export class HealthWidget extends Panel {
     this.render();
     void this.refresh();
     this.intervalId = setInterval(() => void this.refresh(), POLL_INTERVAL_MS);
+    void this.tryAutoConnectRadio();
+  }
+
+  /**
+   * Reconexão automática do rádio no load — sem precisar clicar de novo após um
+   * refresh/deploy. Só roda se o navegador JÁ tem uma porta autorizada
+   * (getPorts), pra não carregar o chunk pesado do @meshtastic à toa em quem
+   * nunca conectou. A reabertura não exige user gesture (permissão persistida).
+   */
+  private async tryAutoConnectRadio(): Promise<void> {
+    if (this.radioStatus === 'connected' || this.radioStatus === 'connecting') return;
+    try {
+      const serial = (navigator as unknown as {
+        serial?: { getPorts?: () => Promise<unknown[]> };
+      }).serial;
+      if (!serial?.getPorts) return;
+      const ports = await serial.getPorts();
+      if (!ports || ports.length === 0) return; // nunca autorizou → não carrega o chunk
+      this.setRadioStatus('connecting');
+      const { tryAutoReconnect } = await import('@/services/meshtastic-bridge');
+      const ok = await tryAutoReconnect((s) => this.setRadioStatus(s));
+      if (!ok) { this.radioStatus = 'idle'; this.render(); } // silencioso: volta pro botão
+    } catch { /* silencioso — clique manual segue disponível */ }
   }
 
   /** Fanout do snapshot Convex — só usamos a telemetria dos nós LoRa aqui. */
