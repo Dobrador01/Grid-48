@@ -15,6 +15,7 @@ const FULL_PANELS: Record<string, PanelConfig> = {
   // virou um único painel 'engine-health' rotulado como "Comando & Controle".
   'engine-health': { name: 'Comando & Controle', enabled: true, priority: 1 },
   'sitrep': { name: 'SITREP — Pedido C2', enabled: true, priority: 1 },
+  'lora-chat': { name: 'Chat LoRa', enabled: true, priority: 1 },
 };
 
 const FULL_MAP_LAYERS: any = {
@@ -155,7 +156,7 @@ export const MOBILE_DEFAULT_MAP_LAYERS = FULL_MOBILE_MAP_LAYERS;
 export const PANEL_CATEGORY_MAP: Record<string, { labelKey: string; panelKeys: string[]; variants?: string[] }> = {
   core: {
     labelKey: 'header.panelCatCore',
-    panelKeys: ['map', 'defcon', 'clima', 'trafego', 'celesc-status', 'engine-health', 'sitrep', 'beacon-status'],
+    panelKeys: ['map', 'defcon', 'clima', 'trafego', 'celesc-status', 'engine-health', 'sitrep', 'beacon-status', 'lora-chat'],
   },
 };
 

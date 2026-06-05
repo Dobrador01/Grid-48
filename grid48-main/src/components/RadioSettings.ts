@@ -101,6 +101,17 @@ export function renderRadioSettings(): RenderResult {
             <button type="button" id="radioSaveChannel" style="${BTN}">Gravar canal</button>
             <span id="radioChannelStatus" style="${STATUS}"></span>
           </div>
+
+          <hr style="border: none; border-top: 1px solid rgba(0,0,0,0.08); margin: 14px 0;">
+          <p style="${SUB}">
+            <strong>Config automática</strong>: aplica o canal 0 = privado Grid 48
+            (PSK compartilhado da frota) + canal 1 = LongFast público (escuta).
+            Aperte em cada device pra todos ficarem idênticos.
+          </p>
+          <div style="${ACTIONS}">
+            <button type="button" id="radioAutoChannel" style="${BTN}">⚙️ Configuração automática de canal</button>
+            <span id="radioAutoChannelStatus" style="${STATUS}"></span>
+          </div>
         </fieldset>
 
         <fieldset style="${FIELDSET}">
@@ -123,6 +134,26 @@ export function renderRadioSettings(): RenderResult {
             </label>
             <label style="${LABEL}">Update do GPS (s)
               <input type="number" id="radioGpsInterval" min="0" step="1" placeholder="ex: 120" style="${INPUT}">
+            </label>
+          </div>
+          <label style="${LABEL}">Modo do GPS
+            <select id="radioGpsMode" style="${INPUT}">
+              <option value="">— não alterar —</option>
+              <option value="1">Ligado</option>
+              <option value="0">Desligado</option>
+              <option value="2">Sem GPS (not present)</option>
+            </select>
+          </label>
+          <label style="display: flex; align-items: center; gap: 8px; font-size: 0.72rem; margin: 4px 0 8px;">
+            <input type="checkbox" id="radioSmartBroadcast">
+            <span><strong>Smart broadcast</strong> — transmite mais ao se mover, throttla parado (otimiza GPS/airtime; combina com o acelerômetro)</span>
+          </label>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <label style="${LABEL}">Dist. mín. (m)
+              <input type="number" id="radioSmartDist" min="0" step="1" placeholder="100" style="${INPUT}">
+            </label>
+            <label style="${LABEL}">Intervalo mín. (s)
+              <input type="number" id="radioSmartInterval" min="0" step="1" placeholder="30" style="${INPUT}">
             </label>
           </div>
           <div style="${ACTIONS}">
@@ -232,12 +263,36 @@ export function renderRadioSettings(): RenderResult {
       setVal('radioChannelName', snap.channelName ?? '');
       setVal('radioChannelPsk', snap.channelPskB64 ?? '');
       const fixedCheck = root.querySelector<HTMLInputElement>('#radioFixedPos')!;
-      fixedCheck.checked = snap.fixedPosition ?? false;
-      if (typeof snap.positionBroadcastSecs === 'number') setVal('radioPosBroadcast', String(snap.positionBroadcastSecs));
-      if (typeof snap.gpsUpdateInterval === 'number') setVal('radioGpsInterval', String(snap.gpsUpdateInterval));
-      if (typeof snap.telemetryIntervalSecs === 'number') setVal('radioTelemetryInterval', String(snap.telemetryIntervalSecs));
+      const smartCheck = root.querySelector<HTMLInputElement>('#radioSmartBroadcast')!;
       const buzzerCheck = root.querySelector<HTMLInputElement>('#radioBuzzer')!;
-      buzzerCheck.checked = snap.buzzerEnabled ?? false;
+      const gpsModeSel = root.querySelector<HTMLSelectElement>('#radioGpsMode')!;
+
+      // Aplica todos os inputs a partir de um snapshot fresco. Reusado pela
+      // re-leitura ativa (Feature 2) depois que as respostas do device chegam.
+      const fillInputs = (s = bridge.getRadioConfigSnapshot()) => {
+        setVal('radioLongName', s.ownerLongName ?? '');
+        setVal('radioShortName', s.ownerShortName ?? '');
+        setVal('radioChannelName', s.channelName ?? '');
+        setVal('radioChannelPsk', s.channelPskB64 ?? '');
+        if (typeof s.region === 'number') regionSel.value = String(s.region);
+        if (typeof s.modemPreset === 'number') presetSel.value = String(s.modemPreset);
+        updateBand();
+        fixedCheck.checked = s.fixedPosition ?? false;
+        if (typeof s.positionBroadcastSecs === 'number') setVal('radioPosBroadcast', String(s.positionBroadcastSecs));
+        if (typeof s.gpsUpdateInterval === 'number') setVal('radioGpsInterval', String(s.gpsUpdateInterval));
+        if (typeof s.gpsMode === 'number') gpsModeSel.value = String(s.gpsMode);
+        smartCheck.checked = s.smartBroadcast ?? false;
+        if (typeof s.smartMinDist === 'number') setVal('radioSmartDist', String(s.smartMinDist));
+        if (typeof s.smartMinIntervalSecs === 'number') setVal('radioSmartInterval', String(s.smartMinIntervalSecs));
+        if (typeof s.telemetryIntervalSecs === 'number') setVal('radioTelemetryInterval', String(s.telemetryIntervalSecs));
+        buzzerCheck.checked = s.buzzerEnabled ?? false;
+      };
+      fillInputs(snap);
+
+      // Feature 2: re-lê os parâmetros ATUAIS do device (admin get) e re-preenche
+      // quando as respostas chegarem (~1.2s). Não trava a UI.
+      void bridge.refreshRadioConfig().catch(() => { /* device pode não suportar algum get */ });
+      window.setTimeout(() => { if (!disposed) fillInputs(); }, 1200);
 
       // Guard genérico de gravação: trava o botão, roda, reporta. Sucesso some
       // sozinho depois de 5s pra não poluir.
@@ -342,8 +397,18 @@ export function renderRadioSettings(): RenderResult {
         const positionBroadcastSecs = bcastStr ? Number(bcastStr) : undefined;
         const gpsStr = (root.querySelector<HTMLInputElement>('#radioGpsInterval')!).value.trim();
         const gpsUpdateInterval = gpsStr ? Number(gpsStr) : undefined;
+        const gpsModeStr = gpsModeSel.value;
+        const gpsMode = gpsModeStr ? Number(gpsModeStr) : undefined;
+        const smartBroadcast = smartCheck.checked;
+        const distStr = (root.querySelector<HTMLInputElement>('#radioSmartDist')!).value.trim();
+        const intStr = (root.querySelector<HTMLInputElement>('#radioSmartInterval')!).value.trim();
+        const smartMinDist = distStr ? Number(distStr) : undefined;
+        const smartMinIntervalSecs = intStr ? Number(intStr) : undefined;
         void guarded(savePosBtn, 'radioPositionStatus',
-          () => bridge.applyPositionConfig({ fixed, lat, lon, positionBroadcastSecs, gpsUpdateInterval }), 'Posição gravada ✓');
+          () => bridge.applyPositionConfig({
+            fixed, lat, lon, positionBroadcastSecs, gpsUpdateInterval,
+            gpsMode, smartBroadcast, smartMinDist, smartMinIntervalSecs,
+          }), 'Posição gravada ✓');
       });
 
       // ── Tag / Sensores ────────────────────────────────────────────────────
@@ -361,6 +426,17 @@ export function renderRadioSettings(): RenderResult {
       saveBuzzerBtn.addEventListener('click', () => {
         void guarded(saveBuzzerBtn, 'radioBuzzerStatus',
           () => bridge.applyBuzzer(buzzerCheck.checked), `Buzzer ${buzzerCheck.checked ? 'ligado' : 'desligado'} ✓`);
+      });
+
+      // ── Config automática de canais ───────────────────────────────────────
+      const autoBtn = root.querySelector<HTMLButtonElement>('#radioAutoChannel')!;
+      autoBtn.addEventListener('click', () => {
+        if (!window.confirm('Aplicar canal 0 = privado Grid 48 + canal 1 = público? Isso muda os canais do device (e derruba quem não estiver no mesmo privado).')) return;
+        void guarded(autoBtn, 'radioAutoChannelStatus', async () => {
+          const r = await bridge.autoConfigureChannels();
+          setStatus('radioAutoChannelStatus', `Canais aplicados (${r.name})${r.generated ? ' — PSK gerado' : ''} ✓`, 'ok');
+          fillInputs();
+        }, 'Canais aplicados ✓');
       });
     })();
 

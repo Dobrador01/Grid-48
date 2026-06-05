@@ -100,10 +100,15 @@ export interface RadioConfigSnapshot {
   fixedPosition?: boolean;
   positionBroadcastSecs?: number;
   gpsUpdateInterval?: number;     // s entre fixes do GPS
+  gpsMode?: number;               // PositionConfig.GpsMode (0=disabled,1=enabled,2=not_present)
+  smartBroadcast?: boolean;       // position_broadcast_smart_enabled (move→frequente, parado→throttle)
+  smartMinDist?: number;          // broadcast_smart_minimum_distance (m)
+  smartMinIntervalSecs?: number;  // broadcast_smart_minimum_interval_secs
   telemetryIntervalSecs?: number; // s entre broadcasts de device metrics
   buzzerEnabled?: boolean;        // módulo de notificação externa (buzzer/LED)
   channelName?: string;
   channelPskB64?: string;   // PSK do canal 0 em base64 (bytes crus na wire)
+  publicChannelActive?: boolean; // canal 1 = LongFast público (SECONDARY) configurado?
 }
 let configSnapshot: RadioConfigSnapshot = {};
 
@@ -222,9 +227,39 @@ async function pushTelemetry(input: TelemetryPushInput): Promise<void> {
     await (client as unknown as {
       mutation: (name: string, args: unknown) => Promise<unknown>;
     }).mutation('mutations:ingestTelemetryPublic', payload);
-    console.log(`[mesh-debug] push OK node=${input.node_id} lat=${input.lat.toFixed(5)} lon=${input.lon.toFixed(5)}`);
   } catch (e) {
-    console.warn('[mesh-debug] push FALHOU:', e);
+    console.warn('[meshtastic] push de telemetria falhou:', e);
+  }
+}
+
+// ── Chat: persistência das mensagens no Convex (RX + TX) ─────────────────────
+interface ChatPushInput {
+  channel_index: number;
+  from_node: string;
+  to_node?: string;
+  text: string;
+  timestamp: number;
+  packet_id: number;
+  direction: 'rx' | 'tx';
+}
+async function pushChatMessage(input: ChatPushInput): Promise<void> {
+  const client = getOrCreateConvexClient();
+  if (!client) return;
+  const payload: Record<string, number | string> = {
+    channel_index: input.channel_index,
+    from_node: input.from_node,
+    text: input.text,
+    timestamp: input.timestamp,
+    packet_id: input.packet_id,
+    direction: input.direction,
+  };
+  if (input.to_node) payload.to_node = input.to_node;
+  try {
+    await (client as unknown as {
+      mutation: (name: string, args: unknown) => Promise<unknown>;
+    }).mutation('mutations:ingestLoraMessage', payload);
+  } catch (e) {
+    console.warn('[meshtastic] push de mensagem falhou:', e);
   }
 }
 
@@ -324,17 +359,6 @@ export async function connectRadio(onStatus?: (s: RadioStatus) => void): Promise
         hopsByNode.set(p.from, Math.max(0, p.hopStart - p.hopLimit));
       }
 
-      // ── DIAGNÓSTICO ────────────────────────────────────────────────────────
-      // onMeshPacket dispara pra TODO pacote, ANTES do filtro decoded/encrypted
-      // do core. Logamos o suficiente pra descobrir por que a posição ao vivo
-      // não flui: se vier `encrypted`, a base não tem a chave do canal da tag
-      // (canal/PSK divergentes → Fase D resolve). Se vier `decoded` com portnum
-      // 3 (POSITION_APP), o pacote chegou e devia ter empurrado.
-      const variant = (pkt as { payloadVariant?: { case?: string; value?: { portnum?: number } } }).payloadVariant;
-      const portnum = variant?.case === 'decoded' ? variant.value?.portnum : undefined;
-      console.log(`[mesh-debug] pkt from=${nodeIdHex(p.from)} payload=${variant?.case ?? '?'}` +
-        (portnum !== undefined ? ` portnum=${portnum}` : ''));
-
       // Censo: todo pacote prova que o nó está vivo. Atualiza vizinhança.
       touchNode(p.from, {
         lastHeard: Date.now(),
@@ -389,8 +413,6 @@ export async function connectRadio(onStatus?: (s: RadioStatus) => void): Promise
       if (typeof from !== 'number' || !pos) return;
       if (typeof pos.latitudeI !== 'number' || typeof pos.longitudeI !== 'number') return;
       if (pos.latitudeI === 0 && pos.longitudeI === 0) return; // sem GPS fix
-
-      console.log(`[mesh-debug] POSITION from=${nodeIdHex(from)} lat=${(pos.latitudeI * 1e-7).toFixed(5)} lon=${(pos.longitudeI * 1e-7).toFixed(5)} → push`);
       posByNode.set(from, { lat: pos.latitudeI * 1e-7, lon: pos.longitudeI * 1e-7 });
       pushNode(from, { packetId: typeof m.id === 'number' && m.id !== 0 ? m.id : Date.now(), force: true });
     });
@@ -412,6 +434,10 @@ export async function connectRadio(onStatus?: (s: RadioStatus) => void): Promise
         if (typeof v.value?.fixedPosition === 'boolean') configSnapshot.fixedPosition = v.value.fixedPosition as boolean;
         if (typeof v.value?.positionBroadcastSecs === 'number') configSnapshot.positionBroadcastSecs = v.value.positionBroadcastSecs as number;
         if (typeof v.value?.gpsUpdateInterval === 'number') configSnapshot.gpsUpdateInterval = v.value.gpsUpdateInterval as number;
+        if (typeof v.value?.gpsMode === 'number') configSnapshot.gpsMode = v.value.gpsMode as number;
+        if (typeof v.value?.positionBroadcastSmartEnabled === 'boolean') configSnapshot.smartBroadcast = v.value.positionBroadcastSmartEnabled as boolean;
+        if (typeof v.value?.broadcastSmartMinimumDistance === 'number') configSnapshot.smartMinDist = v.value.broadcastSmartMinimumDistance as number;
+        if (typeof v.value?.broadcastSmartMinimumIntervalSecs === 'number') configSnapshot.smartMinIntervalSecs = v.value.broadcastSmartMinimumIntervalSecs as number;
       }
     });
 
@@ -426,13 +452,15 @@ export async function connectRadio(onStatus?: (s: RadioStatus) => void): Promise
     });
 
     device.events.onChannelPacket.subscribe((ch: unknown) => {
-      const c = ch as { index?: number; settings?: { name?: string; psk?: Uint8Array } };
+      const c = ch as { index?: number; role?: number; settings?: { name?: string; psk?: Uint8Array } };
       if (c.index === 0 && c.settings) {
         if (typeof c.settings.name === 'string') configSnapshot.channelName = c.settings.name;
         if (c.settings.psk instanceof Uint8Array && c.settings.psk.length > 0) {
           configSnapshot.channelPskB64 = pskToB64(c.settings.psk);
         }
       }
+      // Canal 1 ativo (role != DISABLED) = escuta pública configurada.
+      if (c.index === 1) configSnapshot.publicChannelActive = (c.role ?? 0) !== 0;
     });
 
     device.events.onUserPacket.subscribe((meta: unknown) => {
@@ -474,7 +502,6 @@ export async function connectRadio(onStatus?: (s: RadioStatus) => void): Promise
         data?: { route?: number[]; snrTowards?: number[]; routeBack?: number[]; snrBack?: number[] };
       };
       if (typeof m.from !== 'number') return;
-      console.log(`[mesh-debug] traceroute resp de ${nodeIdHex(m.from)} route=[${(m.data?.route ?? []).map(nodeIdHex).join(', ')}]`);
       touchNode(m.from, {
         route: m.data?.route,
         snrTowards: m.data?.snrTowards,
@@ -482,6 +509,23 @@ export async function connectRadio(onStatus?: (s: RadioStatus) => void): Promise
         snrBack: m.data?.snrBack,
         routeAt: Date.now(),
         lastHeard: Date.now(),
+      });
+    });
+
+    // Chat: mensagens de texto recebidas → grava no Convex (RX). PacketMetadata
+    // traz from/to/channel/id; data = string. to == broadcastNum → mensagem de canal.
+    device.events.onMessagePacket.subscribe((meta: unknown) => {
+      const m = meta as { id?: number; from?: number; to?: number; channel?: number; data?: string };
+      if (typeof m.from !== 'number' || typeof m.data !== 'string' || m.data.length === 0) return;
+      const isBroadcast = m.to === 0xffffffff || m.to === undefined;
+      void pushChatMessage({
+        channel_index: typeof m.channel === 'number' ? m.channel : 0,
+        from_node: nodeIdHex(m.from),
+        to_node: isBroadcast ? undefined : nodeIdHex(m.to as number),
+        text: m.data,
+        timestamp: Date.now(),
+        packet_id: typeof m.id === 'number' && m.id !== 0 ? m.id : Date.now(),
+        direction: 'rx',
       });
     });
 
@@ -582,15 +626,19 @@ export async function applyPositionConfig(opts: {
   lon?: number;
   positionBroadcastSecs?: number;
   gpsUpdateInterval?: number;
+  gpsMode?: number;
+  smartBroadcast?: boolean;
+  smartMinDist?: number;
+  smartMinIntervalSecs?: number;
 }): Promise<void> {
   const device = requireDevice();
   const value: Record<string, unknown> = { fixedPosition: opts.fixed };
-  if (typeof opts.positionBroadcastSecs === 'number' && opts.positionBroadcastSecs > 0) {
-    value.positionBroadcastSecs = opts.positionBroadcastSecs;
-  }
-  if (typeof opts.gpsUpdateInterval === 'number' && opts.gpsUpdateInterval > 0) {
-    value.gpsUpdateInterval = opts.gpsUpdateInterval;
-  }
+  if (typeof opts.positionBroadcastSecs === 'number' && opts.positionBroadcastSecs > 0) value.positionBroadcastSecs = opts.positionBroadcastSecs;
+  if (typeof opts.gpsUpdateInterval === 'number' && opts.gpsUpdateInterval > 0) value.gpsUpdateInterval = opts.gpsUpdateInterval;
+  if (typeof opts.gpsMode === 'number') value.gpsMode = opts.gpsMode;
+  if (typeof opts.smartBroadcast === 'boolean') value.positionBroadcastSmartEnabled = opts.smartBroadcast;
+  if (typeof opts.smartMinDist === 'number' && opts.smartMinDist > 0) value.broadcastSmartMinimumDistance = opts.smartMinDist;
+  if (typeof opts.smartMinIntervalSecs === 'number' && opts.smartMinIntervalSecs > 0) value.broadcastSmartMinimumIntervalSecs = opts.smartMinIntervalSecs;
   const cfg = mk(P.Config.ConfigSchema, { payloadVariant: { case: 'position', value } });
   await device.setConfig(cfg);
   await device.commitEditSettings();
@@ -606,6 +654,70 @@ export async function applyPositionConfig(opts: {
   configSnapshot.fixedPosition = opts.fixed;
   if (typeof opts.positionBroadcastSecs === 'number') configSnapshot.positionBroadcastSecs = opts.positionBroadcastSecs;
   if (typeof opts.gpsUpdateInterval === 'number') configSnapshot.gpsUpdateInterval = opts.gpsUpdateInterval;
+  if (typeof opts.gpsMode === 'number') configSnapshot.gpsMode = opts.gpsMode;
+  if (typeof opts.smartBroadcast === 'boolean') configSnapshot.smartBroadcast = opts.smartBroadcast;
+  if (typeof opts.smartMinDist === 'number') configSnapshot.smartMinDist = opts.smartMinDist;
+  if (typeof opts.smartMinIntervalSecs === 'number') configSnapshot.smartMinIntervalSecs = opts.smartMinIntervalSecs;
+}
+
+// ── Feature 2: re-leitura ativa da config atual do device ────────────────────
+// Dispara admin "get" pra cada bloco — as respostas caem nos handlers que já
+// populam o configSnapshot. A aba Rádio chama isso ao abrir.
+export async function refreshRadioConfig(): Promise<void> {
+  const device = requireDevice();
+  const CT = P.Admin.AdminMessage_ConfigType;
+  const MT = P.Admin.AdminMessage_ModuleConfigType;
+  const d = device as unknown as {
+    getConfig: (t: number) => Promise<number>;
+    getModuleConfig: (t: number) => Promise<number>;
+    getChannel: (i: number) => Promise<number>;
+    getOwner?: () => Promise<number>;
+  };
+  const tasks = [
+    d.getConfig(CT.LORA_CONFIG), d.getConfig(CT.POSITION_CONFIG),
+    d.getModuleConfig(MT.TELEMETRY_CONFIG), d.getModuleConfig(MT.EXTNOTIF_CONFIG),
+    d.getChannel(0), d.getChannel(1),
+  ];
+  await Promise.allSettled(tasks);
+}
+
+// ── Feature 1: enviar mensagem de chat (broadcast no canal) ──────────────────
+export async function sendChatText(text: string, channelIndex: number): Promise<void> {
+  const device = requireDevice();
+  // wantAck=false: broadcast de canal não tem ACK por destinatário (grupo).
+  const packetId = await device.sendText(text, 'broadcast', false, channelIndex as unknown as number);
+  const self = configSnapshot.myNodeNum;
+  void pushChatMessage({
+    channel_index: channelIndex,
+    from_node: typeof self === 'number' ? nodeIdHex(self) : 'self',
+    text,
+    timestamp: Date.now(),
+    packet_id: typeof packetId === 'number' && packetId !== 0 ? packetId : Date.now(),
+    direction: 'tx',
+  });
+}
+
+// ── Feature 3: configuração automática de canais (privado + público) ─────────
+// Seta canal 0 = privado Grid 48 (PRIMARY) + canal 1 = LongFast público
+// (SECONDARY). O PSK privado vem do Convex (singleton compartilhado pela frota).
+export async function applyAutoChannels(privateName: string, privatePskB64: string): Promise<void> {
+  const device = requireDevice();
+  const psk = pskFromB64(privatePskB64);
+  // Canal 0 — privado, PRIMARY.
+  const ch0 = mk(P.Channel.ChannelSchema, {
+    index: 0, role: 1, // PRIMARY
+    settings: mk(P.Channel.ChannelSettingsSchema, { name: privateName, psk }),
+  });
+  await device.setChannel(ch0);
+  // Canal 1 — LongFast público, SECONDARY. PSK padrão = 1 byte 0x01 ("AQ==").
+  const ch1 = mk(P.Channel.ChannelSchema, {
+    index: 1, role: 2, // SECONDARY
+    settings: mk(P.Channel.ChannelSettingsSchema, { name: '', psk: new Uint8Array([1]) }),
+  });
+  await device.setChannel(ch1);
+  configSnapshot.channelName = privateName;
+  configSnapshot.channelPskB64 = privatePskB64;
+  configSnapshot.publicChannelActive = true;
 }
 
 /** Intervalo (s) entre broadcasts de device metrics (bateria/TX/uptime). Module config. */
@@ -628,6 +740,38 @@ export async function applyBuzzer(enabled: boolean): Promise<void> {
   });
   await device.setModuleConfig(mod);
   configSnapshot.buzzerEnabled = enabled;
+}
+
+/**
+ * Configuração automática de canais: busca (ou gera+salva) o canal privado
+ * canônico Grid 48 no Convex e aplica canal 0 = privado + canal 1 = público no
+ * device conectado. Retorna o nome do canal privado aplicado.
+ */
+export async function autoConfigureChannels(): Promise<{ name: string; generated: boolean }> {
+  requireDevice();
+  const client = getOrCreateConvexClient();
+  if (!client) throw new Error('Convex indisponível — não foi possível buscar o canal Grid 48.');
+  const c = client as unknown as {
+    query: (name: string, args: unknown) => Promise<unknown>;
+    mutation: (name: string, args: unknown) => Promise<unknown>;
+  };
+
+  let ch = (await c.query('queries:getGrid48Channel', {})) as { nome: string; psk_b64: string } | null;
+  let generated = false;
+  if (!ch) {
+    // Primeiro device da frota: gera PSK 32 bytes (AES-256) + nome e persiste.
+    const bytes = new Uint8Array(32);
+    crypto.getRandomValues(bytes);
+    const name = 'Grid48';
+    const pskB64 = pskToB64(bytes);
+    await c.mutation('mutations:setGrid48Channel', { nome: name, psk_b64: pskB64 });
+    // Re-lê (first-write-wins: se outro device gravou no meio, pega o vencedor).
+    ch = ((await c.query('queries:getGrid48Channel', {})) as { nome: string; psk_b64: string } | null)
+      ?? { nome: name, psk_b64: pskB64 };
+    generated = true;
+  }
+  await applyAutoChannels(ch.nome, ch.psk_b64);
+  return { name: ch.nome, generated };
 }
 
 // ── Opções de enum pros dropdowns (lidas do runtime, robusto a versões) ──────
@@ -662,10 +806,9 @@ export async function echoOnce(): Promise<{ probed: number }> {
   const targets = [...meshNodes.values()].filter((n) => n.num !== self);
   for (const t of targets) {
     try {
-      console.log(`[mesh-debug] eco → traceroute pra ${t.id}`);
       await (device as unknown as { traceRoute: (dest: number) => Promise<number> }).traceRoute(t.num);
     } catch (e) {
-      console.warn('[mesh-debug] traceroute falhou', t.id, e);
+      console.warn('[meshtastic] traceroute falhou', t.id, e);
     }
     await new Promise((r) => setTimeout(r, ECHO_STAGGER_MS));
   }
