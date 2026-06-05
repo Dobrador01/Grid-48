@@ -97,6 +97,7 @@ export interface RadioConfigSnapshot {
   ownerShortName?: string;
   region?: number;          // Config.LoRaConfig.RegionCode
   modemPreset?: number;     // Config.LoRaConfig.ModemPreset
+  hopLimit?: number;        // Config.LoRaConfig.hopLimit (saltos máximos, 1..7)
   fixedPosition?: boolean;
   positionBroadcastSecs?: number;
   gpsUpdateInterval?: number;     // s entre fixes do GPS
@@ -430,6 +431,7 @@ export async function connectRadio(onStatus?: (s: RadioStatus) => void): Promise
       if (v?.case === 'lora') {
         if (typeof v.value?.region === 'number') configSnapshot.region = v.value.region as number;
         if (typeof v.value?.modemPreset === 'number') configSnapshot.modemPreset = v.value.modemPreset as number;
+        if (typeof v.value?.hopLimit === 'number') configSnapshot.hopLimit = v.value.hopLimit as number;
       } else if (v?.case === 'position') {
         if (typeof v.value?.fixedPosition === 'boolean') configSnapshot.fixedPosition = v.value.fixedPosition as boolean;
         if (typeof v.value?.positionBroadcastSecs === 'number') configSnapshot.positionBroadcastSecs = v.value.positionBroadcastSecs as number;
@@ -529,10 +531,19 @@ export async function connectRadio(onStatus?: (s: RadioStatus) => void): Promise
       });
     });
 
-    // Handshake: dispara o dump de config + node DB. Sem isso os eventos não fluem.
-    await device.configure();
+    // Link USB aberto + subscriptions registradas → já sinaliza "conectado".
+    // Não espera o handshake (configure() leva alguns segundos pra despejar
+    // config + node DB) — o status flipa na hora e os dados preenchem os
+    // painéis conforme os eventos chegam.
     onStatus?.('connected');
-    console.log('[meshtastic] rádio conectado e configurado.');
+    console.log('[meshtastic] rádio conectado — iniciando handshake.');
+    try {
+      // Handshake: dispara o dump de config + node DB. Roda em segundo plano;
+      // se falhar, o link segue aberto (só faltam dados iniciais).
+      await device.configure();
+    } catch (e) {
+      console.warn('[meshtastic] handshake (configure) falhou — link aberto, dados iniciais podem faltar:', e);
+    }
     return { disconnect: disconnectRadio };
   } catch (e) {
     console.error('[meshtastic] falha ao conectar:', e);
@@ -591,15 +602,18 @@ export async function applyOwner(longName: string, shortName: string): Promise<v
  * Região + modem preset. ⚠️ Mudar região reinicia o device (firmware aplica no
  * boot). usePreset=true diz pro firmware usar os parâmetros do preset escolhido.
  */
-export async function applyLoraConfig(region: number, modemPreset: number): Promise<void> {
+export async function applyLoraConfig(region: number, modemPreset: number, hopLimit?: number): Promise<void> {
   const device = requireDevice();
+  const value: Record<string, unknown> = { region, modemPreset, usePreset: true };
+  if (typeof hopLimit === 'number' && hopLimit >= 0) value.hopLimit = hopLimit;
   const cfg = mk(P.Config.ConfigSchema, {
-    payloadVariant: { case: 'lora', value: { region, modemPreset, usePreset: true } },
+    payloadVariant: { case: 'lora', value },
   });
   await device.setConfig(cfg);
   await device.commitEditSettings();
   configSnapshot.region = region;
   configSnapshot.modemPreset = modemPreset;
+  if (typeof hopLimit === 'number') configSnapshot.hopLimit = hopLimit;
 }
 
 /** Canal primário (índice 0): nome + PSK compartilhado. Tags com o mesmo par conversam. */

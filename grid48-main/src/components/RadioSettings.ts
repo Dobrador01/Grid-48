@@ -78,6 +78,10 @@ export function renderRadioSettings(): RenderResult {
           <label style="${LABEL}">Modem preset
             <select id="radioPreset" style="${INPUT}"></select>
           </label>
+          <label style="${LABEL}">Saltos máximos (hop limit)
+            <input type="number" id="radioHopLimit" min="1" max="7" step="1" placeholder="3" style="${INPUT}">
+          </label>
+          <p style="${SUB}">Quantas vezes um pacote pode ser retransmitido pela malha. Padrão 3, máx 7. Mais saltos = mais alcance, mais tráfego no ar.</p>
           <div style="${ACTIONS}">
             <button type="button" id="radioSaveLora" style="${BTN}">Gravar rede (reinicia o rádio)</button>
             <span id="radioLoraStatus" style="${STATUS}"></span>
@@ -276,6 +280,7 @@ export function renderRadioSettings(): RenderResult {
         setVal('radioChannelPsk', s.channelPskB64 ?? '');
         if (typeof s.region === 'number') regionSel.value = String(s.region);
         if (typeof s.modemPreset === 'number') presetSel.value = String(s.modemPreset);
+        if (typeof s.hopLimit === 'number') setVal('radioHopLimit', String(s.hopLimit));
         updateBand();
         fixedCheck.checked = s.fixedPosition ?? false;
         if (typeof s.positionBroadcastSecs === 'number') setVal('radioPosBroadcast', String(s.positionBroadcastSecs));
@@ -347,10 +352,12 @@ export function renderRadioSettings(): RenderResult {
       saveLoraBtn.addEventListener('click', () => {
         const region = Number(regionSel.value);
         const preset = Number(presetSel.value);
+        const hopStr = (root.querySelector<HTMLInputElement>('#radioHopLimit')!).value.trim();
+        const hopLimit = hopStr ? Math.max(1, Math.min(7, Number(hopStr))) : undefined;
         const regionLabel = regionSel.options[regionSel.selectedIndex]?.text ?? '';
         // Gravar rede reinicia o firmware — confirma pra evitar clique acidental.
-        if (!window.confirm(`Gravar região ${regionLabel} + preset? Isso REINICIA o rádio e derruba a conexão por alguns segundos.`)) return;
-        void guarded(saveLoraBtn, 'radioLoraStatus', () => bridge.applyLoraConfig(region, preset),
+        if (!window.confirm(`Gravar região ${regionLabel} + preset${hopLimit ? ` + ${hopLimit} saltos` : ''}? Isso REINICIA o rádio e derruba a conexão por alguns segundos.`)) return;
+        void guarded(saveLoraBtn, 'radioLoraStatus', () => bridge.applyLoraConfig(region, preset, hopLimit),
           'Rede gravada ✓ — o rádio vai reiniciar.');
       });
 
