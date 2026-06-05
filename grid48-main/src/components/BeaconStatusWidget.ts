@@ -110,7 +110,7 @@ export class BeaconStatusWidget extends Panel {
         icon: '✓',
         color: '#22c55e',
         title: 'Sem ameaças ativas',
-        body: 'Defesa Civil de SC não publicou alertas dentro da janela de 6h.',
+        body: 'Nenhum alerta da Defesa Civil de SC dentro da validade no momento.',
         footer: this.renderHealthFooter(),
       });
     }
