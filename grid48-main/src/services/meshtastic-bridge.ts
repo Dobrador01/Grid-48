@@ -277,12 +277,14 @@ function pushNode(from: number, opts: { packetId?: number; force?: boolean }): v
   const pos = posByNode.get(from);
   if (!pos) return;
   // Descarta SÓ nós que vieram exclusivamente via MQTT (ponte de internet,
-  // espalhados pelo Brasil) — sem recepção RF. Um nó nosso ouvido por rádio tem
-  // rssi/snr (≠0) registrado, então PASSA mesmo que o bridge MQTT do canal
-  // público também o tenha ecoado de volta (viaMqtt=true) — senão a própria tag
-  // some do mapa quando está no canal público.
+  // espalhados pelo Brasil). NUNCA filtra:
+  //  - o próprio device conectado (from === myNodeNum) — ex: o tag plugado no
+  //    Grid 48 reporta a própria posição (sem recepção RF de si mesmo);
+  //  - nós ouvidos por RF (rssi/snr ≠0 registrado) — mesmo que o MQTT também
+  //    os tenha ecoado de volta (viaMqtt=true).
+  const isSelf = from === configSnapshot.myNodeNum;
   const heardByRf = rssiByNode.has(from) || snrByNode.has(from);
-  if (meshNodes.get(from)?.viaMqtt && !heardByRf) return;
+  if (!isSelf && meshNodes.get(from)?.viaMqtt && !heardByRf) return;
   const now = Date.now();
   if (!opts.force) {
     const last = lastPushByNode.get(from) ?? 0;
