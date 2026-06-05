@@ -37,9 +37,14 @@ export class ChatWidget extends Panel {
   private channelIndex = 0;
   private messages: ChatMsg[] = [];
   private unsub: (() => void) | null = null;
+  private unsubLabels: (() => void) | null = null;
   private sending = false;
   private radioConnected = false;
   private statusTimer: ReturnType<typeof setInterval> | null = null;
+  // Id (!hex) do nó local → marca "Você". Mapa node_id → nome amigável (rótulo
+  // ou longName) → mostra nome em vez do !hex cru.
+  private localNodeId: string | null = null;
+  private nameMap = new Map<string, string>();
 
   constructor() {
     super({ id: 'lora-chat', title: 'Chat LoRa' });
@@ -60,6 +65,7 @@ export class ChatWidget extends Panel {
     });
 
     this.subscribe();
+    this.subscribeNames();
     this.updateMessages();
     void this.refreshRadioConnected();
     this.statusTimer = setInterval(() => void this.refreshRadioConnected(), 3_000);
@@ -68,7 +74,26 @@ export class ChatWidget extends Panel {
   public destroy(): void {
     this.unsub?.();
     this.unsub = null;
+    this.unsubLabels?.();
+    this.unsubLabels = null;
     if (this.statusTimer) { clearInterval(this.statusTimer); this.statusTimer = null; }
+  }
+
+  // Nomes: rótulos locais (getLatestTelemetry.label, reativo) + longName da
+  // vizinhança (bridge). Resolve node_id → nome amigável no chat.
+  private subscribeNames(): void {
+    const client = getOrCreateConvexClient();
+    if (!client) return;
+    const c = client as unknown as {
+      onUpdate: (name: string, args: unknown, cb: (data: unknown) => void) => (() => void);
+    };
+    this.unsubLabels = c.onUpdate('queries:getLatestTelemetry', {}, (data) => {
+      if (!Array.isArray(data)) return;
+      for (const n of data as Array<{ node_id?: string; label?: string }>) {
+        if (n.node_id && n.label && n.label.trim()) this.nameMap.set(n.node_id, n.label.trim());
+      }
+      this.updateMessages();
+    });
   }
 
   // ── Subscription reativa (re-assina ao trocar de canal) ──────────────────
@@ -98,9 +123,21 @@ export class ChatWidget extends Panel {
 
   private async refreshRadioConnected(): Promise<void> {
     try {
-      const { isRadioConnected } = await import('@/services/meshtastic-bridge');
-      const conn = isRadioConnected();
+      const bridge = await import('@/services/meshtastic-bridge');
+      const conn = bridge.isRadioConnected();
       if (conn !== this.radioConnected) { this.radioConnected = conn; this.updateSendState(); }
+      // Id local (pra marcar "Você") + nomes da vizinhança (longName) como
+      // fallback ao rótulo. Só quando conectado (a ponte tem o dado).
+      if (conn) {
+        const lid = bridge.getLocalNodeId();
+        if (lid && lid !== this.localNodeId) { this.localNodeId = lid; this.updateMessages(); }
+        let changed = false;
+        for (const n of bridge.getMeshNodes()) {
+          const nm = n.longName?.trim() || n.shortName?.trim();
+          if (nm && !this.nameMap.has(n.id)) { this.nameMap.set(n.id, nm); changed = true; }
+        }
+        if (changed) this.updateMessages();
+      }
     } catch { /* ponte ainda não carregada */ }
   }
 
@@ -169,8 +206,10 @@ export class ChatWidget extends Panel {
   }
 
   private renderMsg(m: ChatMsg): string {
-    const mine = m.direction === 'tx';
-    const who = mine ? 'Você' : m.from_node;
+    // "Você" = mensagem do NÓ LOCAL (independe de ter sido enviada pelo Grid 48
+    // ou pelo app do celular). Fallback p/ direction tx se ainda não temos o id.
+    const mine = this.localNodeId ? m.from_node === this.localNodeId : m.direction === 'tx';
+    const who = mine ? 'Você' : (this.nameMap.get(m.from_node) ?? m.from_node);
     const time = new Date(m.timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
     const align = mine ? 'flex-end' : 'flex-start';
     const bg = mine ? 'rgba(37,99,235,0.12)' : 'var(--overlay-medium,rgba(0,0,0,0.05))';

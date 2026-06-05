@@ -181,6 +181,12 @@ function touchNode(num: number, patch: Partial<MeshNode>): void {
   meshNodes.set(num, e);
 }
 
+// Id (!hex) do nó local (device conectado), pro chat marcar "Você". Null se
+// ainda não recebeu o myNodeInfo.
+export function getLocalNodeId(): string | null {
+  return typeof configSnapshot.myNodeNum === 'number' ? nodeIdHex(configSnapshot.myNodeNum) : null;
+}
+
 export function getMeshNodes(): MeshNode[] {
   // Exclui o PRÓPRIO nó (o device conectado) — não faz sentido listar a si mesmo.
   const self = configSnapshot.myNodeNum;
@@ -552,6 +558,14 @@ export async function connectRadio(onStatus?: (s: RadioStatus) => void, existing
       await device.configure();
     } catch (e) {
       console.warn('[meshtastic] handshake (configure) falhou — link aberto, dados iniciais podem faltar:', e);
+    }
+    // A conexão serial do Meshtastic EXPIRA em ~15 min sem heartbeat → o RAK
+    // "para de receber". Mantém o link vivo com ping periódico (custo só USB,
+    // não RF). 4 min dá margem mesmo se um beat falhar.
+    try {
+      (device as unknown as { setHeartbeatInterval: (ms: number) => void }).setHeartbeatInterval(4 * 60 * 1000);
+    } catch (e) {
+      console.warn('[meshtastic] não foi possível ativar heartbeat:', e);
     }
     return { disconnect: disconnectRadio };
   } catch (e) {
