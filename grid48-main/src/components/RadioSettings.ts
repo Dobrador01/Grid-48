@@ -82,6 +82,10 @@ export function renderRadioSettings(): RenderResult {
             <input type="number" id="radioHopLimit" min="1" max="7" step="1" placeholder="3" style="${INPUT}">
           </label>
           <p style="${SUB}">Quantas vezes um pacote pode ser retransmitido pela malha. Padrão 3, máx 7. Mais saltos = mais alcance, mais tráfego no ar.</p>
+          <label style="${LABEL}">Potência de transmissão (dBm)
+            <input type="number" id="radioTxPower" min="0" max="30" step="1" placeholder="0 = máximo da região" style="${INPUT}">
+          </label>
+          <p style="${SUB}"><strong>0 = máximo permitido da região</strong> (recomendado p/ alcance). Valor baixo encurta o alcance — só pra economizar bateria.</p>
           <div style="${ACTIONS}">
             <button type="button" id="radioSaveLora" style="${BTN}">Gravar rede (reinicia o rádio)</button>
             <span id="radioLoraStatus" style="${STATUS}"></span>
@@ -281,6 +285,7 @@ export function renderRadioSettings(): RenderResult {
         if (typeof s.region === 'number') regionSel.value = String(s.region);
         if (typeof s.modemPreset === 'number') presetSel.value = String(s.modemPreset);
         if (typeof s.hopLimit === 'number') setVal('radioHopLimit', String(s.hopLimit));
+        if (typeof s.txPower === 'number') setVal('radioTxPower', String(s.txPower));
         updateBand();
         fixedCheck.checked = s.fixedPosition ?? false;
         if (typeof s.positionBroadcastSecs === 'number') setVal('radioPosBroadcast', String(s.positionBroadcastSecs));
@@ -354,10 +359,12 @@ export function renderRadioSettings(): RenderResult {
         const preset = Number(presetSel.value);
         const hopStr = (root.querySelector<HTMLInputElement>('#radioHopLimit')!).value.trim();
         const hopLimit = hopStr ? Math.max(1, Math.min(7, Number(hopStr))) : undefined;
+        const txStr = (root.querySelector<HTMLInputElement>('#radioTxPower')!).value.trim();
+        const txPower = txStr ? Math.max(0, Math.min(30, Number(txStr))) : undefined;
         const regionLabel = regionSel.options[regionSel.selectedIndex]?.text ?? '';
         // Gravar rede reinicia o firmware — confirma pra evitar clique acidental.
         if (!window.confirm(`Gravar região ${regionLabel} + preset${hopLimit ? ` + ${hopLimit} saltos` : ''}? Isso REINICIA o rádio e derruba a conexão por alguns segundos.`)) return;
-        void guarded(saveLoraBtn, 'radioLoraStatus', () => bridge.applyLoraConfig(region, preset, hopLimit),
+        void guarded(saveLoraBtn, 'radioLoraStatus', () => bridge.applyLoraConfig(region, preset, hopLimit, txPower),
           'Rede gravada ✓ — o rádio vai reiniciar.');
       });
 

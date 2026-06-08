@@ -40,6 +40,7 @@ export class ChatWidget extends Panel {
   private unsubLabels: (() => void) | null = null;
   private sending = false;
   private radioConnected = false;
+  private publicAvailable = false; // canal 1 (público) configurado no device?
   private statusTimer: ReturnType<typeof setInterval> | null = null;
   // Id (!hex) do nó local → marca "Você". Mapa node_id → nome amigável (rótulo
   // ou longName) → mostra nome em vez do !hex cru.
@@ -125,7 +126,10 @@ export class ChatWidget extends Panel {
     try {
       const bridge = await import('@/services/meshtastic-bridge');
       const conn = bridge.isRadioConnected();
-      if (conn !== this.radioConnected) { this.radioConnected = conn; this.updateSendState(); }
+      const pub = conn ? bridge.getRadioConfigSnapshot().publicChannelActive === true : false;
+      if (conn !== this.radioConnected || pub !== this.publicAvailable) {
+        this.radioConnected = conn; this.publicAvailable = pub; this.updateSendState();
+      }
       // Id local (pra marcar "Você") + nomes da vizinhança (longName) como
       // fallback ao rótulo. Só quando conectado (a ponte tem o dado).
       if (conn) {
@@ -201,8 +205,11 @@ export class ChatWidget extends Panel {
       box.innerHTML = `<div style="font-size:11px;color:var(--text-dim,#6b7280);margin:auto;text-align:center;">Sem mensagens neste canal ainda.</div>`;
       return;
     }
+    // Só auto-scrolla se o usuário JÁ estava perto do fim (não atrapalha quem
+    // rolou pra cima lendo o histórico).
+    const nearBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 40;
     box.innerHTML = this.messages.map((m) => this.renderMsg(m)).join('');
-    box.scrollTop = box.scrollHeight;
+    if (nearBottom) box.scrollTop = box.scrollHeight;
   }
 
   private renderMsg(m: ChatMsg): string {
@@ -226,14 +233,17 @@ export class ChatWidget extends Panel {
     const btn = this.content.querySelector<HTMLButtonElement>('[data-action="chat-send"]');
     const input = this.content.querySelector<HTMLInputElement>('#chatInput');
     const st = this.content.querySelector<HTMLElement>('#chatStatus');
-    const blocked = !this.radioConnected || this.sending;
+    // Canal público (1) só funciona se configurado no device (Config automática).
+    const publicMissing = this.channelIndex === 1 && this.radioConnected && !this.publicAvailable;
+    const blocked = !this.radioConnected || this.sending || publicMissing;
     if (btn) { btn.disabled = blocked; btn.style.opacity = blocked ? '0.5' : '1'; btn.style.cursor = blocked ? 'not-allowed' : 'pointer'; }
-    if (input) input.disabled = !this.radioConnected;
+    if (input) input.disabled = !this.radioConnected || publicMissing;
     if (st) {
-      st.style.color = 'var(--text-dim,#6b7280)';
+      st.style.color = publicMissing ? '#dc2626' : 'var(--text-dim,#6b7280)';
       st.textContent = this.sending ? 'Enviando…'
         : !this.radioConnected ? 'Conecte o rádio (painel Comando & Controle) para enviar.'
-        : `Grupo (broadcast) no canal ${this.channelIndex === 0 ? 'privado' : 'público'}.`;
+        : publicMissing ? 'Canal público não configurado — use "Config automática de canal" na aba Rádio.'
+        : `Grupo (broadcast) no canal ${this.channelIndex === 0 ? 'privado' : 'público'} · sem confirmação de leitura (limite do LoRa).`;
     }
   }
 }
