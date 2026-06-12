@@ -61,6 +61,7 @@ function handleRadioLost(): void {
   hopsByNode.clear();
   posByNode.clear();
   lastPushByNode.clear();
+  lastTrailPosByNode.clear();
   meshNodes.clear();
   configSnapshot = {};
   localMetrics = {};
@@ -98,6 +99,7 @@ export interface RadioConfigSnapshot {
   region?: number;          // Config.LoRaConfig.RegionCode
   modemPreset?: number;     // Config.LoRaConfig.ModemPreset
   hopLimit?: number;        // Config.LoRaConfig.hopLimit (saltos máximos, 1..7)
+  txPower?: number;         // Config.LoRaConfig.txPower (dBm; 0 = máx da região)
   fixedPosition?: boolean;
   positionBroadcastSecs?: number;
   gpsUpdateInterval?: number;     // s entre fixes do GPS
@@ -208,8 +210,9 @@ interface TelemetryPushInput {
 }
 
 // Monta o payload OMITINDO rssi/battery_level quando ausentes — Convex
-// v.optional(v.number()) rejeita null (pegadinha conhecida do projeto).
-async function pushTelemetry(input: TelemetryPushInput): Promise<void> {
+// v.optional(v.number()) rejeita null (pegadinha conhecida do projeto). O campo
+// omitido também PRESERVA o valor anterior no patch do upsertTelemetryLatest.
+async function sendTelemetry(input: TelemetryPushInput, mutationName: string): Promise<void> {
   const client = getOrCreateConvexClient();
   if (!client) {
     console.warn('[meshtastic] ConvexClient indisponível — pacote descartado.');
@@ -229,15 +232,30 @@ async function pushTelemetry(input: TelemetryPushInput): Promise<void> {
   if (Number.isFinite(input.hops_away)) payload.hops_away = input.hops_away as number;
 
   try {
-    // String FunctionReference — mesmo padrão de services/celesc.ts (sem codegen
-    // do backend no frontend). ingestTelemetryPublic mora em convex/mutations.ts.
     await (client as unknown as {
       mutation: (name: string, args: unknown) => Promise<unknown>;
-    }).mutation('mutations:ingestTelemetryPublic', payload);
+    }).mutation(mutationName, payload);
   } catch (e) {
     console.warn('[meshtastic] push de telemetria falhou:', e);
   }
 }
+// Estado ATUAL por nó (mutável) — marcador do mapa. Patch a cada pacote.
+const pushTelemetryLatest = (i: TelemetryPushInput) => sendTelemetry(i, 'mutations:upsertTelemetryLatest');
+// TRILHA (append-only) — só em movimento real (chamado de pushNode com dedup).
+const pushTelemetryTrack = (i: TelemetryPushInput) => sendTelemetry(i, 'mutations:ingestTelemetryPublic');
+
+// Distância em metros (haversine) pra deduplicar a trilha de nó parado.
+function haversineMeters(aLat: number, aLon: number, bLat: number, bLon: number): number {
+  const R = 6371000;
+  const dLat = ((bLat - aLat) * Math.PI) / 180;
+  const dLon = ((bLon - aLon) * Math.PI) / 180;
+  const s = Math.sin(dLat / 2) ** 2 +
+    Math.cos((aLat * Math.PI) / 180) * Math.cos((bLat * Math.PI) / 180) * Math.sin(dLon / 2) ** 2;
+  return 2 * R * Math.asin(Math.min(1, Math.sqrt(s)));
+}
+// Última posição GRAVADA na trilha por nó + distância mínima pra um ponto novo.
+const lastTrailPosByNode = new Map<number, { lat: number; lon: number }>();
+const TRAIL_MIN_MOVE_M = 8;
 
 // ── Chat: persistência das mensagens no Convex (RX + TX) ─────────────────────
 interface ChatPushInput {
@@ -297,7 +315,7 @@ function pushNode(from: number, opts: { packetId?: number; force?: boolean }): v
     if (now - last < LIVENESS_THROTTLE_MS) return;
   }
   lastPushByNode.set(from, now);
-  void pushTelemetry({
+  const payload: TelemetryPushInput = {
     node_id: nodeIdHex(from),
     packet_id: opts.packetId ?? now,
     timestamp: now,
@@ -307,7 +325,18 @@ function pushNode(from: number, opts: { packetId?: number; force?: boolean }): v
     battery_level: batteryByNode.get(from),
     snr: snrByNode.get(from),
     hops_away: hopsByNode.get(from),
-  });
+  };
+  // Estado atual SEMPRE (marcador + status do mapa não somem).
+  void pushTelemetryLatest(payload);
+  // Trilha só em pacote de posição (force) E se moveu de verdade — nó parado
+  // não grava ponto repetido (corrige o bloat de trilha/heatmap).
+  if (opts.force) {
+    const lt = lastTrailPosByNode.get(from);
+    if (!lt || haversineMeters(lt.lat, lt.lon, pos.lat, pos.lon) >= TRAIL_MIN_MOVE_M) {
+      lastTrailPosByNode.set(from, { lat: pos.lat, lon: pos.lon });
+      void pushTelemetryTrack(payload);
+    }
+  }
 }
 
 /**
@@ -447,6 +476,7 @@ export async function connectRadio(onStatus?: (s: RadioStatus) => void, existing
         if (typeof v.value?.region === 'number') configSnapshot.region = v.value.region as number;
         if (typeof v.value?.modemPreset === 'number') configSnapshot.modemPreset = v.value.modemPreset as number;
         if (typeof v.value?.hopLimit === 'number') configSnapshot.hopLimit = v.value.hopLimit as number;
+        if (typeof v.value?.txPower === 'number') configSnapshot.txPower = v.value.txPower as number;
       } else if (v?.case === 'position') {
         if (typeof v.value?.fixedPosition === 'boolean') configSnapshot.fixedPosition = v.value.fixedPosition as boolean;
         if (typeof v.value?.positionBroadcastSecs === 'number') configSnapshot.positionBroadcastSecs = v.value.positionBroadcastSecs as number;
@@ -534,6 +564,9 @@ export async function connectRadio(onStatus?: (s: RadioStatus) => void, existing
     device.events.onMessagePacket.subscribe((meta: unknown) => {
       const m = meta as { id?: number; from?: number; to?: number; channel?: number; data?: string };
       if (typeof m.from !== 'number' || typeof m.data !== 'string' || m.data.length === 0) return;
+      // Ignora o eco da PRÓPRIA mensagem (firmware reflete o que enviamos) — já
+      // gravamos como TX no sendChatText; senão duplicaria com packet_id diferente.
+      if (m.from === configSnapshot.myNodeNum) return;
       const isBroadcast = m.to === 0xffffffff || m.to === undefined;
       void pushChatMessage({
         channel_index: typeof m.channel === 'number' ? m.channel : 0,
@@ -591,6 +624,7 @@ export async function disconnectRadio(): Promise<void> {
   hopsByNode.clear();
   posByNode.clear();
   lastPushByNode.clear();
+  lastTrailPosByNode.clear();
   meshNodes.clear();
   configSnapshot = {};
   localMetrics = {};
@@ -650,10 +684,13 @@ export async function applyOwner(longName: string, shortName: string): Promise<v
  * Região + modem preset. ⚠️ Mudar região reinicia o device (firmware aplica no
  * boot). usePreset=true diz pro firmware usar os parâmetros do preset escolhido.
  */
-export async function applyLoraConfig(region: number, modemPreset: number, hopLimit?: number): Promise<void> {
+export async function applyLoraConfig(region: number, modemPreset: number, hopLimit?: number, txPower?: number): Promise<void> {
   const device = requireDevice();
   const value: Record<string, unknown> = { region, modemPreset, usePreset: true };
   if (typeof hopLimit === 'number' && hopLimit >= 0) value.hopLimit = hopLimit;
+  // txPower em dBm. 0 = o firmware usa o MÁXIMO permitido da região (recomendado
+  // pra alcance). Valores baixos derrubam o alcance — útil só pra economizar.
+  if (typeof txPower === 'number' && txPower >= 0) value.txPower = txPower;
   const cfg = mk(P.Config.ConfigSchema, {
     payloadVariant: { case: 'lora', value },
   });
@@ -662,6 +699,7 @@ export async function applyLoraConfig(region: number, modemPreset: number, hopLi
   configSnapshot.region = region;
   configSnapshot.modemPreset = modemPreset;
   if (typeof hopLimit === 'number') configSnapshot.hopLimit = hopLimit;
+  if (typeof txPower === 'number') configSnapshot.txPower = txPower;
 }
 
 /** Canal primário (índice 0): nome + PSK compartilhado. Tags com o mesmo par conversam. */
@@ -733,7 +771,6 @@ export async function refreshRadioConfig(): Promise<void> {
     getConfig: (t: number) => Promise<number>;
     getModuleConfig: (t: number) => Promise<number>;
     getChannel: (i: number) => Promise<number>;
-    getOwner?: () => Promise<number>;
   };
   const tasks = [
     d.getConfig(CT.LORA_CONFIG), d.getConfig(CT.POSITION_CONFIG),

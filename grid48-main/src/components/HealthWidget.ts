@@ -293,12 +293,17 @@ export class HealthWidget extends Panel {
   private renderLocalMetrics(): string {
     if (this.radioStatus !== 'connected') return '';
     const m = this.localMetrics;
-    if (typeof m.airUtilTx !== 'number' && typeof m.channelUtilization !== 'number') return '';
-    const tx = typeof m.airUtilTx === 'number' ? `📡 TX ${m.airUtilTx.toFixed(1)}%` : '';
-    const ch = typeof m.channelUtilization === 'number' ? `📶 Canal ${m.channelUtilization.toFixed(0)}%` : '';
+    if (typeof m.airUtilTx !== 'number' && typeof m.channelUtilization !== 'number') {
+      // Conectado mas o device ainda não mandou device-metrics (chega no
+      // intervalo de telemetria). Deixa explícito em vez de sumir.
+      return `<div style="margin-top:8px;font-size:11px;color:var(--text-dim,#6b7280);">📡 TX —  ·  📶 Canal — <span style="opacity:.7;">(aguardando telemetria do rádio)</span></div>`;
+    }
+    const tx = typeof m.airUtilTx === 'number' ? `📡 TX ${m.airUtilTx.toFixed(1)}%` : '📡 TX —';
+    const ch = typeof m.channelUtilization === 'number' ? `📶 Canal ${m.channelUtilization.toFixed(0)}%` : '📶 Canal —';
     const txHot = typeof m.airUtilTx === 'number' && m.airUtilTx >= 10; // limite legal/saúde
-    return `<div style="margin-top:8px;font-size:11px;display:flex;gap:10px;color:${txHot ? '#ef4444' : 'var(--text-dim,#6b7280)'};" title="air_util_tx = % do tempo que o RAK transmite (inclui o que relaya) · channel_utilization = ocupação do canal">
-      <span style="font-weight:600;">${tx}</span><span>${ch}</span>
+    const age = m.updatedAt ? this.lastSeenLabel(m.updatedAt, Date.now()).replace('visto há', 'há') : '';
+    return `<div style="margin-top:8px;font-size:11px;display:flex;gap:10px;align-items:baseline;color:${txHot ? '#ef4444' : 'var(--text-dim,#6b7280)'};" title="air_util_tx = % do tempo que o RAK transmite (inclui o que relaya) · channel_utilization = ocupação do canal">
+      <span style="font-weight:600;">${tx}</span><span>${ch}</span>${age ? `<span style="opacity:.7;font-weight:400;">${age}</span>` : ''}
     </div>`;
   }
 
