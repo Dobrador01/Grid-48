@@ -145,7 +145,9 @@ export async function pollCelescData(): Promise<CelescMunicipioPayload[]> {
 
           const mappedBairros = (cidade.BAIRROS || []).map((b: any) => ({
             nome: b.BAIRRO,
-            ucsAfetadas: parseInt(b.QUANTIDADE_TOTAL, 10) || 0
+            // Celesc manda número BR ("1.431") — ponto é separador de milhar.
+            // parseInt("1.431", 10) === 1, então removemos os pontos antes.
+            ucsAfetadas: parseInt(String(b.QUANTIDADE_TOTAL ?? '').replace(/\./g, ''), 10) || 0
           }))
           .filter((b: any) => b.ucsAfetadas > 0)
           .sort((a: any, b: any) => b.ucsAfetadas - a.ucsAfetadas);
