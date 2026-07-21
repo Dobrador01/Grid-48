@@ -24,10 +24,11 @@ Grid 48 começou como **fork do [WorldMonitor](https://worldmonitor.app)** (dash
 - **Fases 0–5 deployadas em produção** (DEFCON + DSL de regras, Clima, Tráfego, Celesc, Defesa Civil). Ver tabela na seção 4.
 - **Limpeza pós-WorldMonitor concluída** — codebase enxuto e navegável.
 - **Deploys ativos**: backend Convex prod `secret-shrimp-538`, frontend Vercel `grid-48.vercel.app`.
-- **Arquitetura cloud-first hoje** — o adapter pattern (`ConvexProvider` vs `LocalProvider`) e o engine de borda (Pi) existem mas o modo local/LoRa ainda não está em operação.
+- **Rádio LoRa/Meshtastic operacional** — a Fase 6 entrou em produção como integração **Meshtastic** (não como estação meteorológica, o plano original). A aba do dashboard conecta na base RAK via Web Serial e vira o gateway: telemetria de frota (posição/bateria/RSSI/SNR/hops) + chat de texto na malha, tudo persistido e reativo. Ver seção 2 (Camada de rádio) e seção 4.
+- **Arquitetura cloud-first hoje** — o adapter pattern (`ConvexProvider` vs `LocalProvider`) e o engine de borda (Pi, `engine/`) existem como código mas o modo **offline** ainda não está em operação (distinto do rádio Meshtastic, que já está).
 
 ### 🧭 Para onde vamos
-- **Fase 6 — Hardware LoRa** (próximo marco): pluviômetro/anemômetro físicos transmitindo via rádio; reusar `meteorologia_state.fonte = "lora_local"` (já no schema), priorizando dado hiperlocal sobre o regional.
+- **Sensores LoRa hiperlocais** (sub-meta remanescente da Fase 6): pluviômetro/anemômetro físicos transmitindo via rádio; reusar `meteorologia_state.fonte = "lora_local"` (já no schema), priorizando dado hiperlocal sobre o regional. O transporte de rádio (Meshtastic) já existe — falta o sensor.
 - **Resiliência offline real**: ativar o `LocalProvider` + engine no Pi para o sistema sobreviver a quedas de internet/energia (a promessa central do projeto).
 - **Backlog**: auth real (Convex Auth, elimina dívida das mutations públicas), migrar coleta Celesc para o backend, editor visual de regras DSL, timeline histórica de Celesc/DEFCON. Detalhes na seção 12.
 
@@ -53,6 +54,7 @@ Single-user. Dono opera no navegador, dashboard se adapta ao contexto (estou em 
 ### Stack
 - **Backend**: Convex (Reactive BaaS). Sem Node em runtime padrão — só V8 isolate. Actions com `"use node";` quando precisam de Node.
 - **Frontend**: Vanilla TypeScript + Vite + maplibre-gl + deck.gl + Convex client (`convex/browser`). Sem React. Componentes herdam de `Panel` base.
+- **Rádio LoRa**: `@meshtastic/core` + `@meshtastic/transport-web-serial` — decodifica pacotes Meshtastic no navegador (Web Serial). Ver "Camada de rádio" abaixo.
 - **Deploys**:
   - Convex Dev: `dev:watchful-ermine-713` (`https://watchful-ermine-713.convex.cloud`)
   - Convex Prod: `secret-shrimp-538` (`https://secret-shrimp-538.convex.cloud`) ← **é o que o Vercel usa**
@@ -71,7 +73,18 @@ Single-user. Dono opera no navegador, dashboard se adapta ao contexto (estou em 
 | Celesc | poll 5min frontend | `services/celesc.ts` → `celesc/mutations:reportCelescSnapshot` | `celesc_state` (latest) + `celesc_history` (90d) |
 | OpenWeather | cron 15min | `convex/clima/actions.ts:fetchOpenWeather` | `meteorologia_state` (latest) |
 | Google Routes | **on-demand** (sem cron) | `TrafegoWidget` enquanto montado → `trafego/mutations:requestUpdate` (throttle 5min) | `trafego_state` (latest) |
+| Telemetria LoRa | push por pacote (throttle liveness 60s/nó) | `services/meshtastic-bridge.ts` (Web Serial) → `mutations:ingestTelemetryPublic` | `telemetry_latest` (latest) + `telemetry` (trilha 7d) |
+| Chat LoRa | push por mensagem | `services/meshtastic-bridge.ts` → chat mutations | `lora_messages` (append-only 30d) |
 | Recompute DEFCON | reativo (após cada ingestão) | `convex/defcon/mutations.ts:recomputeDefcon` via scheduler | `defcon_status` (singleton) |
+
+### Camada de rádio LoRa/Meshtastic (Fase 6 — operacional)
+
+A Fase 6 foi entregue como **integração Meshtastic**, não como a estação meteorológica do plano original. Existem **dois caminhos de rádio** no projeto:
+
+1. **Ponte no navegador (operacional)** — `services/meshtastic-bridge.ts` (~915 linhas). A aba do dashboard conecta na base RAK via **Web Serial**, decodifica pacotes Meshtastic com `@meshtastic/core` e empurra pro Convex (`mutations:ingestTelemetryPublic` + chat). O mapa e o chat renderizam pela subscription reativa normal.
+   - **Constraints (aceitas)**: Chromium-only, HTTPS/localhost, só com a aba aberta. Dynamic import no clique de "Conectar rádio" (HealthWidget) — mantém o bundle magro E preserva o user gesture que o `navigator.serial.requestPort()` exige.
+   - **Canal canônico Grid 48**: `grid48_channel` (singleton). Primeiro device gera o PSK; os demais reusam (first-write-wins) pra frota ficar idêntica.
+2. **Firmware ESP32 → HTTP (existe, caminho alternativo)** — `firmware-gateway/` (ESP32 + C++/PlatformIO) POSTa em `/gateway` (PSK `PSK_GATEWAY`). A ponte Web Serial entrou em operação primeiro.
 
 ## 3. Como rodar
 
@@ -165,8 +178,9 @@ que executa.
 - `tactical-status` + `engine-health` consolidados em **um único "Comando & Controle"** (HealthWidget com badge MODE)
 - Endereços Casa/Trabalho via Google Geocoding API (Essentials free 10k/mês)
 
-### Pendente (Fase 6 — futuro)
-- **Hardware LoRa**: pluviômetro/anemômetro físicos. Quando chegar, reusar `meteorologia_state` com `fonte="lora_local"` (já no schema). Prioridade > openweather em `buildAggregatedSignals` (hiperlocal vence regional).
+### Fase 6 — Rádio LoRa/Meshtastic (parcial)
+- ✅ **Integração Meshtastic** (entregue): ponte Web Serial no navegador (`services/meshtastic-bridge.ts`), telemetria de frota (`telemetry_latest` + `telemetry`), chat LoRa persistido (`lora_messages`), canal canônico (`grid48_channel`), rótulos de nó (`node_labels`), painel de Rádio (`RadioSettings`) e chat (`ChatWidget`). Ver seção 2 (Camada de rádio).
+- ⏳ **Sensores meteorológicos hiperlocais** (remanescente): pluviômetro/anemômetro físicos. Quando chegarem, reusar `meteorologia_state` com `fonte="lora_local"` (já no schema). Prioridade > openweather em `buildAggregatedSignals` (hiperlocal vence regional). O transporte de rádio já existe — falta só o sensor.
 
 ## 5. Modelo de domínio: DEFCON
 
@@ -200,7 +214,11 @@ Definidas em `convex/schema.ts`. Todas com índices pra queries comuns (sem `.fi
 | Tabela | Tipo | Propósito |
 |--|--|--|
 | `alertas_rss` | TTL 48h | Defesa Civil → Gemini → upsert |
-| `telemetry` | append-only | Pacotes LoRa (Fase 6 futura) |
+| `telemetry` | append-only 7d | Pacotes LoRa (trilha + heatmap por hop) |
+| `telemetry_latest` | mutável | Estado atual por nó LoRa (latest) — é o que o mapa lê pro marcador/status |
+| `node_labels` | mutável | Rótulo amigável por `node_id` (definido no painel de Rádio) |
+| `lora_messages` | append-only 30d | Chat LoRa persistido (channel 0=privado, 1=público; rx/tx) |
+| `grid48_channel` | singleton | Canal canônico Grid 48 (PSK compartilhado, first-write-wins) |
 | `sitrep_queue` | TTL 5min | Queue de requests pra processamento Gemini |
 | `celesc_state` | mutável | Latest por (municipio, bairro?) — ~300 rows |
 | `celesc_history` | append-only 90d | Timeline futura, só município (sem bairro) |
@@ -223,7 +241,10 @@ Todos em `Grid 48/grid48-main/src/components/`. Registrados em `config/panels.ts
 | `TrafegoWidget` | `trafego` | Rota principal contextual (casa/trabalho/fora via Geolocation) + 3 paralelas |
 | `BeaconStatusWidget` | `beacon-status` | Lista de alertas Defesa Civil ativos |
 | `CelescStatusWidget` | `celesc-status` | Tabela de municípios SC com instabilidades |
-| `HealthWidget` | `engine-health` (rótulo "Comando & Controle") | Badge MODE + breakdown LoRa quando aplicável |
+| `HealthWidget` | `engine-health` (rótulo "Comando & Controle") | Badge MODE + status da frota LoRa + botão "Conectar rádio" (dispara a ponte Meshtastic) |
+| `ChatWidget` | `chat` | Chat de texto da malha LoRa (canais privado/público), reativo via `lora_messages` |
+| `RadioSettings` (factory) | dentro tab Rádio | Conectar base RAK (Web Serial), rotular nós, gerenciar canal canônico |
+| `Map` | `map` | Mapa deck.gl + maplibre: camadas Celesc/alertas + marcadores/trilha/heatmap dos nós LoRa |
 | `SitrepButton` | `sitrep` | Botão pra disparar request SITREP ad-hoc via Gemini |
 | `DefconSettings` (factory) | dentro tab DEFCON | Endereços + localidades-foco + thresholds legacy |
 | `DefconRulesPanel` (factory) | dentro tab DEFCON | Import/Export JSON + lista regras + histórico |
@@ -335,6 +356,12 @@ Após deploy, hard refresh (`Ctrl+Shift+R`) frequentemente necessário pra inval
 ### Convex query stale `getOsintHealth`
 Frontend subscrevia query que não existia. Solução implementada: criar a query no backend (`convex/queries.ts:getOsintHealth`) + tabela `osint_health` populada pelo ingestor.
 
+### Meshtastic — dynamic import preserva user gesture
+A ponte (`meshtastic-bridge.ts`) precisa ser carregada via **dynamic import no clique** de "Conectar rádio", não no topo do bundle. `navigator.serial.requestPort()` (chamado dentro de `TransportWebSerial.create`) exige um user gesture — se a ponte já estiver importada e o fluxo perder o gesture, o prompt de porta serial não abre. Bônus: mantém `@meshtastic/*` fora do bundle principal.
+
+### Telemetria LoRa congelando com nó parado
+Bug já corrigido: o push pro Convex era disparado SÓ por pacote de posição. Uma tag parada quase não emite posição, então o dado congelava (só destravava ao reconectar). Fix: "refresh de liveness" em QUALQUER pacote (mesh/telemetry) reusando a última posição conhecida, com throttle de 60s por nó pra não inflar a `telemetry` append-only nem o recompute DEFCON.
+
 ## 10. Dívidas técnicas documentadas
 
 - **Mutations públicas sem auth** — `reportCelescSnapshot`, `updateDefconConfig`, `updateRuleset`, `trafego/requestUpdate`. Single-user assumption. Quando migrar pra multi-user: Convex Auth resolve tudo.
@@ -378,11 +405,13 @@ cd "C:\Users\Enio Jr\OneDrive\Documentos\Grid 48\grid48-main"
 
 ## 12. Roadmap futuro
 
-### Fase 6 — Hardware LoRa (quando hardware chegar)
-- Pluviômetro + anemômetro físicos transmitindo via LoRa
-- Reusar `meteorologia_state.fonte = "lora_local"` (já no schema)
-- Prioridade > `openweather` em `buildAggregatedSignals` quando ambos presentes pra mesma localidade
-- Telemetria entra via `convex/mutations.ts:ingestTelemetry` (HTTP endpoint `/gateway` com PSK já existe)
+### Fase 6 — Rádio LoRa/Meshtastic
+- ✅ **Entregue**: integração Meshtastic via Web Serial (telemetria de frota + chat + canal canônico). Ver seção 2 (Camada de rádio) e seção 4.
+- ⏳ **Remanescente — sensores meteorológicos hiperlocais**:
+  - Pluviômetro + anemômetro físicos transmitindo via LoRa
+  - Reusar `meteorologia_state.fonte = "lora_local"` (já no schema)
+  - Prioridade > `openweather` em `buildAggregatedSignals` quando ambos presentes pra mesma localidade
+  - Caminhos de ingestão já existentes: `mutations:ingestTelemetryPublic` (ponte Web Serial) e `convex/mutations.ts:ingestTelemetry` (HTTP `/gateway` com PSK, firmware ESP32)
 
 ### Backlog de melhorias
 - **Auth real**: Convex Auth pra eliminar a dívida das mutations públicas
@@ -428,4 +457,6 @@ Quando começar nova sessão:
 
 ---
 
-**Última atualização**: 2026-05-25 (limpeza pós-WorldMonitor CONCLUÍDA — Fases 1-8: rebuild do mapa + purga total, `worldmonitor` = 0 refs no código vivo. Frontend Grid 48-nativo. Inclui fix do throttle Gemini DEFCON + fix do expiresAt da Defesa Civil em `beacon/`).
+**Última atualização**: 2026-07-21 (Fase 6 refletida no doc: integração LoRa/**Meshtastic** operacional via Web Serial — telemetria de frota, chat, canal canônico, painel de Rádio. Schema atualizado com `telemetry_latest`/`node_labels`/`lora_messages`/`grid48_channel`; cadência, componentes, roadmap e pegadinhas atualizados. Sensor meteorológico hiperlocal segue como sub-meta remanescente).
+
+*Registro anterior — 2026-05-25*: limpeza pós-WorldMonitor CONCLUÍDA (Fases 1-8: rebuild do mapa + purga total, `worldmonitor` = 0 refs no código vivo, frontend Grid 48-nativo; fix do throttle Gemini DEFCON + fix do expiresAt da Defesa Civil em `beacon/`).
