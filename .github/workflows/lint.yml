@@ -4,17 +4,21 @@ on:
   pull_request:
     paths:
       - '**/*.md'
-      - '.markdownlint-cli2.jsonc'
+      - 'grid48-main/.markdownlint-cli2.jsonc'
 
 jobs:
   markdown:
     if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: grid48-main
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: 'npm'
+          cache-dependency-path: grid48-main/package-lock.json
       - run: npm ci
       - run: npm run lint:md

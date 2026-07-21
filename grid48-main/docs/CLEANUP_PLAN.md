@@ -22,8 +22,6 @@
 - Antes de Camada C, me pergunta sobre Tauri (manter ou deletar)
   e ESPERA minha resposta.
 
-
-
 ## 1. Contexto rápido
 
 ### Identidade do projeto
@@ -63,6 +61,7 @@ Grid 48/                              ← raiz git
 ### Trabalho recente (referência)
 
 Sessões anteriores entregaram, na ordem:
+
 - Onda 0–5: infraestrutura completa, adapter, engine, endpoints, UI, SITREP
   loop fechado (radio → cloud → radio).
 - v1.2.0 release.
@@ -252,6 +251,7 @@ repo passa a "ser Grid 48", não mais "WorldMonitor adaptado".
 > `src-tauri/` + workflows correspondentes saem."
 
 Se a resposta for **NÃO**:
+
 - Apagar `src-tauri/` (diretório inteiro: Rust source, ícones, configs)
 - Apagar `.github/workflows/build-desktop.yml`
 - Apagar `.github/workflows/test-linux-app.yml`
@@ -262,6 +262,7 @@ Se a resposta for **NÃO**:
 - Remover lógicas condicionais `isDesktopRuntime()` espalhadas pelo código
 
 Se a resposta for **SIM** ou **TALVEZ**:
+
 - Pula essa subseção. Tauri fica.
 
 ### ML pipeline — sempre deletar
@@ -287,6 +288,7 @@ src/services/ai-classify-queue.ts
 ```
 
 **Em `vite.config.ts`:**
+
 - Remover `manualChunks` para `transformers` e `onnxruntime`
 - Remover `globIgnores` para `ml*.js` e `onnx*.wasm` em `workbox`
 - Remover `onwarn` que silencia eval do `onnxruntime-web`
@@ -630,6 +632,7 @@ parte significativa de Camadas C+D. Cada fase = commit separado, deploy
 automático Vercel + validação CI.
 
 ### Fase 1 — Assets/docs zero-risk (commit `9fd371a`)
+
 - Deletados: `public/pro/` (1.2MB PWA worldmonitor standalone), `pro-test/`
   (924KB source React), `public/llms*.txt`, `CHANGELOG.md` (worldmonitor),
   23 docs em `docs/` (AI_INTELLIGENCE, ALGORITHMS, ARCHITECTURE, etc.),
@@ -640,6 +643,7 @@ automático Vercel + validação CI.
 - **152 arquivos, -46k linhas**
 
 ### Fase 2 — Tauri desktop runtime (commit `2f0e6f4`)
+
 - Deletados: `src/services/tauri-bridge.ts`, `scripts/desktop-package.mjs`
 - Limpas branches `__TAURI__`/`isDesktopRuntime` em: `main.ts`, `basemap.ts`,
   `variant.ts`, `circuit-breaker.ts`, `event-handlers.ts`, `Panel.ts`,
@@ -648,6 +652,7 @@ automático Vercel + validação CI.
 - **12 arquivos, -328 linhas**
 
 ### Fase 3 — Settings UI (commit `bb60214`)
+
 - Refatorado: `preferences-content.ts` removendo grupo Inteligência
   (Groq/OpenRouter/Ollama/Memória de manchetes), grupo Mídia (Qualidade
   vídeo/Live streams), AI status footer, link Discord, extras do Display
@@ -658,6 +663,7 @@ automático Vercel + validação CI.
 - **5 arquivos, -432 linhas**
 
 ### Fase 4 — isDesktopApp dead code + settings standalone (commit `aec56b3`)
+
 - Deletados: `RuntimeConfigPanel.ts` (537 linhas), `settings.html`,
   `src/settings-main.ts` (968 linhas), `src/settings-window.ts`,
   `src/styles/settings-window.css` (1121 linhas), `ollama-models.ts`,
@@ -668,6 +674,7 @@ automático Vercel + validação CI.
 - **15 arquivos, -2880 linhas**
 
 ### Fase 5 — Services worldmonitor + stubs (commit `384a18f`)
+
 - Deletados 39 arquivos isolados em `src/services/`: ML pipeline
   (analysis-core, analysis-worker, ml-worker, clustering, entity-*,
   threat-classifier, focal-point-detector, signal-aggregator), finance
@@ -697,6 +704,7 @@ do zero com a estratégia híbrida (archive + rebuild + cascata).
 mapa (~12 métodos públicos, 2 layers ativas, 1 padrão de evento custom).
 
 **Novo `src/components/Map.ts`** (~640 linhas, vs 13.724 legacy):
+
 - maplibre-gl + @deck.gl direto (sem fallback SVG, sem GlobeMap 3D)
 - Layer Celesc (`GeoJsonLayer` com cores por %UCs offline — escala
   preservada do legacy: 50%=vermelho, 20%=laranja, 5%=amarelo, >0=verde)
@@ -711,6 +719,7 @@ mapa (~12 métodos públicos, 2 layers ativas, 1 padrão de evento custom).
   setCIIScores, etc.) — futuro: remover callsites + stubs
 
 **Cascata desbloqueada após rebuild**:
+
 - Deletados 5 arquivos legacy (`src/components/_legacy/` archive
   temporário, depois apagado)
 - Deletados 20 services worldmonitor restantes (earthquakes, weather,
@@ -768,4 +777,3 @@ mapa (~12 métodos públicos, 2 layers ativas, 1 padrão de evento custom).
 - **Build time: ~30s → ~13s (-57%)**
 - Typecheck: zero erros após cada fase
 - CI verde em todos os deploys
-
