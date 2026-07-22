@@ -24,6 +24,7 @@ interface ConfigResolvida {
     piso_minutos: number;
     hora_manha_local: string;
     hora_tarde_local: string;
+    dias_semana: number[];
     periodico_ativo: boolean;
   };
   defcon: { ativo: boolean; limiar_nivel: number };
@@ -37,6 +38,9 @@ const NIVEL_OPTIONS = [
   { value: 4, label: '4 (Alerta)' },
   { value: 5, label: '5 (Normal)' },
 ];
+
+// 0=Dom … 6=Sáb (bate com Date.getUTCDay usado no backend).
+const DIAS_LABEL = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
 interface RenderResult {
   html: string;
@@ -87,6 +91,20 @@ export function renderNotificacoesSettings(): RenderResult {
           </label>
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
             <label style="font-size: 0.72rem;">
+              Horário manhã (casa → trabalho)
+              <input type="time" id="nfHoraManha" style="${NUM}">
+            </label>
+            <label style="font-size: 0.72rem;">
+              Horário tarde (trabalho → casa)
+              <input type="time" id="nfHoraTarde" style="${NUM}">
+            </label>
+          </div>
+          <div style="font-size: 0.72rem; margin-top: 10px;">
+            Dias da semana
+            <div id="nfDias" style="display: flex; gap: 4px; margin-top: 4px; flex-wrap: wrap;"></div>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;">
+            <label style="font-size: 0.72rem;">
               Gatilho de lentidão (ratio ≥)
               <input type="number" id="nfRatio" min="1" step="0.1" style="${NUM}">
             </label>
@@ -99,9 +117,8 @@ export function renderNotificacoesSettings(): RenderResult {
             <input type="checkbox" id="nfPeriodico"> Modo periódico (varre a cada ~30min na janela)
           </label>
           <p style="${HINT} margin-top: 8px;">
-            Checagem-âncora agendada: <strong id="nfHoraManha">—</strong> (manhã) e
-            <strong id="nfHoraTarde">—</strong> (tarde), dias úteis. Horário fixo
-            no cron (UTC−3) — mudar exige redeploy.
+            Horários no fuso local (Floripa, UTC−3). Salvar já reprograma o
+            próximo disparo — sem redeploy.
           </p>
         </fieldset>
 
@@ -160,8 +177,9 @@ export function renderNotificacoesSettings(): RenderResult {
     const nfRatio = $<HTMLInputElement>('#nfRatio');
     const nfPiso = $<HTMLInputElement>('#nfPiso');
     const nfPeriodico = $<HTMLInputElement>('#nfPeriodico');
-    const nfHoraManha = $<HTMLElement>('#nfHoraManha');
-    const nfHoraTarde = $<HTMLElement>('#nfHoraTarde');
+    const nfHoraManha = $<HTMLInputElement>('#nfHoraManha');
+    const nfHoraTarde = $<HTMLInputElement>('#nfHoraTarde');
+    const nfDias = $<HTMLElement>('#nfDias');
     const nfDefconAtivo = $<HTMLInputElement>('#nfDefconAtivo');
     const nfLimiar = $<HTMLSelectElement>('#nfLimiar');
     const nfHbAtivo = $<HTMLInputElement>('#nfHbAtivo');
@@ -182,6 +200,24 @@ export function renderNotificacoesSettings(): RenderResult {
     }
     const c = client as any;
 
+    // Estado dos dias da semana (toggles). Renderiza os 7 botões e alterna via
+    // event delegation (sem onclick inline — CSP-safe).
+    const diasDraft = new Set<number>();
+    function renderDias() {
+      nfDias.innerHTML = DIAS_LABEL.map((lbl, dow) => {
+        const on = diasDraft.has(dow);
+        return `<button type="button" data-dow="${dow}" style="font-size: 0.7rem; padding: 4px 8px; cursor: pointer; border-radius: 4px; border: 1px solid rgba(0,0,0,0.15); ${on ? 'background:#2563eb;color:#fff;' : 'background:transparent;'}">${lbl}</button>`;
+      }).join('');
+    }
+    nfDias.addEventListener('click', (e) => {
+      const btn = (e.target as HTMLElement).closest<HTMLElement>('[data-dow]');
+      if (!btn) return;
+      const dow = Number(btn.dataset.dow);
+      if (diasDraft.has(dow)) diasDraft.delete(dow);
+      else diasDraft.add(dow);
+      renderDias();
+    });
+
     const unsub = c.onUpdate(
       'notificacoes/config:getConfig',
       {},
@@ -193,8 +229,11 @@ export function renderNotificacoesSettings(): RenderResult {
         nfRatio.value = String(data.commute.gatilho_ratio);
         nfPiso.value = String(data.commute.piso_minutos);
         nfPeriodico.checked = data.commute.periodico_ativo;
-        nfHoraManha.textContent = data.commute.hora_manha_local;
-        nfHoraTarde.textContent = data.commute.hora_tarde_local;
+        nfHoraManha.value = data.commute.hora_manha_local;
+        nfHoraTarde.value = data.commute.hora_tarde_local;
+        diasDraft.clear();
+        for (const d of data.commute.dias_semana) diasDraft.add(d);
+        renderDias();
         nfDefconAtivo.checked = data.defcon.ativo;
         nfLimiar.value = String(data.defcon.limiar_nivel);
         nfHbAtivo.checked = data.heartbeat.ativo;
@@ -219,6 +258,9 @@ export function renderNotificacoesSettings(): RenderResult {
             ativo: nfCommuteAtivo.checked,
             gatilho_ratio: Math.max(1, parseFloat(nfRatio.value) || 1.4),
             piso_minutos: Math.max(0, parseInt(nfPiso.value, 10) || 0),
+            hora_manha_local: nfHoraManha.value || '07:15',
+            hora_tarde_local: nfHoraTarde.value || '17:15',
+            dias_semana: Array.from(diasDraft).sort((a, b) => a - b),
             periodico_ativo: nfPeriodico.checked,
           },
           defcon: {
