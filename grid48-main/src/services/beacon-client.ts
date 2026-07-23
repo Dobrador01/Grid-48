@@ -175,6 +175,7 @@ export interface BeaconSnapshot {
     trafego: TrafegoRota[];
     telemetria: TelemetryNode[];
     telemetriaTrack: TelemetryTrackPoint[];
+    energiaBackup?: { state: any | null; history: any[] } | null;
     connection: BeaconConnectionStatus;
 }
 
@@ -186,6 +187,7 @@ const initialSnapshot: BeaconSnapshot = {
     trafego: [],
     telemetria: [],
     telemetriaTrack: [],
+    energiaBackup: null,
     connection: { kind: 'connecting' },
 };
 
@@ -256,6 +258,12 @@ export function initBeaconClient(onUpdate: (snapshot: BeaconSnapshot) => void) {
         // heatmap por hop no mapa. Mesmo dado, três vistas (marcador/trilha/heat).
         c.onUpdate("queries:getTelemetryTrack", {}, (data: any) => {
             snapshot.telemetriaTrack = Array.isArray(data) ? data : [];
+            emit();
+        });
+
+        // Energia de backup (EcoFlow Delta 3) — estado latest + histórico 24h.
+        c.onUpdate("energia/queries:getEnergiaBackup", { sn: "P231Z61APH6J0473" }, (data: any) => {
+            snapshot.energiaBackup = data || null;
             emit();
         });
 

@@ -366,6 +366,18 @@ export class App {
         if (!setHealthPanel()) {
            const retryHealth = setInterval(() => { if (setHealthPanel()) clearInterval(retryHealth); }, 500);
         }
+
+        const setEnergiaPanel = () => {
+          const energiaPanel = this.state.panels['energia-backup'] as any;
+          if (energiaPanel && typeof energiaPanel.setSnapshot === 'function') {
+            energiaPanel.setSnapshot(snapshot);
+            return true;
+          }
+          return false;
+        };
+        if (!setEnergiaPanel()) {
+           const retryEnergia = setInterval(() => { if (setEnergiaPanel()) clearInterval(retryEnergia); }, 500);
+        }
       });
       this.modules.push({ destroy: unsubBeacon });
 
