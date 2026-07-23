@@ -5,6 +5,7 @@ import { CelescStatusWidget } from '@/components/CelescStatusWidget';
 import { ClimaWidget } from '@/components/ClimaWidget';
 import { TrafegoWidget } from '@/components/TrafegoWidget';
 import { HealthWidget } from '@/components/HealthWidget';
+import { EnergiaBackupWidget } from '@/components/EnergiaBackupWidget';
 import { SitrepButton } from '@/components/SitrepButton';
 import { ChatWidget } from '@/components/ChatWidget';
 import { saveToStorage, loadFromStorage } from '@/utils';
@@ -184,6 +185,11 @@ export class PanelLayoutManager implements AppModule {
 
     // Consolidado: 'tactical-status' foi mergeado em 'engine-health' (HealthWidget
     // agora renderiza badge MODE + breakdown). Título do painel é "Comando & Controle".
+    if (this.shouldCreatePanel('energia-backup')) {
+      const widget = new EnergiaBackupWidget();
+      this.ctx.panels['energia-backup'] = widget;
+    }
+
     if (this.shouldCreatePanel('engine-health')) {
       const widget = new HealthWidget();
       this.ctx.panels['engine-health'] = widget;
