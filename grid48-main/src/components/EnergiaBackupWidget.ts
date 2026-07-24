@@ -6,8 +6,24 @@ import type { BeaconSnapshot } from '@/services/beacon-client';
 // ═══════════════════════════════════════════════════════════════════════════
 //
 // Consome snapshot.energiaBackup.state (poll Convex a cada 1min, sem hardware).
-// Import estático (registrado em panel-layout). Estilo injetado 1x no head;
-// event-free (só render). Sem gráfico de tensão (a pedido) — só o número.
+// Import estático (registrado em panel-layout). Render-only (sem eventos).
+//
+// Visual alinhado à identidade dos demais cards (ver ClimaWidget): glass claro
+// (rgba(245,247,250,.5) + blur), tipografia ui-sans-serif, paleta cinza
+// (#1f2937/#4b5563/#6b7280/#9ca3af) + acentos (verde/âmbar/azul), seções com
+// divisória sutil e cabeçalho 0.6rem uppercase.
+//
+//   ┌─────────────────────────────────┐
+//   │ ● online            ⟳ há 1 min   │
+//   │        [gauge SoC]               │
+//   │          86.2 %                  │
+//   │        ● ocioso                  │
+//   │  ┌ Entrada ┐  ┌ Saída ┐          │
+//   │  │  0 W    │  │  12 W │          │
+//   │  AUTONOMIA                       │
+//   │  [▓▓▓▓▓▓░░]  ~57h 20m            │
+//   │  Tensão · Temp bat · Temp inv    │
+//   └─────────────────────────────────┘
 // ═══════════════════════════════════════════════════════════════════════════
 
 const STALE_MS = 3 * 60 * 1000; // sem leitura fresca há > 3min = sem comunicação
@@ -17,12 +33,28 @@ interface EnergiaState {
   watts_in: number;
   watts_out: number;
   ac_in_vol?: number;
+  ac_in_freq?: number;
   rede_ativa: boolean;
+  autonomia_min?: number;
   temp_bateria?: number;
   temp_mos?: number;
+  soh_pct?: number;
   estado?: string;
+  reserva_backup_pct?: number;
   atualizado_em: number;
 }
+
+// Cor de acento por estado operacional.
+const COR_ESTADO: Record<string, string> = {
+  carregando: '#22c55e',
+  descarregando: '#f59e0b',
+  idle: '#38bdf8',
+};
+const LABEL_ESTADO: Record<string, string> = {
+  carregando: 'carregando',
+  descarregando: 'descarregando',
+  idle: 'ocioso',
+};
 
 function polar(cx: number, cy: number, r: number, deg: number) {
   const a = (deg * Math.PI) / 180;
@@ -45,34 +77,14 @@ function relTime(ts: number): string {
   return `há ${Math.round(m / 60)} h`;
 }
 
-let styleInjected = false;
-function injectStyleOnce(): void {
-  if (styleInjected || typeof document === 'undefined') return;
-  styleInjected = true;
-  const s = document.createElement('style');
-  s.textContent = `
-.eb-head{display:flex;justify-content:space-between;align-items:center;font-size:11px;margin-bottom:2px;}
-.eb-dot{width:10px;height:10px;border-radius:50%;display:inline-block;}
-.eb-on{background:#22c55e;box-shadow:0 0 6px #22c55e;}
-.eb-off{background:#9ca3af;}
-.eb-alert{background:#ef4444;box-shadow:0 0 7px #ef4444;}
-.eb-status{opacity:.7;margin-left:6px;text-transform:uppercase;letter-spacing:.5px;font-size:10px;}
-.eb-upd{opacity:.55;}
-.eb-gauge{position:relative;text-align:center;}
-.eb-gauge svg{width:100%;max-width:210px;height:auto;}
-.eb-arc-bg{fill:none;stroke:rgba(148,163,184,.22);stroke-width:13;stroke-linecap:round;}
-.eb-arc{fill:none;stroke-width:13;stroke-linecap:round;transition:stroke .3s;}
-.eb-chg{stroke:#22c55e;}.eb-dsg{stroke:#f59e0b;}.eb-idle{stroke:#38bdf8;}
-.eb-soc{position:absolute;left:0;right:0;bottom:4px;line-height:1;}
-.eb-soc-num{font-size:32px;font-weight:700;}
-.eb-soc-pct{font-size:13px;opacity:.55;margin-left:2px;}
-.eb-row{display:flex;gap:8px;margin-top:8px;}
-.eb-cell{flex:1;text-align:center;background:rgba(148,163,184,.09);border-radius:8px;padding:6px 4px;}
-.eb-lab{font-size:10px;opacity:.6;}
-.eb-val{font-size:15px;font-weight:600;margin-top:2px;}
-.eb-in{color:#22c55e;}.eb-out{color:#f59e0b;}
-.eb-empty{opacity:.5;text-align:center;padding:22px 0;font-size:12px;}`;
-  document.head.appendChild(s);
+// Minutos → "Xh Ym" / "Ym". null se ausente/zero.
+function fmtDur(min: number | undefined): string | null {
+  if (min == null || !Number.isFinite(min) || min <= 0) return null;
+  const m = Math.round(min);
+  if (m < 60) return `${m}m`;
+  const h = Math.floor(m / 60);
+  const r = m % 60;
+  return r > 0 ? `${h}h ${r}m` : `${h}h`;
 }
 
 export class EnergiaBackupWidget extends Panel {
@@ -80,7 +92,6 @@ export class EnergiaBackupWidget extends Panel {
 
   constructor() {
     super({ id: 'energia-backup', title: 'Energia — Delta 3' });
-    injectStyleOnce();
     // Re-render periódico pra manter o "há XX min" fresco entre snapshots.
     setInterval(() => this.render(), 20_000);
     this.render();
@@ -94,55 +105,116 @@ export class EnergiaBackupWidget extends Panel {
 
   private render(): void {
     const st = this.state;
+    const wrap = (inner: string) =>
+      `<div style="padding:0.85rem 1rem;height:100%;background:rgba(245,247,250,0.5);backdrop-filter:blur(25px);-webkit-backdrop-filter:blur(25px);font-family:ui-sans-serif,system-ui,sans-serif;overflow-y:auto;">${inner}</div>`;
+
     if (!st) {
-      this.content.innerHTML = `<div class="eb-empty">Aguardando dados do Delta 3…</div>`;
+      this.content.innerHTML = wrap(
+        `<div style="text-align:center;color:#9ca3af;padding:26px 0;font-size:0.8rem;">Aguardando dados do Delta 3…</div>`,
+      );
       return;
     }
 
+    // ── Status (dot + rótulo) ────────────────────────────────────────────────
     const stale = Date.now() - st.atualizado_em > STALE_MS;
-    let dotCls = 'eb-on';
+    let dotColor = '#22c55e';
     let statusTxt = 'online';
+    let glow = '0 0 6px #22c55e';
     if (stale) {
-      dotCls = 'eb-off';
+      dotColor = '#9ca3af';
       statusTxt = 'sem comunicação';
+      glow = 'none';
     } else if (!st.rede_ativa) {
-      dotCls = 'eb-alert';
+      dotColor = '#ef4444';
       statusTxt = 'queda de energia';
+      glow = '0 0 7px #ef4444';
     }
 
     const estado = st.estado ?? 'idle';
-    const gaugeCls = estado === 'carregando' ? 'eb-chg' : estado === 'descarregando' ? 'eb-dsg' : 'eb-idle';
+    const cor = COR_ESTADO[estado] ?? '#38bdf8';
+    const labelEstado = LABEL_ESTADO[estado] ?? estado;
+
+    // ── Gauge SoC (semicírculo) ──────────────────────────────────────────────
     const f = Math.max(0, Math.min(100, st.soc_pct)) / 100;
-    const cx = 105;
-    const cy = 95;
-    const r = 82;
+    const cx = 105, cy = 95, r = 82;
     const bg = arc(cx, cy, r, 180, 0);
     const val = f > 0 ? arc(cx, cy, r, 180, 180 - f * 180) : '';
 
+    // ── Autonomia (barra tipo bateria + tempo) ───────────────────────────────
+    const auton = fmtDur(st.autonomia_min);
+    const autonLabel =
+      estado === 'carregando'
+        ? (auton ? `carga cheia em ~${auton}` : 'carregando')
+        : (auton ? `~${auton} restantes` : 'estimando…');
+    const battery = this.renderBattery(f, cor);
+
+    // ── Métricas ─────────────────────────────────────────────────────────────
     const vol = st.ac_in_vol != null ? `${Math.round(st.ac_in_vol)} V` : '—';
     const tb = st.temp_bateria != null ? `${Math.round(st.temp_bateria)}°C` : '—';
     const ti = st.temp_mos != null ? `${Math.round(st.temp_mos)}°C` : '—';
 
-    this.content.innerHTML = `
-      <div class="eb-head">
-        <span><span class="eb-dot ${dotCls}"></span><span class="eb-status">${statusTxt}</span></span>
-        <span class="eb-upd">${relTime(st.atualizado_em)}</span>
+    const secHead = (txt: string) =>
+      `<div style="font-size:0.6rem;color:#6b7280;text-transform:uppercase;letter-spacing:0.06em;font-weight:600;margin-bottom:5px;">${txt}</div>`;
+    const cell = (lab: string, valHtml: string) =>
+      `<div style="flex:1;text-align:center;background:rgba(148,163,184,0.1);border-radius:8px;padding:6px 4px;">
+         <div style="font-size:0.62rem;color:#6b7280;">${lab}</div>
+         <div style="font-size:0.95rem;font-weight:600;color:#1f2937;margin-top:2px;">${valHtml}</div>
+       </div>`;
+
+    this.content.innerHTML = wrap(`
+      <div style="display:flex;justify-content:space-between;align-items:center;font-size:0.72rem;margin-bottom:2px;">
+        <span style="display:flex;align-items:center;gap:6px;">
+          <span style="width:9px;height:9px;border-radius:50%;background:${dotColor};box-shadow:${glow};display:inline-block;"></span>
+          <span style="color:#4b5563;text-transform:uppercase;letter-spacing:0.4px;font-size:0.62rem;">${statusTxt}</span>
+        </span>
+        <span style="color:#9ca3af;font-size:0.65rem;">⟳ ${relTime(st.atualizado_em)}</span>
       </div>
-      <div class="eb-gauge">
-        <svg viewBox="0 0 210 112" role="img" aria-label="SoC ${st.soc_pct.toFixed(1)}%">
-          <path d="${bg}" class="eb-arc-bg"/>
-          ${val ? `<path d="${val}" class="eb-arc ${gaugeCls}"/>` : ''}
+
+      <div style="position:relative;text-align:center;">
+        <svg viewBox="0 0 210 112" role="img" aria-label="SoC ${st.soc_pct.toFixed(1)}%" style="width:100%;max-width:210px;height:auto;">
+          <path d="${bg}" fill="none" stroke="rgba(148,163,184,0.22)" stroke-width="13" stroke-linecap="round"/>
+          ${val ? `<path d="${val}" fill="none" stroke="${cor}" stroke-width="13" stroke-linecap="round"/>` : ''}
         </svg>
-        <div class="eb-soc"><span class="eb-soc-num">${st.soc_pct.toFixed(1)}</span><span class="eb-soc-pct">%</span></div>
+        <div style="position:absolute;left:0;right:0;bottom:16px;line-height:1;">
+          <span style="font-size:2rem;font-weight:800;color:#1f2937;">${st.soc_pct.toFixed(1)}</span><span style="font-size:0.8rem;color:#9ca3af;margin-left:2px;">%</span>
+        </div>
+        <div style="position:absolute;left:0;right:0;bottom:0;font-size:0.66rem;color:${cor};font-weight:600;">
+          <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${cor};vertical-align:middle;margin-right:4px;"></span>${labelEstado}
+        </div>
       </div>
-      <div class="eb-row">
-        <div class="eb-cell"><div class="eb-lab">Entrada</div><div class="eb-val eb-in">${Math.round(st.watts_in)} W</div></div>
-        <div class="eb-cell"><div class="eb-lab">Saída</div><div class="eb-val eb-out">${Math.round(st.watts_out)} W</div></div>
+
+      <div style="display:flex;gap:8px;margin-top:6px;">
+        ${cell('Entrada', `<span style="color:#22c55e;">${Math.round(st.watts_in)} W</span>`)}
+        ${cell('Saída', `<span style="color:#f59e0b;">${Math.round(st.watts_out)} W</span>`)}
       </div>
-      <div class="eb-row">
-        <div class="eb-cell"><div class="eb-lab">Tensão rede</div><div class="eb-val">${vol}</div></div>
-        <div class="eb-cell"><div class="eb-lab">Temp. bateria</div><div class="eb-val">${tb}</div></div>
-        <div class="eb-cell"><div class="eb-lab">Temp. inversor</div><div class="eb-val">${ti}</div></div>
-      </div>`;
+
+      <div style="border-top:1px solid rgba(0,0,0,0.06);margin-top:10px;padding-top:8px;">
+        ${secHead('Autonomia')}
+        <div style="display:flex;align-items:center;gap:10px;">
+          ${battery}
+          <div style="font-size:0.9rem;font-weight:700;color:#1f2937;white-space:nowrap;">${autonLabel}</div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:8px;margin-top:10px;">
+        ${cell('Tensão rede', vol)}
+        ${cell('Temp. bateria', tb)}
+        ${cell('Temp. inversor', ti)}
+      </div>
+    `);
+  }
+
+  // Pictograma de bateria horizontal preenchido pelo SoC, cor por estado.
+  private renderBattery(frac: number, cor: string): string {
+    const w = 96, h = 34, cap = 5, pad = 3;
+    const bodyW = w - cap;
+    const innerW = bodyW - pad * 2;
+    const fillW = Math.max(0, Math.min(1, frac)) * innerW;
+    return `
+      <svg viewBox="0 0 ${w} ${h}" style="width:96px;height:auto;flex-shrink:0;" role="img" aria-label="bateria ${Math.round(frac * 100)}%">
+        <rect x="1" y="1" width="${bodyW - 2}" height="${h - 2}" rx="5" fill="none" stroke="rgba(100,116,139,0.5)" stroke-width="2"/>
+        <rect x="${bodyW}" y="${h / 2 - 6}" width="${cap}" height="12" rx="2" fill="rgba(100,116,139,0.5)"/>
+        ${fillW > 0 ? `<rect x="${pad}" y="${pad}" width="${fillW.toFixed(1)}" height="${h - pad * 2}" rx="3" fill="${cor}"/>` : ''}
+      </svg>`;
   }
 }
