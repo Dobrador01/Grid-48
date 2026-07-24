@@ -29,6 +29,7 @@ interface ConfigResolvida {
   };
   defcon: { ativo: boolean; limiar_nivel: number };
   heartbeat: { ativo: boolean; stale_minutos: number; cooldown_horas: number };
+  energia: { ativo: boolean; limiar_soc: number };
 }
 
 const NIVEL_OPTIONS = [
@@ -138,6 +139,23 @@ export function renderNotificacoesSettings(): RenderResult {
           </p>
         </fieldset>
 
+        <!-- Energia de backup -->
+        <fieldset style="${FS}">
+          <legend style="${LEG}">🔋 Energia de backup (Delta 3)</legend>
+          <label style="font-size: 0.78rem; display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+            <input type="checkbox" id="nfEnergiaAtivo"> Avisar em queda de energia e bateria baixa
+          </label>
+          <label style="font-size: 0.72rem;">
+            Avisar quando a bateria cair abaixo de (%)
+            <input type="number" id="nfLimiarSoc" min="5" max="100" step="5" style="${NUM}">
+          </label>
+          <p style="${HINT} margin-top: 8px;">
+            Queda de rede avisa na hora e repete de hora em hora até voltar (e um
+            aviso quando volta). Bateria baixa dispara no limiar e de novo a cada
+            −5% (ex: 20% → 15% → 10% → 5%).
+          </p>
+        </fieldset>
+
         <!-- Heartbeat -->
         <fieldset style="${FS}">
           <legend style="${LEG}">🕳️ Heartbeat ("fiquei cego")</legend>
@@ -185,6 +203,8 @@ export function renderNotificacoesSettings(): RenderResult {
     const nfHbAtivo = $<HTMLInputElement>('#nfHbAtivo');
     const nfStale = $<HTMLInputElement>('#nfStale');
     const nfCooldown = $<HTMLInputElement>('#nfCooldown');
+    const nfEnergiaAtivo = $<HTMLInputElement>('#nfEnergiaAtivo');
+    const nfLimiarSoc = $<HTMLInputElement>('#nfLimiarSoc');
     const saveBtn = $<HTMLButtonElement>('#nfSaveBtn');
     const testBtn = $<HTMLButtonElement>('#nfTestBtn');
     const saveStatus = $<HTMLElement>('#nfSaveStatus');
@@ -239,6 +259,8 @@ export function renderNotificacoesSettings(): RenderResult {
         nfHbAtivo.checked = data.heartbeat.ativo;
         nfStale.value = String(data.heartbeat.stale_minutos);
         nfCooldown.value = String(data.heartbeat.cooldown_horas);
+        nfEnergiaAtivo.checked = data.energia.ativo;
+        nfLimiarSoc.value = String(data.energia.limiar_soc);
         statusEl.textContent = data.chat_id
           ? 'Configuração carregada.'
           : 'Sem chat_id — rode o smoke test do bot ou preencha abaixo.';
@@ -271,6 +293,10 @@ export function renderNotificacoesSettings(): RenderResult {
             ativo: nfHbAtivo.checked,
             stale_minutos: Math.max(15, parseInt(nfStale.value, 10) || 45),
             cooldown_horas: Math.max(1, parseInt(nfCooldown.value, 10) || 3),
+          },
+          energia: {
+            ativo: nfEnergiaAtivo.checked,
+            limiar_soc: Math.min(100, Math.max(5, parseInt(nfLimiarSoc.value, 10) || 20)),
           },
         };
         // chat_id: só envia se preenchido (não sobrescreve com vazio).
